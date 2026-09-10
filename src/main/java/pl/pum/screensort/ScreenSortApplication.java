@@ -1,3 +1,5 @@
+package pl.pum.screensort;
+
 public class ScreenSortApplication {
 
     public static void main(String[] args) {
