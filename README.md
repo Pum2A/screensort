@@ -6,9 +6,9 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Milestone 1 — project bootstrap.
+Learning reset — empty Java workspace.
 
-The Spring Boot application, PostgreSQL development service, runtime profiles, health endpoint and CI workflow are in place. Milestone 2 has started with canonical source-root validation, traversal protection and idempotent AllowedRoot persistence.
+All Java production code, tests and the pre-created package structure have intentionally been removed. The Maven build definition, dependencies, runtime configuration and product documentation remain as a starting point for a guided implementation.
 
 ## MVP flow
 
@@ -40,7 +40,6 @@ Select source folder
 
 - [Product brief](docs/project-brief.md)
 - [Initial architecture](docs/architecture.md)
-- [Package structure](docs/package-structure.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
 - [Cross-device development handoff](docs/device-handoff.md)
@@ -53,25 +52,25 @@ Requirements:
 - Docker Desktop using Linux containers;
 - Docker Compose.
 
-Run the complete verification suite from PowerShell:
+The Java source and test directories are intentionally empty. After recreating the Spring Boot main class and the first tests, use the following command for verification:
 
 ```powershell
 .\mvnw.cmd clean verify
 ```
 
-Run the application with the `local` profile. Spring Boot starts the PostgreSQL service from `compose.yaml` and supplies its connection details to the application:
+After recreating the application entry point, run it with the `local` profile. Spring Boot will start the PostgreSQL service from `compose.yaml` and supply its connection details to the application:
 
 ```powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-While the application is running, its health is available at <http://localhost:8080/actuator/health>. The `test` profile disables Docker Compose because the integration test receives its database connection from Testcontainers. The `demo` profile includes `local` and shows detailed health information.
+The `local`, `test` and `demo` configuration files are retained for later use, but there is currently no Java application to start.
 
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
 ## Current milestone
 
-Milestone 0 and the local bootstrap work of Milestone 1 are complete. Milestone 2 is active: build safe, idempotent screenshot cataloging on the established package boundaries. Publishing and verifying a fresh clone remain repository setup tasks.
+Product planning is complete, but implementation has intentionally returned to zero Java code. Development will restart with one small class at a time, written and understood by the project owner before the next step is added.
 
 ## Not in the first release
 

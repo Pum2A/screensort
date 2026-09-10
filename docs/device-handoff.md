@@ -4,13 +4,13 @@ Use this document when moving ScreenSort development to another computer or star
 
 ## Canonical repository
 
-The canonical repository is intended to be:
+The future canonical repository is intended to be:
 
 ~~~text
 https://github.com/Pum2A/screensort
 ~~~
 
-It is private. Authenticate Git or IntelliJ with the GitHub account that owns or can access the repository.
+It has not been published yet because this local repository has no configured Git remote. When it is created, keep it private and authenticate Git or IntelliJ with the owning GitHub account.
 
 The older planning repository at **<lokalny-katalog-projektu> is a backup only. Do not copy its **.git** directory and do not treat it as the canonical project.
 
@@ -23,7 +23,7 @@ The older planning repository at **<lokalny-katalog-projektu> is a backup only. 
 
 Maven does not need to be installed globally because the repository contains the Maven Wrapper.
 
-## First setup on the laptop
+## First setup on the laptop after publication
 
 Open PowerShell in the directory where you keep projects:
 
@@ -33,9 +33,9 @@ cd screensort
 .\mvnw.cmd clean verify
 ~~~
 
-The verification command starts an isolated PostgreSQL container through Testcontainers, applies Flyway migrations and runs all tests.
+The Java implementation and tests are currently empty, so full verification is not expected to work until the Spring Boot entry point is recreated.
 
-Start the application:
+After recreating the application entry point, start the application:
 
 ~~~powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
@@ -73,29 +73,23 @@ Do not work on uncommitted versions of the same files on both computers. Commit 
 - Java 21.
 - Spring Boot 4.1.1.
 - Maven Wrapper using Maven 3.9.16.
-- PostgreSQL through Docker Compose for local development.
-- PostgreSQL through Testcontainers for integration tests.
-- Flyway owns database schema changes.
-- Hibernate validates mappings and does not create or modify the schema.
-- Application package: **pl.pum.screensort**.
-- Architecture: one package-by-feature modular monolith.
-- Feature packages have documented domain, application, port and infrastructure boundaries.
-- Current milestone: Milestone 2 — safe cataloging.
-- Current verification: 12 tests passing, 0 failures, 0 errors and 0 skipped.
+- Maven dependencies for Spring MVC, Thymeleaf, JPA, Validation, Actuator, Flyway, PostgreSQL and Testcontainers are retained.
+- Docker Compose and the **local**, **test** and **demo** configuration files are retained.
+- **src/main/java** contains no Java code.
+- **src/test/java** contains no Java tests.
+- No package architecture is currently imposed on the implementation.
+- The architecture document is a future product direction, not a description of current code.
 
-Implemented:
+Preserved starting material:
 
 - normalized ScreenSort project coordinates;
 - **local**, **test** and **demo** profiles;
-- Actuator health and info endpoints;
+- Actuator configuration;
 - Java 21 GitHub Actions workflow;
-- immutable **AllowedRoot** domain value;
-- canonical source-root validation;
-- rejection of filesystem roots, the entire user home and protected Windows locations;
-- rejection of path traversal and links escaping the allowed root;
-- idempotent **AllowedRoot** persistence through Spring Data JPA;
-- Flyway migrations V1 and V2.
-- complete package skeleton for the documented application modules.
+- Maven Wrapper;
+- PostgreSQL development configuration;
+- Flyway migration files from the previous implementation, to be reviewed before reuse;
+- product brief, roadmap, architecture and safety ADR.
 
 ## Non-negotiable safety rules
 
@@ -113,38 +107,25 @@ Read these files before implementing new behavior:
 - **README.md**
 - **docs/project-brief.md**
 - **docs/architecture.md**
-- **docs/package-structure.md**
 - **docs/roadmap.md**
 - **docs/adr/ADR-001-copy-first.md**
 
-## Next implementation slice
+## Next implementation step
 
-Implement safe PNG/JPG/JPEG discovery:
-
-1. Discover supported files from an **AllowedRoot**.
-2. Keep recursive scanning disabled unless the stored policy enables it.
-3. Do not follow directory links.
-4. Resolve every discovered file through the existing **SourcePathResolver**.
-5. Record path, original name, MIME type, size and modification time.
-6. Add focused tests for unsupported extensions, traversal, directory links and recursive/non-recursive behavior.
-7. Preserve the read-only-source rule.
-
-Do not implement OCR, classification, UI review or copy operations in this slice.
+Restart from one small, owner-written Java class. Explain syntax before introducing Spring annotations, interfaces, architectural layers or filesystem traversal. Do not add feature code without the project owner's explicit approval.
 
 ## Prompt for a new Codex conversation
 
 Copy the following into a new conversation:
 
 ~~~text
-Continue building ScreenSort from the private GitHub repository currently open in this workspace.
+Continue teaching me while I build ScreenSort in the repository currently open in this workspace.
 
-Read README.md, docs/device-handoff.md, docs/project-brief.md, docs/architecture.md, docs/package-structure.md, docs/roadmap.md and docs/adr/ADR-001-copy-first.md before editing. Inspect Git status and all existing changes first.
+Read README.md, docs/device-handoff.md, docs/project-brief.md, docs/architecture.md, docs/roadmap.md and docs/adr/ADR-001-copy-first.md before editing. Inspect Git status and all existing changes first.
 
-I am learning Spring but know basic/intermediate Java. Work in English and briefly explain important Spring and architecture concepts.
+Talk to me in Polish. I am learning both Java and Spring. I want to write the implementation myself, one small step at a time.
 
 Preserve the read-only-source and copy-first safety rules. Do not modify, move, rename or delete source screenshots.
 
-The current milestone is Milestone 2. AllowedRoot registration, canonical-path validation, JPA persistence, Flyway V2 and path-safety tests are implemented. The last verified build had 12 tests passing with zero skipped.
-
-Implement the next focused slice: safe PNG/JPG/JPEG discovery with metadata collection, configurable recursion disabled by default, no following of directory links, and tests. Run .\mvnw.cmd clean verify before finishing.
+The Java production and test directories are intentionally empty. Do not generate an architecture or multiple classes for me. First discuss one small class in pseudocode, explain every new Java construct and wait for my approval or my own edit before proceeding.
 ~~~
