@@ -48,7 +48,7 @@ Select source folder
 
 Requirements:
 
-- Java 21;
+- Java 25;
 - Docker Desktop using Linux containers;
 - Docker Compose.
 
