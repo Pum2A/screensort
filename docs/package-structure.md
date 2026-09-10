@@ -94,20 +94,15 @@ The **scanning** feature is the first implemented example:
 scanning
 ├── domain
 │   ├── AllowedRoot
-│   ├── DiscoveredImage
-│   ├── ImageFormat
 │   ├── SourcePathAccessException
 │   └── UnsafeSourcePathException
 ├── application
-│   ├── DiscoverImages
 │   ├── RegisterAllowedRoot
 │   └── port
 │       ├── AllowedRootCatalog
-│       ├── ImageDiscovery
 │       └── SourcePathResolver
 └── infrastructure
     ├── filesystem
-    │   ├── LocalImageDiscovery
     │   └── LocalSourcePathResolver
     └── persistence
         ├── AllowedRootEntity
