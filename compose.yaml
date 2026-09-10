@@ -1,0 +1,11 @@
+name: screensort
+
+services:
+  postgres:
+    image: 'postgres:latest'
+    environment:
+      - 'POSTGRES_DB=screensort'
+      - 'POSTGRES_PASSWORD=screensort'
+      - 'POSTGRES_USER=screensort'
+    ports:
+      - '5432'

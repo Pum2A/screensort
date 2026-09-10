@@ -1,0 +1,2 @@
+-- Establishes Flyway's versioned schema history before domain tables are introduced.
+-- The first domain table will be added with the safe-cataloging vertical slice.
