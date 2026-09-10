@@ -81,7 +81,8 @@ Do not work on uncommitted versions of the same files on both computers. Commit 
 - Architecture: one package-by-feature modular monolith.
 - Feature packages have documented domain, application, port and infrastructure boundaries.
 - Current milestone: Milestone 2 — safe cataloging.
-- Current verification: 12 tests passing, 0 failures, 0 errors and 0 skipped.
+- Current focused verification: 4 image-discovery tests passing, 0 failures, 0 errors and 0 skipped.
+- Full verification contains 16 tests and requires a running Docker Desktop engine for the PostgreSQL integration tests.
 
 Implemented:
 
@@ -94,8 +95,12 @@ Implemented:
 - rejection of filesystem roots, the entire user home and protected Windows locations;
 - rejection of path traversal and links escaping the allowed root;
 - idempotent **AllowedRoot** persistence through Spring Data JPA;
-- Flyway migrations V1 and V2.
-- complete package skeleton for the documented application modules.
+- Flyway migrations V1 and V2;
+- complete package skeleton for the documented application modules;
+- read-only PNG, JPG and JPEG discovery;
+- non-recursive scanning by default and optional recursive scanning;
+- metadata collection for canonical path, relative path, original name, media type, size and modification time;
+- deterministic discovery order and directory-link protection.
 
 ## Non-negotiable safety rules
 
@@ -119,14 +124,14 @@ Read these files before implementing new behavior:
 
 ## Next implementation slice
 
-Implement safe PNG/JPG/JPEG discovery:
+Implement stable catalog records and duplicate-safe rescanning:
 
-1. Discover supported files from an **AllowedRoot**.
-2. Keep recursive scanning disabled unless the stored policy enables it.
-3. Do not follow directory links.
-4. Resolve every discovered file through the existing **SourcePathResolver**.
-5. Record path, original name, MIME type, size and modification time.
-6. Add focused tests for unsupported extensions, traversal, directory links and recursive/non-recursive behavior.
+1. Calculate a streaming SHA-256 fingerprint for every discovered image.
+2. Introduce the catalog-owned **FileRecord** domain model.
+3. Add a new append-only Flyway migration for file records.
+4. Persist metadata and fingerprints through a catalog application port.
+5. Make repeated scans idempotent so the same source file is not duplicated.
+6. Add unit tests and PostgreSQL integration tests for repeated scans and changed files.
 7. Preserve the read-only-source rule.
 
 Do not implement OCR, classification, UI review or copy operations in this slice.
@@ -144,7 +149,7 @@ I am learning Spring but know basic/intermediate Java. Work in English and brief
 
 Preserve the read-only-source and copy-first safety rules. Do not modify, move, rename or delete source screenshots.
 
-The current milestone is Milestone 2. AllowedRoot registration, canonical-path validation, JPA persistence, Flyway V2 and path-safety tests are implemented. The last verified build had 12 tests passing with zero skipped.
+The current milestone is Milestone 2. AllowedRoot registration, canonical-path validation, JPA persistence, Flyway V2, safe PNG/JPG/JPEG discovery, metadata collection and filesystem safety tests are implemented.
 
-Implement the next focused slice: safe PNG/JPG/JPEG discovery with metadata collection, configurable recursion disabled by default, no following of directory links, and tests. Run .\mvnw.cmd clean verify before finishing.
+Implement the next focused slice: streaming SHA-256 fingerprints, a catalog-owned FileRecord, Flyway persistence and idempotent repeated scans. Run .\mvnw.cmd clean verify before finishing.
 ~~~

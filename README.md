@@ -6,9 +6,9 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Milestone 1 — project bootstrap.
+Milestone 2 — safe cataloging.
 
-The Spring Boot application, PostgreSQL development service, runtime profiles, health endpoint and CI workflow are in place. Milestone 2 has started with canonical source-root validation, traversal protection and idempotent AllowedRoot persistence.
+The project bootstrap is complete. ScreenSort can validate and persist safe source roots, then discover PNG, JPG and JPEG files with read-only metadata collection, configurable recursion and protection against directory links.
 
 ## MVP flow
 
@@ -71,7 +71,7 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Milestone 0 and the local bootstrap work of Milestone 1 are complete. Milestone 2 is active: build safe, idempotent screenshot cataloging on the established package boundaries. Publishing and verifying a fresh clone remain repository setup tasks.
+Milestones 0 and 1 are complete. Milestone 2 is active: allowed-root registration and safe image discovery are implemented. The next slice calculates SHA-256 fingerprints and persists idempotent catalog records. Publishing and verifying a fresh clone remain repository setup tasks.
 
 ## Not in the first release
 
