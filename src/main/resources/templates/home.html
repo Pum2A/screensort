@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pl" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScreenSort</title>
+    <style>
+        :root {
+            color-scheme: dark;
+            font-family: Inter, system-ui, sans-serif;
+            background: #10131a;
+            color: #f5f7fb;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        main {
+            width: min(760px, calc(100% - 40px));
+            margin: 0 auto;
+            padding: 72px 0;
+        }
+
+        .eyebrow {
+            color: #87a7ff;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+            font-size: clamp(2.4rem, 8vw, 4.5rem);
+        }
+
+        .intro {
+            margin-top: 0;
+            color: #aeb8cc;
+            font-size: 1.1rem;
+            line-height: 1.7;
+        }
+
+        .panel {
+            margin-top: 36px;
+            padding: 24px;
+            border: 1px solid #2b3342;
+            border-radius: 18px;
+            background: #171c26;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        input {
+            flex: 1;
+            min-width: 0;
+            padding: 13px 15px;
+            border: 1px solid #3b4558;
+            border-radius: 10px;
+            background: #0f131b;
+            color: inherit;
+            font: inherit;
+        }
+
+        button {
+            padding: 13px 20px;
+            border: 0;
+            border-radius: 10px;
+            background: #6f91f3;
+            color: #081024;
+            font: inherit;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        .hint {
+            color: #8f9bb0;
+        }
+
+        .message {
+            margin-top: 20px;
+            padding: 14px 16px;
+            border-radius: 10px;
+        }
+
+        .error {
+            background: #402127;
+            color: #ffbbc3;
+        }
+
+        ul {
+            padding: 0;
+            list-style: none;
+        }
+
+        li {
+            display: grid;
+            gap: 5px;
+            padding: 13px 0;
+            border-bottom: 1px solid #2b3342;
+        }
+
+        @media (max-width: 600px) {
+            .form-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <p class="eyebrow">Local image organizer</p>
+    <h1>ScreenSort</h1>
+    <p class="intro">
+        Wskaż lokalny folder. ScreenSort znajdzie w nim prawidłowe obrazy PNG i JPEG,
+        nie zmieniając jeszcze żadnego pliku.
+    </p>
+
+    <section class="panel">
+        <form th:action="@{/scan}" method="post">
+            <label for="folderPath">Ścieżka folderu</label>
+            <div class="form-row">
+                <input
+                        id="folderPath"
+                        name="folderPath"
+                        type="text"
+                        th:value="${folderPath}"
+                        placeholder="C:\Users\...\Pictures"
+                        required
+                >
+                <button type="submit">Skanuj</button>
+            </div>
+            <p class="hint">Na początek możesz zostawić wartość <code>demo-images</code>.</p>
+        </form>
+
+        <p class="message error" th:if="${errorMessage}" th:text="${errorMessage}">
+            Nie udało się przeskanować folderu.
+        </p>
+
+        <div th:if="${images != null}">
+            <h2>Znalezione obrazy: <span th:text="${#lists.size(images)}">0</span></h2>
+
+            <p th:if="${#lists.isEmpty(images)}">W tym folderze nie znaleziono obsługiwanych obrazów.</p>
+
+            <ul th:unless="${#lists.isEmpty(images)}">
+                <li th:each="image : ${images}">
+                    <strong th:text="${image}">image.png</strong>
+                </li>
+            </ul>
+        </div>
+    </section>
+</main>
+</body>
+</html>
