@@ -6,9 +6,9 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Learning reset — empty Java workspace.
+Early safe-cataloging slice.
 
-All Java production code, tests and the pre-created package structure have intentionally been removed. The Maven build definition, dependencies, runtime configuration and product documentation remain as a starting point for a guided implementation.
+The Spring Boot application starts successfully and exposes a local Thymeleaf page for scanning a selected directory. The current scanner discovers valid PNG, JPG and JPEG files without modifying the source directory. Development proceeds in small, owner-understood slices.
 
 ## MVP flow
 
@@ -52,25 +52,25 @@ Requirements:
 - Docker Desktop using Linux containers;
 - Docker Compose.
 
-The Java source and test directories are intentionally empty. After recreating the Spring Boot main class and the first tests, use the following command for verification:
+Run the current tests with:
 
 ```powershell
 .\mvnw.cmd clean verify
 ```
 
-After recreating the application entry point, run it with the `local` profile. Spring Boot will start the PostgreSQL service from `compose.yaml` and supply its connection details to the application:
+Run the application with the `local` profile. Spring Boot will start the PostgreSQL service from `compose.yaml` and supply its connection details to the application:
 
 ```powershell
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 ```
 
-The `local`, `test` and `demo` configuration files are retained for later use, but there is currently no Java application to start.
+Open <http://localhost:8080/> and use `demo-images` for the first scan. The test fixture contains two valid PNG files and one ZIP file that should be rejected.
 
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
 ## Current milestone
 
-Product planning is complete, but implementation has intentionally returned to zero Java code. Development will restart with one small class at a time, written and understood by the project owner before the next step is added.
+Project bootstrap is complete and the first scanning flow works from the web form through the filesystem scanner back to the rendered result list. The next planned work is to organize this slice as a feature-based `scanning` module, add a `ScannedImage` metadata model and introduce explicit source-folder safety validation.
 
 ## Not in the first release
 
