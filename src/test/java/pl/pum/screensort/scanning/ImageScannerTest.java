@@ -13,7 +13,7 @@ class ImageScannerTest {
     void findsSupportedImagesInDemoFolder() throws Exception {
         ImageScanner scanner = new ImageScanner();
 
-        List<Path> images = scanner.scan(Path.of("demo-images"));
+        List<ScannedImage> images = scanner.scan(Path.of("demo-images"));
 
         assertEquals(2, images.size());
     }

@@ -33,11 +33,11 @@ public class ScanController {
         }
 
         try {
-            List<Path> imagePaths = imageScanner.scan(Path.of(folderPath.trim()));
+            List<ScannedImage> images = imageScanner.scan(Path.of(folderPath.trim()));
             List<String> imageNames = new ArrayList<>();
 
-            for (Path imagePath : imagePaths) {
-                imageNames.add(imagePath.getFileName().toString());
+            for (ScannedImage image : images) {
+                imageNames.add(image.originalName());
             }
 
             model.addAttribute("images", imageNames);
