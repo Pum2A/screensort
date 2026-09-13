@@ -79,17 +79,18 @@ The application currently does not persist scanned files, calculate SHA-256, det
 ~~~text
 src/main/java/pl/pum/screensort/
 ├── ScreenSortApplication.java
-├── HomeController.java
-└── ImageScanner.java
+└── scanning/
+    ├── ScanController.java
+    └── ImageScanner.java
 
-src/main/resources/templates/
-└── home.html
+src/main/resources/templates/scanning/
+└── scan.html
 
-src/test/java/pl/pum/screensort/
+src/test/java/pl/pum/screensort/scanning/
 └── ImageScannerTest.java
 ~~~
 
-The Java package is intentionally still flat. A proposed feature-based architecture has been discussed but has not been applied yet.
+The first working slice is organized in the `scanning` feature package. Do not create the remaining feature packages until they contain real code.
 
 ## Agreed architectural direction
 
@@ -124,19 +125,14 @@ Important rules:
 
 Do not jump directly to OCR or database persistence.
 
-1. Mechanically organize the existing working slice as the `scanning` feature without changing behavior:
-   - `HomeController` becomes `ScanController`;
-   - `ImageScanner` moves into the scanning package;
-   - the test mirrors that package;
-   - `home.html` becomes a scanning view.
-2. Verify the test and real GET/POST flow, then commit and push the refactor.
-3. Create `ScannedImage` together with the owner. It should represent useful file metadata instead of returning only `Path`.
-4. Add a clear folder safety validator.
-5. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
-6. Add SHA-256 and duplicate detection.
-7. Persist catalog records in PostgreSQL and make repeated scans idempotent.
+1. Create `ScannedImage` together with the owner. It should represent useful file metadata instead of returning only `Path`.
+2. Change `ImageScanner` to return `List<ScannedImage>` and update the page and test.
+3. Add a clear folder safety validator.
+4. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
+5. Add SHA-256 and duplicate detection.
+6. Persist catalog records in PostgreSQL and make repeated scans idempotent.
 
-The next agent should discuss the exact first refactor with the owner before performing it.
+The next agent should explain Java records and agree on the exact `ScannedImage` fields with the owner before implementing it.
 
 ## Non-negotiable filesystem safety
 
@@ -219,5 +215,5 @@ Talk to me in Polish. I understand general programming and frontend concepts, bu
 
 Preserve the read-only-source and copy-first safety rules. Never modify, move, rename or delete source screenshots. Test every coherent feature or fix, then commit and push it.
 
-The current working slice starts Spring Boot, renders a Thymeleaf scan form and scans direct children of a folder for valid PNG/JPG/JPEG files. The next discussed step is a behavior-preserving refactor into a feature-based scanning package, followed by a jointly written ScannedImage model.
+The current working slice starts Spring Boot, renders a Thymeleaf scan form and scans direct children of a folder for valid PNG/JPG/JPEG files. It is organized in the pl.pum.screensort.scanning feature package. The next discussed step is a jointly written ScannedImage model.
 ~~~

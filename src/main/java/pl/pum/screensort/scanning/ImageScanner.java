@@ -1,4 +1,4 @@
-package pl.pum.screensort;
+package pl.pum.screensort.scanning;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;

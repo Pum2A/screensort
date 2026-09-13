@@ -1,4 +1,4 @@
-package pl.pum.screensort;
+package pl.pum.screensort.scanning;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,14 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Controller
-public class HomeController {
+public class ScanController {
 
     private final ImageScanner imageScanner = new ImageScanner();
 
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("folderPath", "demo-images");
-        return "home";
+        return "scanning/scan";
     }
 
     @PostMapping("/scan")
@@ -29,7 +29,7 @@ public class HomeController {
 
         if (folderPath.isBlank()) {
             model.addAttribute("errorMessage", "Podaj ścieżkę do folderu.");
-            return "home";
+            return "scanning/scan";
         }
 
         try {
@@ -50,6 +50,6 @@ public class HomeController {
             );
         }
 
-        return "home";
+        return "scanning/scan";
     }
 }

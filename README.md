@@ -70,7 +70,7 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Project bootstrap is complete and the first scanning flow works from the web form through the filesystem scanner back to the rendered result list. The next planned work is to organize this slice as a feature-based `scanning` module, add a `ScannedImage` metadata model and introduce explicit source-folder safety validation.
+Project bootstrap is complete and the first scanning flow is organized as a feature-based `scanning` module. The next planned work is to add a `ScannedImage` metadata model and introduce explicit source-folder safety validation.
 
 ## Not in the first release
 
