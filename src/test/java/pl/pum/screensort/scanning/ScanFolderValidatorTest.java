@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,7 +21,7 @@ class ScanFolderValidatorTest {
         AllowedRoot allowedRoot = validator.validate(temporaryDirectory);
 
         assertEquals(
-                temporaryDirectory.toRealPath(LinkOption.NOFOLLOW_LINKS),
+                temporaryDirectory.toRealPath(),
                 allowedRoot.path()
         );
     }

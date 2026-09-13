@@ -34,7 +34,7 @@ public class ScanFolderValidator {
             throw new InvalidScanFolderException("Folder będący linkiem nie może zostać przeskanowany.");
         }
 
-        Path realFolder = normalizedFolder.toRealPath(LinkOption.NOFOLLOW_LINKS);
+        Path realFolder = normalizedFolder.toRealPath();
 
         if (!Files.isDirectory(realFolder, LinkOption.NOFOLLOW_LINKS)) {
             throw new InvalidScanFolderException("Wybrana ścieżka nie jest folderem.");
