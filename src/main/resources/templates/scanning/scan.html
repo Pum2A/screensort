@@ -162,10 +162,9 @@
     </span>
 
                     <span>
-        Rozmiar:
-        <span th:text="${image.sizeBytes}">12345</span>
-        bajtów
-    </span>
+    Rozmiar:
+    <span th:text="${image.formattedSize()}">2.23 MB</span>
+</span>
 
                     <span>
         Ostatnia modyfikacja:
