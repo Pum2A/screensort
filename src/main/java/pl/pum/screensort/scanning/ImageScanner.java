@@ -1,5 +1,7 @@
 package pl.pum.screensort.scanning;
 
+import org.springframework.stereotype.Service;
+
 import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -11,12 +13,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 
+@Service
 public class ImageScanner {
 
+    private final ScanFolderValidator folderValidator;
+
+    public ImageScanner(ScanFolderValidator folderValidator) {
+        this.folderValidator = folderValidator;
+    }
+
     public List<ScannedImage> scan(Path folder) throws IOException {
+        AllowedRoot allowedRoot = folderValidator.validate(folder);
         List<ScannedImage> acceptedImages = new ArrayList<>();
 
-        try(DirectoryStream<Path> files = Files.newDirectoryStream(folder)){
+        try(DirectoryStream<Path> files = Files.newDirectoryStream(allowedRoot.path())){
             for(Path path: files){
                 if(isSupportedImage(path)){
                     ScannedImage image = createScannedImage(path);
@@ -81,6 +91,5 @@ public class ImageScanner {
                 lastModifiedAt
         );
     }
-
 
 }

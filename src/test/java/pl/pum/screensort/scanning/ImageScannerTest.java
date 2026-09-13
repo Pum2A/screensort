@@ -11,7 +11,7 @@ class ImageScannerTest {
 
     @Test
     void findsSupportedImagesInDemoFolder() throws Exception {
-        ImageScanner scanner = new ImageScanner();
+        ImageScanner scanner = new ImageScanner(new ScanFolderValidator());
 
         List<ScannedImage> images = scanner.scan(Path.of("demo-images"));
 

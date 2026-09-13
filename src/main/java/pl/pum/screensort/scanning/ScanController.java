@@ -14,7 +14,11 @@ import java.util.List;
 @Controller
 public class ScanController {
 
-    private final ImageScanner imageScanner = new ImageScanner();
+    private final ImageScanner imageScanner;
+
+    public ScanController(ImageScanner imageScanner) {
+        this.imageScanner = imageScanner;
+    }
 
     @GetMapping("/")
     public String home(Model model) {
@@ -38,6 +42,8 @@ public class ScanController {
             model.addAttribute("images", images);
         } catch (InvalidPathException exception) {
             model.addAttribute("errorMessage", "Ścieżka ma niepoprawny format.");
+        } catch (InvalidScanFolderException exception) {
+            model.addAttribute("errorMessage", exception.getMessage());
         } catch (IOException exception) {
             model.addAttribute(
                     "errorMessage",

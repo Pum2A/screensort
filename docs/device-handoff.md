@@ -1,6 +1,6 @@
 # ScreenSort — cross-device and AI handoff
 
-Last updated: 2026-09-12
+Last updated: 2026-09-13
 
 Use this document when moving development to another computer or starting a new AI conversation.
 
@@ -52,7 +52,7 @@ main class:   ScreenSortApplication
 The project is no longer empty. The following vertical slice works:
 
 1. `ScreenSortApplication` starts Spring Boot.
-2. `GET /` renders `templates/home.html`.
+2. `GET /` renders `templates/scanning/scan.html`.
 3. The page accepts a local folder path. It defaults to `demo-images`.
 4. `POST /scan` calls `ImageScanner`.
 5. `ImageScanner` reads only direct children of the selected directory; recursive scanning is not implemented.
@@ -60,16 +60,20 @@ The project is no longer empty. The following vertical slice works:
 7. It accepts `.png`, `.jpg` and `.jpeg` names.
 8. It rejects files larger than 50 MiB.
 9. It uses `ImageIO.read(...)` to reject files that cannot be decoded as images.
-10. The page displays the accepted image names and a friendly error for an invalid or inaccessible folder.
+10. Each accepted path becomes an immutable `ScannedImage` containing its path, original name, extension, byte size and modification time.
+11. The page displays the accepted image metadata and formats file sizes as B, KB, MB or GB.
+12. `ScanFolderValidator` converts an untrusted `Path` into an `AllowedRoot` before scanning.
+13. The validator rejects missing paths, files, symbolic links, filesystem roots, the complete current user home and protected Windows locations.
+14. `ImageScanner` and `ScanFolderValidator` are Spring-managed components connected through constructor injection.
 
-The demo directory contains two accepted PNG files and one rejected ZIP file. `ImageScannerTest` verifies that scanning it returns exactly two images.
+The demo directory contains two accepted PNG files and one rejected ZIP file. Tests verify discovery, human-readable file sizes and folder safety rules.
 
 The latest verified web behavior was:
 
 ~~~text
 GET  /                    -> HTTP 200
 POST /scan demo-images    -> HTTP 200, two PNG names displayed
-ImageScannerTest          -> 1 test, 0 failures, BUILD SUCCESS
+Maven test suite          -> 7 tests, 0 failures, BUILD SUCCESS
 ~~~
 
 The application currently does not persist scanned files, calculate SHA-256, detect duplicate content, run OCR, classify images or copy files.
@@ -78,16 +82,22 @@ The application currently does not persist scanned files, calculate SHA-256, det
 
 ~~~text
 src/main/java/pl/pum/screensort/
-├── ScreenSortApplication.java
-└── scanning/
-    ├── ScanController.java
-    └── ImageScanner.java
+|-- ScreenSortApplication.java
+`-- scanning/
+    |-- AllowedRoot.java
+    |-- ImageScanner.java
+    |-- InvalidScanFolderException.java
+    |-- ScannedImage.java
+    |-- ScanController.java
+    `-- ScanFolderValidator.java
 
 src/main/resources/templates/scanning/
-└── scan.html
+`-- scan.html
 
 src/test/java/pl/pum/screensort/scanning/
-└── ImageScannerTest.java
+|-- ImageScannerTest.java
+|-- ScannedImageTest.java
+`-- ScanFolderValidatorTest.java
 ~~~
 
 The first working slice is organized in the `scanning` feature package. Do not create the remaining feature packages until they contain real code.
@@ -125,14 +135,13 @@ Important rules:
 
 Do not jump directly to OCR or database persistence.
 
-1. Create `ScannedImage` together with the owner. It should represent useful file metadata instead of returning only `Path`.
-2. Change `ImageScanner` to return `List<ScannedImage>` and update the page and test.
-3. Add a clear folder safety validator.
-4. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
-5. Add SHA-256 and duplicate detection.
-6. Persist catalog records in PostgreSQL and make repeated scans idempotent.
+1. Review the completed `AllowedRoot` and `ScanFolderValidator` flow with the owner so they understand each safety rule and the constructor injection.
+2. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
+3. Add MIME type to the scanned metadata.
+4. Add SHA-256 and duplicate detection.
+5. Persist catalog records in PostgreSQL and make repeated scans idempotent.
 
-The next agent should explain Java records and agree on the exact `ScannedImage` fields with the owner before implementing it.
+The owner wants to continue writing core feature code after the mechanical folder-validation refactor. Explain the new files before starting another feature.
 
 ## Non-negotiable filesystem safety
 
@@ -215,5 +224,5 @@ Talk to me in Polish. I understand general programming and frontend concepts, bu
 
 Preserve the read-only-source and copy-first safety rules. Never modify, move, rename or delete source screenshots. Test every coherent feature or fix, then commit and push it.
 
-The current working slice starts Spring Boot, renders a Thymeleaf scan form and scans direct children of a folder for valid PNG/JPG/JPEG files. It is organized in the pl.pum.screensort.scanning feature package. The next discussed step is a jointly written ScannedImage model.
+The current working slice starts Spring Boot, validates a user-selected folder into an AllowedRoot, scans its direct children for valid PNG/JPG/JPEG files, creates ScannedImage metadata and renders it in a Thymeleaf view. ImageScanner and ScanFolderValidator use Spring constructor injection. The next step is to review this refactor with me, then build a richer ScanResult with accepted and rejected entries and reasons.
 ~~~
