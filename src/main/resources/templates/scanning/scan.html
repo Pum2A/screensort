@@ -154,7 +154,23 @@
 
             <ul th:unless="${#lists.isEmpty(images)}">
                 <li th:each="image : ${images}">
-                    <strong th:text="${image}">image.png</strong>
+                    <strong th:text="${image.originalName}">image.png</strong>
+
+                    <span>
+        Rozszerzenie:
+        <span th:text="${image.extension}">png</span>
+    </span>
+
+                    <span>
+        Rozmiar:
+        <span th:text="${image.sizeBytes}">12345</span>
+        bajtów
+    </span>
+
+                    <span>
+        Ostatnia modyfikacja:
+        <span th:text="${image.lastModifiedAt}">2026-09-13</span>
+    </span>
                 </li>
             </ul>
         </div>

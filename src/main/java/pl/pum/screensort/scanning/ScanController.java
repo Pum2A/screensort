@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.io.IOException;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -34,13 +33,9 @@ public class ScanController {
 
         try {
             List<ScannedImage> images = imageScanner.scan(Path.of(folderPath.trim()));
-            List<String> imageNames = new ArrayList<>();
 
-            for (ScannedImage image : images) {
-                imageNames.add(image.originalName());
-            }
 
-            model.addAttribute("images", imageNames);
+            model.addAttribute("images", images);
         } catch (InvalidPathException exception) {
             model.addAttribute("errorMessage", "Ścieżka ma niepoprawny format.");
         } catch (IOException exception) {
