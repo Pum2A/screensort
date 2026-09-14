@@ -1,6 +1,7 @@
-package pl.pum.screensort.scanning;
+package pl.pum.screensort.scanning.validation;
 
 import org.springframework.stereotype.Component;
+import pl.pum.screensort.scanning.model.AllowedRoot;
 
 import java.io.IOException;
 import java.nio.file.Files;
