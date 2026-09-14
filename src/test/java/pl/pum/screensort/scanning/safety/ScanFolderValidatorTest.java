@@ -1,8 +1,7 @@
-package pl.pum.screensort.scanning.validation;
+package pl.pum.screensort.scanning.safety;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pl.pum.screensort.scanning.model.AllowedRoot;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

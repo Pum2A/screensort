@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.validation;
+package pl.pum.screensort.scanning.safety;
 
 import java.io.IOException;
 

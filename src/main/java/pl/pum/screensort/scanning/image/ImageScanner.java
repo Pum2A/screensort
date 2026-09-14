@@ -1,9 +1,8 @@
-package pl.pum.screensort.scanning.service;
+package pl.pum.screensort.scanning.image;
 
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.scanning.model.AllowedRoot;
-import pl.pum.screensort.scanning.model.ScannedImage;
-import pl.pum.screensort.scanning.validation.ScanFolderValidator;
+import pl.pum.screensort.scanning.safety.AllowedRoot;
+import pl.pum.screensort.scanning.safety.ScanFolderValidator;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;

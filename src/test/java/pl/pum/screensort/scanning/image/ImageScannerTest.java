@@ -1,8 +1,7 @@
-package pl.pum.screensort.scanning.service;
+package pl.pum.screensort.scanning.image;
 
 import org.junit.jupiter.api.Test;
-import pl.pum.screensort.scanning.model.ScannedImage;
-import pl.pum.screensort.scanning.validation.ScanFolderValidator;
+import pl.pum.screensort.scanning.safety.ScanFolderValidator;
 
 import java.nio.file.Path;
 import java.util.List;

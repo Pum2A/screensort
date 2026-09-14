@@ -84,12 +84,11 @@ The application currently does not persist scanned files, calculate SHA-256, det
 src/main/java/pl/pum/screensort/
 |-- ScreenSortApplication.java
 `-- scanning/
-    |-- model/
-    |   |-- AllowedRoot.java
+    |-- image/
+    |   |-- ImageScanner.java
     |   `-- ScannedImage.java
-    |-- service/
-    |   `-- ImageScanner.java
-    |-- validation/
+    |-- safety/
+    |   |-- AllowedRoot.java
     |   |-- InvalidScanFolderException.java
     |   `-- ScanFolderValidator.java
     `-- web/
@@ -99,9 +98,10 @@ src/main/resources/templates/scanning/
 `-- scan.html
 
 src/test/java/pl/pum/screensort/scanning/
-|-- model/ScannedImageTest.java
-|-- service/ImageScannerTest.java
-`-- validation/ScanFolderValidatorTest.java
+|-- image/
+|   |-- ImageScannerTest.java
+|   `-- ScannedImageTest.java
+`-- safety/ScanFolderValidatorTest.java
 ~~~
 
 The first working slice is organized in the `scanning` feature package. Do not create the remaining feature packages until they contain real code.

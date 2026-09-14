@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.model;
+package pl.pum.screensort.scanning.safety;
 
 import java.nio.file.Path;
 

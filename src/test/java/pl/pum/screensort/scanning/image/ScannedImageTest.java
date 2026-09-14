@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.model;
+package pl.pum.screensort.scanning.image;
 
 import org.junit.jupiter.api.Test;
 
