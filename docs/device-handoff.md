@@ -1,6 +1,6 @@
 # ScreenSort — cross-device and AI handoff
 
-Last updated: 2026-09-13
+Last updated: 2026-09-14
 
 Use this document when moving development to another computer or starting a new AI conversation.
 
@@ -34,7 +34,9 @@ The older planning repository at `<lokalny-katalog-projektu> is a backup only. D
 - Spring Boot 4.1.1.
 - Maven Wrapper using Maven 3.9.16.
 - PostgreSQL through Docker Compose for the `local` profile.
-- Thymeleaf and Spring MVC for the local web UI.
+- React 19, TypeScript 6 and Vite 8 for the new frontend foundation.
+- Spring MVC for the HTTP boundary and a temporary Thymeleaf scanning prototype.
+- A thin JavaFX desktop shell and native folder picker are accepted but not implemented yet.
 - JUnit Jupiter for tests.
 
 Project coordinates:
@@ -78,6 +80,8 @@ Maven test suite          -> 7 tests, 0 failures, BUILD SUCCESS
 
 The application currently does not persist scanned files, calculate SHA-256, detect duplicate content, run OCR, classify images or copy files.
 
+A separate `frontend/` project now contains the future React user interface, a Vite development server on `127.0.0.1:5173` and an `/api` proxy to Spring Boot on `127.0.0.1:8080`. Its folder button is intentionally disabled because neither the REST scan endpoint nor the native JavaFX bridge has been implemented yet.
+
 ## Current files
 
 ~~~text
@@ -102,6 +106,16 @@ src/test/java/pl/pum/screensort/scanning/
 |   |-- ImageScannerTest.java
 |   `-- ScannedImageTest.java
 `-- safety/ScanFolderValidatorTest.java
+
+frontend/
+|-- src/
+|   |-- App.tsx
+|   |-- App.css
+|   |-- index.css
+|   `-- main.tsx
+|-- package.json
+|-- vite.config.ts
+`-- README.md
 ~~~
 
 The first working slice is organized in the `scanning` feature package. Do not create the remaining feature packages until they contain real code.
@@ -139,11 +153,12 @@ Important rules:
 
 Do not jump directly to OCR or database persistence.
 
-1. Review the completed `AllowedRoot` and `ScanFolderValidator` flow with the owner so they understand each safety rule and the constructor injection.
-2. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
-3. Add MIME type to the scanned metadata.
-4. Add SHA-256 and duplicate detection.
-5. Persist catalog records in PostgreSQL and make repeated scans idempotent.
+1. Add a richer `ScanResult` containing accepted and rejected entries with reasons.
+2. Add MIME type to the scanned metadata.
+3. Add SHA-256 and duplicate detection.
+4. Persist catalog records in PostgreSQL and make repeated scans idempotent.
+5. Expose the safe scan use case as a local REST endpoint and connect the React UI.
+6. Add the thin JavaFX shell and native folder picker before the user-facing release.
 
 The owner wants to continue writing core feature code after the mechanical folder-validation refactor. Explain the new files before starting another feature.
 
@@ -165,6 +180,7 @@ Read these files before changing behavior:
 - `docs/architecture.md`
 - `docs/roadmap.md`
 - `docs/adr/ADR-001-copy-first.md`
+- `docs/adr/ADR-002-react-desktop-ui.md`
 
 ## Laptop setup
 
@@ -222,11 +238,11 @@ Copy this prompt into a new conversation:
 ~~~text
 Continue helping me build ScreenSort from the repository currently open in the workspace.
 
-Before editing, read README.md, docs/device-handoff.md, docs/project-brief.md, docs/architecture.md, docs/roadmap.md and docs/adr/ADR-001-copy-first.md. Inspect Git status and existing changes. The canonical private repository is https://github.com/Pum2A/screensort and the default branch is main.
+Before editing, read README.md, docs/device-handoff.md, docs/project-brief.md, docs/architecture.md, docs/roadmap.md, docs/adr/ADR-001-copy-first.md and docs/adr/ADR-002-react-desktop-ui.md. Inspect Git status and existing changes. The canonical private repository is https://github.com/Pum2A/screensort and the default branch is main.
 
 Talk to me in Polish. I understand general programming and frontend concepts, but I am learning Java and Spring. Explain important syntax and use frontend analogies where useful. I want to understand and write core feature code myself, so proceed in small steps and do not generate many classes without discussing them first.
 
 Preserve the read-only-source and copy-first safety rules. Never modify, move, rename or delete source screenshots. Test every coherent feature or fix, then commit and push it.
 
-The current working slice starts Spring Boot, validates a user-selected folder into an AllowedRoot, scans its direct children for valid PNG/JPG/JPEG files, creates ScannedImage metadata and renders it in a Thymeleaf view. ImageScanner and ScanFolderValidator use Spring constructor injection. The next step is to review this refactor with me, then build a richer ScanResult with accepted and rejected entries and reasons.
+The current working slice starts Spring Boot, validates a user-selected folder into an AllowedRoot, scans its direct children for valid PNG/JPG/JPEG files, creates ScannedImage metadata and renders it in a temporary Thymeleaf view. A separate React 19, TypeScript 6 and Vite 8 frontend foundation exists in frontend/. The accepted UI direction is React talking to a local Spring REST API, later displayed inside a thin JavaFX desktop shell with a native folder picker. The next backend step is a richer ScanResult with accepted and rejected entries and reasons.
 ~~~

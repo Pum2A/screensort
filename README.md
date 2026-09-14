@@ -6,9 +6,9 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Early safe-cataloging slice.
+Early safe-cataloging slice with a modern frontend foundation.
 
-The Spring Boot application starts successfully and exposes a local Thymeleaf page for scanning a selected directory. The current scanner discovers valid PNG, JPG and JPEG files without modifying the source directory. Development proceeds in small, owner-understood slices.
+The Spring Boot application starts successfully and exposes a local Thymeleaf prototype for scanning a selected directory. The current scanner discovers valid PNG, JPG and JPEG files without modifying the source directory. A separate React, TypeScript and Vite frontend foundation now exists in `frontend/`; it will replace the prototype incrementally as REST endpoints are introduced.
 
 ## MVP flow
 
@@ -42,6 +42,7 @@ Select source folder
 - [Initial architecture](docs/architecture.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
+- [ADR-002: React web UI inside a thin Java desktop shell](docs/adr/ADR-002-react-desktop-ui.md)
 - [Cross-device development handoff](docs/device-handoff.md)
 
 ## Development
@@ -49,6 +50,7 @@ Select source folder
 Requirements:
 
 - Java 25;
+- Node.js 20.19+ or 22.12+ for frontend development;
 - Docker Desktop using Linux containers;
 - Docker Compose.
 
@@ -66,11 +68,21 @@ Run the application with the `local` profile. Spring Boot will start the Postgre
 
 Open <http://localhost:8080/> and use `demo-images` for the first scan. The test fixture contains two valid PNG files and one ZIP file that should be rejected.
 
+To run the new frontend development server:
+
+```powershell
+cd frontend
+npm.cmd install
+npm.cmd run dev
+```
+
+Open <http://127.0.0.1:5173/>. During development, Vite forwards `/api` requests to Spring Boot at `127.0.0.1:8080`.
+
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
 ## Current milestone
 
-Project bootstrap is complete and the first scanning flow is organized as a feature-based `scanning` module. The next planned work is to add a `ScannedImage` metadata model and introduce explicit source-folder safety validation.
+Project bootstrap, source-folder safety validation, image metadata extraction and the React frontend foundation are complete. The next backend step is a richer scan result that explains accepted and rejected files before the scanner is exposed through a REST endpoint.
 
 ## Not in the first release
 

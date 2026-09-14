@@ -47,7 +47,8 @@ flowchart TD
 | `review` | Manual corrections and approval state |
 | `search` | Queries over names, OCR text, categories and tags |
 | `organization` | Copy planning, execution, verification and recovery |
-| `web` | Local UI controllers, view models and HTTP boundary |
+| `web` | Local REST API, temporary prototype controllers and HTTP boundary |
+| `desktop` | Future thin JavaFX window, embedded web view and native folder picker |
 | `shared` | Small cross-cutting primitives with no business ownership |
 
 This is one Maven application at the start. Package boundaries are preferred over premature Maven modules.
@@ -162,7 +163,11 @@ Required checks:
 
 ## 11. UI boundary
 
-The review UI is local and backend-driven. Its first important screen is the review catalog, not a dashboard.
+The review UI is a local React and TypeScript single-page application built with Vite. Spring Boot owns filesystem access and business behavior and exposes JSON through a local REST API. During development, Vite runs on `127.0.0.1:5173` and proxies `/api` to Spring Boot on `127.0.0.1:8080`.
+
+For the desktop release, a thin JavaFX shell will display the built frontend in an embedded web view and provide the native Windows directory chooser through a deliberately narrow JavaScript-to-Java bridge. The existing Thymeleaf screen remains a temporary working prototype while the REST boundary is introduced incrementally.
+
+The first important product screen is the review catalog, not a dashboard.
 
 Each item shows:
 
@@ -176,7 +181,7 @@ Each item shows:
 - processing or copy status;
 - selection control.
 
-A normal browser page cannot be trusted to provide unrestricted local filesystem paths. The technical cataloging slice may initially use a configured demo directory. A thin native folder picker is introduced before the first user-facing release.
+A normal browser page cannot be trusted to provide unrestricted local filesystem paths. Only the desktop shell may return the selected directory path, and the backend must still pass that path through `ScanFolderValidator`. The bridge must not expose arbitrary filesystem operations to frontend code.
 
 ## 12. Deployment profiles
 
@@ -198,4 +203,3 @@ Only after the complete MVP works locally:
 4. native desktop packaging;
 5. separate analysis worker;
 6. Kafka, outbox, retry and dead-letter handling.
-

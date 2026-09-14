@@ -169,11 +169,9 @@ The MVP is successful when:
 
 ## 11. Open decisions
 
-- Native folder picker approach for the first user-facing release.
 - Exact local OCR integration.
 - Exact local visual analysis implementation.
 - Whether the first release uses PostgreSQL only or offers an embedded demo profile later.
 - Default recursive scanning policy.
 
 Open decisions must not block the first cataloging slice unless they directly affect it.
-
