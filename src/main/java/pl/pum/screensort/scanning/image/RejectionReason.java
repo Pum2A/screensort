@@ -5,5 +5,6 @@ public enum RejectionReason {
     TOO_LARGE,
     NOT_A_REGULAR_FILE,
     UNSUPPORTED_EXTENSION,
-    SYMBOLIC_LINK
+    SYMBOLIC_LINK,
+    METADATA_UNREADABLE
 }
