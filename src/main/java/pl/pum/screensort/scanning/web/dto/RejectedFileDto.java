@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web;
+package pl.pum.screensort.scanning.web.dto;
 
 import pl.pum.screensort.scanning.image.RejectedFile;
 import pl.pum.screensort.scanning.image.RejectionReason;
