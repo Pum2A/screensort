@@ -1,7 +1,7 @@
 # ADR-002: React web UI inside a thin Java desktop shell
 
 Date: 2026-09-14  
-Status: Accepted
+Status: Accepted (desktop-shell choice superseded by [ADR-003](ADR-003-tauri-desktop-shell.md))
 
 ## Context
 

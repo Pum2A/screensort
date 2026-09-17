@@ -43,6 +43,7 @@ Select source folder
 - [Delivery roadmap](docs/roadmap.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
 - [ADR-002: React web UI inside a thin Java desktop shell](docs/adr/ADR-002-react-desktop-ui.md)
+- [ADR-003: Tauri desktop shell instead of JavaFX](docs/adr/ADR-003-tauri-desktop-shell.md)
 - [Cross-device development handoff](docs/device-handoff.md)
 
 ## Development
