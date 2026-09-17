@@ -1,13 +1,12 @@
 package pl.pum.screensort.scanning.web;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.scanning.image.ImageScanner;
 import pl.pum.screensort.scanning.image.ScanResult;
-
-import java.io.IOException;
-import java.nio.file.Path;
 
 @RestController
 public class ScanRestController {
@@ -18,10 +17,11 @@ public class ScanRestController {
   }
 
   @PostMapping("/api/scan")
-  public ScanResult scan(@RequestParam String folderPath) throws IOException {
+  public ScanResultDto scan(@RequestParam String folderPath) throws IOException {
 
     Path path = Path.of(folderPath);
 
-    return imageScanner.scan(path);
+    ScanResult result = imageScanner.scan(path);
+    return ScanResultDto.from(result);
   }
 }
