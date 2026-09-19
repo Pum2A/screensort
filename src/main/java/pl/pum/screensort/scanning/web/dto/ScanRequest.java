@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web;
+package pl.pum.screensort.scanning.web.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.scanning.image.ImageScanner;
 import pl.pum.screensort.scanning.image.ScanResult;
 import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
+import pl.pum.screensort.scanning.web.dto.ScanRequest;
 import pl.pum.screensort.scanning.web.dto.ScanResultDto;
 
 @RestController
