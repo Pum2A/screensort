@@ -1,17 +1,17 @@
 package pl.pum.screensort.scanning.image;
 
-import org.junit.jupiter.api.Test;
-import pl.pum.screensort.scanning.safety.ScanFolderValidator;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
+import pl.pum.screensort.scanning.hashing.FileHasher;
+import pl.pum.screensort.scanning.safety.ScanFolderValidator;
 
 class ImageScannerTest {
 
     @Test
     void findsSupportedImagesInDemoFolder() throws Exception {
-        ImageScanner scanner = new ImageScanner(new ScanFolderValidator());
+    ImageScanner scanner = new ImageScanner(new ScanFolderValidator(), new FileHasher());
 
         ScanResult result = scanner.scan(Path.of("demo-images"));
 

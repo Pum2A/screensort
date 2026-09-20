@@ -1,5 +1,7 @@
 package pl.pum.screensort.scanning.image;
 
+import static pl.pum.screensort.scanning.image.RejectionReason.METADATA_UNREADABLE;
+
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -11,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import javax.imageio.ImageIO;
 import org.springframework.stereotype.Service;
+import pl.pum.screensort.scanning.hashing.FileHasher;
 import pl.pum.screensort.scanning.safety.AllowedRoot;
 import pl.pum.screensort.scanning.safety.ScanFolderValidator;
 
@@ -19,9 +22,11 @@ public class ImageScanner {
   private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
 
   private final ScanFolderValidator folderValidator;
+  private final FileHasher hasher;
 
-  public ImageScanner(ScanFolderValidator folderValidator) {
+  public ImageScanner(ScanFolderValidator folderValidator, FileHasher hasher) {
     this.folderValidator = folderValidator;
+    this.hasher = hasher;
   }
 
   public ScanResult scan(Path folder) throws IOException {
@@ -33,9 +38,19 @@ public class ImageScanner {
       for (Path path : files) {
         Optional<RejectionReason> reason = classify(path);
         if (reason.isEmpty()) {
-          accepted.add(createAcceptedImage(path));
+          Optional<String> hash = hasher.hash(path);
+          if (hash.isPresent()) {
+            accepted.add(createAcceptedImage(path, hash.get()));
+            System.out.println("Accepted: " + path + "hash: " + hash.get());
+          } else {
+            rejected.add(
+                new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE));
+            System.out.println("Rejected file: " + path);
+          }
+
         } else {
           rejected.add(new RejectedFile(path, path.getFileName().toString(), reason.get()));
+          System.out.println("Rejected: " + reason.get());
         }
       }
     }
@@ -73,12 +88,12 @@ public class ImageScanner {
     return fileName.substring(dotPosition + 1).toLowerCase();
   }
 
-  private AcceptedImage createAcceptedImage(Path path) throws IOException {
+  private AcceptedImage createAcceptedImage(Path path, String hash) throws IOException {
     String originalName = path.getFileName().toString();
     String extension = getExtension(path);
     long sizeBytes = Files.size(path);
     Instant lastModifiedAt = Files.getLastModifiedTime(path).toInstant();
-    return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt);
+    return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt, hash);
   }
 
   private Optional<RejectionReason> classify(Path path) {

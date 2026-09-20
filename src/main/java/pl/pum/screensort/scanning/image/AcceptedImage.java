@@ -4,7 +4,12 @@ import java.nio.file.Path;
 import java.time.Instant;
 
 public record AcceptedImage(
-    Path path, String originalName, String extension, long sizeBytes, Instant lastModifiedAt) {
+    Path path,
+    String originalName,
+    String extension,
+    long sizeBytes,
+    Instant lastModifiedAt,
+    String hash) {
   private static final long KILOBYTE = 1024L;
   private static final long MEGABYTE = KILOBYTE * 1024;
   private static final long GIGABYTE = MEGABYTE * 1024;

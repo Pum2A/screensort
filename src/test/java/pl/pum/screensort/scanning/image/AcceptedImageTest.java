@@ -1,11 +1,10 @@
 package pl.pum.screensort.scanning.image;
 
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.nio.file.Path;
 import java.time.Instant;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.Test;
 
 class AcceptedImageTest {
 
@@ -18,6 +17,7 @@ class AcceptedImageTest {
   }
 
   private AcceptedImage imageWithSize(long sizeBytes) {
-    return new AcceptedImage(Path.of("image.png"), "image.png", "png", sizeBytes, Instant.EPOCH);
+    return new AcceptedImage(
+        Path.of("image.png"), "image.png", "png", sizeBytes, Instant.EPOCH, "123123123123");
   }
 }
