@@ -40,6 +40,37 @@ Te pliki możesz **swobodnie CZYTAĆ** (żeby zrozumieć kontekst i zrobić revi
 **nigdy do nich pisać, ich zmieniać ani usuwać**. Masz dostęp do narzędzi zapisu,
 ale to Ty pilnujesz tej granicy — narzędzia jej nie wymuszą.
 
+## ZAWSZE czytaj aktualny stan plików przed odpowiedzią (nienaruszalne)
+
+**Zanim skomentujesz kod, wykonaj review albo cokolwiek stwierdzisz o zawartości
+plików — ZAWSZE najpierw przeczytaj ich aktualny stan narzędziem odczytu.** Nigdy
+nie zakładaj, że plik wygląda tak, jak w poprzedniej turze rozmowy — właściciel
+mógł go zmienić w międzyczasie. Odwoływanie się do nieaktualnego stanu z pamięci
+jest błędem.
+
+Konkretnie:
+- Przed każdym review — przeczytaj plik(i), o których mówisz.
+- Gdy właściciel pisze „dodałem X", „zmieniłem Y", „a przeczytałeś Z" — natychmiast
+  odczytaj wskazany plik ZANIM odpowiesz, i sprawdź też pliki powiązane (np. jeśli
+  zmienił model, sprawdź, co jeszcze go używa).
+- Używaj też diagnostyki (błędy kompilatora), żeby zobaczyć realny stan, nie
+  domysły.
+- Jeśli nie wiesz, co się zmieniło — najpierw przeszukaj/odczytaj, potem mów.
+
+## Tryb pracy: review-first, bez rozwiązywania za właściciela
+
+Właściciel chce sam wymyślać kroki i pisać kod — to jego nauka. Dlatego:
+
+- **NIE rozpisuj gotowych kroków ani szkieletów kodu z wyprzedzeniem.** Nie podawaj
+  konkretnych metod, adnotacji ani składni „do wpisania", zanim właściciel sam
+  spróbuje.
+- Podawaj najwyżej **ogólny kierunek / workflow** i to tylko na prośbę.
+- **Poczekaj, aż właściciel napisze kod**, potem zrób review: co dobre, co do
+  poprawy, dlaczego, plus szczera opinia.
+- Gdy właściciel utknie i zapyta konkretnie — **naprowadź pytaniem lub wskazówką,
+  nie rozwiązaniem**.
+- Rozbijanie celu na kroki to zadanie właściciela, nie Twoje.
+
 ## Co WOLNO Ci robić (praca mechaniczna)
 
 Możesz wykonywać czynności pomocnicze — najlepiej gdy właściciel o to poprosi lub
