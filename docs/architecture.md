@@ -48,7 +48,7 @@ flowchart TD
 | `search` | Queries over names, OCR text, categories and tags |
 | `organization` | Copy planning, execution, verification and recovery |
 | `web` | Local REST API, temporary prototype controllers and HTTP boundary |
-| `desktop` | Future thin JavaFX window, embedded web view and native folder picker |
+| `desktop` | Future thin Tauri shell, Rust native bridge and folder picker |
 | `shared` | Small cross-cutting primitives with no business ownership |
 
 This is one Maven application at the start. Package boundaries are preferred over premature Maven modules.
@@ -165,7 +165,7 @@ Required checks:
 
 The review UI is a local React and TypeScript single-page application built with Vite. Spring Boot owns filesystem access and business behavior and exposes JSON through a local REST API. During development, Vite runs on `127.0.0.1:5173` and proxies `/api` to Spring Boot on `127.0.0.1:8080`.
 
-For the desktop release, a thin JavaFX shell will display the built frontend in an embedded web view and provide the native Windows directory chooser through a deliberately narrow JavaScript-to-Java bridge. The existing Thymeleaf screen remains a temporary working prototype while the REST boundary is introduced incrementally.
+For the desktop release, a thin Tauri shell will display the built frontend in the operating system web view and provide the native Windows directory chooser through a deliberately narrow JavaScript-to-Rust command surface. The existing Thymeleaf screen remains a temporary working prototype while the REST boundary is introduced incrementally.
 
 The first important product screen is the review catalog, not a dashboard.
 

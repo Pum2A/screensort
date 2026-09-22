@@ -150,7 +150,7 @@ Target: weeks 8–10
 - Custom categories and rules.
 - Semantic search.
 - Advanced local vision model.
-- JavaFX launcher and installer.
+- Tauri desktop shell and installer.
 - Safe move with backup and restore.
 - Kafka and separate analysis worker.
 - Transactional outbox, retry and dead-letter topic.
@@ -170,4 +170,3 @@ Target: weeks 8–10
 10. Display a minimal file catalog.
 11. Add filesystem unit tests.
 12. Add PostgreSQL integration tests.
-

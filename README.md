@@ -41,6 +41,7 @@ Select source folder
 - [Product brief](docs/project-brief.md)
 - [Initial architecture](docs/architecture.md)
 - [Delivery roadmap](docs/roadmap.md)
+- [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
 - [ADR-002: React web UI inside a thin Java desktop shell](docs/adr/ADR-002-react-desktop-ui.md)
 - [ADR-003: Tauri desktop shell instead of JavaFX](docs/adr/ADR-003-tauri-desktop-shell.md)
@@ -83,7 +84,7 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Project bootstrap, source-folder safety validation, image metadata extraction and the React frontend foundation are complete. The next backend step is a richer scan result that explains accepted and rejected files before the scanner is exposed through a REST endpoint.
+Project bootstrap, source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, the REST scan endpoint and its React client are complete. The next backend step is a persistent PostgreSQL catalog with idempotent rescanning.
 
 ## Not in the first release
 
