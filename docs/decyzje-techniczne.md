@@ -411,8 +411,9 @@ obecnie posiada `AcceptedImage`:
 - SHA-256;
 - first discovered at i last seen at.
 
-Kolejne kroki to mapowanie JPA, repozytorium, zapis wyniku skanu oraz test
-integracyjny:
+Encje JPA dla `allowed_root` i `file_record` istnieją i zostały zweryfikowane
+przez Hibernate względem lokalnego PostgreSQL. Kolejne kroki to integracyjny
+test zapisu i odczytu, repozytoria oraz zapis wyniku skanu:
 
 ```text
 scan 1 -> 2 rekordy

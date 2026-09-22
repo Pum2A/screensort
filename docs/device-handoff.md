@@ -95,7 +95,10 @@ Istnieją migracje:
 
 Najbliższy etap:
 
-1. odwzorować `allowed_root` i `file_record` jako encje JPA;
+Encje JPA `AllowedRootEntity` i `FileRecordEntity` istnieją i zostały
+zweryfikowane przez Hibernate względem lokalnego PostgreSQL.
+
+1. dodać test integracyjny zapisu i odczytu encji na PostgreSQL Testcontainers;
 2. dodać repozytoria Spring Data;
 3. zapisywać zaakceptowane obrazy w PostgreSQL;
 4. identyfikować ten sam plik przez `(allowed_root_id, relative_path)`;
