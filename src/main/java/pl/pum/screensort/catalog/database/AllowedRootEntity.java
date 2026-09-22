@@ -31,4 +31,24 @@ public class AllowedRootEntity {
     this.createdAt = now;
     this.updatedAt = now;
   }
+
+  public Long getId() {
+    return id;
+  }
+
+  public String getCanonicalPath() {
+    return canonicalPath;
+  }
+
+  public boolean isRecursiveScan() {
+    return recursiveScan;
+  }
+
+  public Instant getCreatedAt() {
+    return createdAt;
+  }
+
+  public Instant getUpdatedAt() {
+    return updatedAt;
+  }
 }
