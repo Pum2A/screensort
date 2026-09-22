@@ -60,4 +60,44 @@ public class FileRecordEntity {
     this.lastSeenAt = now;
     this.firstDiscoveredAt = now;
   }
+
+  public Long getId() {
+    return id;
+  }
+
+  public AllowedRootEntity getAllowedRoot() {
+    return allowedRoot;
+  }
+
+  public String getRelativePath() {
+    return relativePath;
+  }
+
+  public String getOriginalName() {
+    return originalName;
+  }
+
+  public String getExtension() {
+    return extension;
+  }
+
+  public long getSizeBytes() {
+    return sizeBytes;
+  }
+
+  public Instant getLastModifiedAt() {
+    return lastModifiedAt;
+  }
+
+  public String getSha256() {
+    return sha256;
+  }
+
+  public Instant getFirstDiscoveredAt() {
+    return firstDiscoveredAt;
+  }
+
+  public Instant getLastSeenAt() {
+    return lastSeenAt;
+  }
 }

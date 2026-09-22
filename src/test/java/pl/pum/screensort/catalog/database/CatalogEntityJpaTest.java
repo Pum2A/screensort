@@ -52,4 +52,49 @@ class CatalogEntityJpaTest {
     assertThat(loaded.getCreatedAt()).isEqualTo(now);
     assertThat(loaded.getUpdatedAt()).isEqualTo(now);
   }
+
+  @Test
+  void savesAndReadsFileRecordWithAllowedRoot() {
+    Instant scanTime = Instant.parse("2026-09-22T12:00:00Z");
+    Instant lastModifiedAt = Instant.parse("2026-09-20T08:30:00Z");
+    String canonicalPath = "C:\\Test\\Pictures";
+    String sha256 = "a".repeat(64);
+
+    AllowedRootEntity allowedRoot = new AllowedRootEntity(canonicalPath, false, scanTime);
+    entityManager.persist(allowedRoot);
+
+    FileRecordEntity fileRecord =
+        new FileRecordEntity(
+            "holidays\\photo.png",
+            "photo.png",
+            "png",
+            2048L,
+            sha256,
+            allowedRoot,
+            lastModifiedAt,
+            scanTime);
+
+    entityManager.persist(fileRecord);
+    entityManager.flush();
+
+    Long savedFileId = fileRecord.getId();
+    Long savedRootId = allowedRoot.getId();
+
+    entityManager.clear();
+
+    FileRecordEntity loaded = entityManager.find(FileRecordEntity.class, savedFileId);
+
+    assertThat(savedFileId).isNotNull();
+    assertThat(loaded).isNotNull();
+    assertThat(loaded.getRelativePath()).isEqualTo("holidays\\photo.png");
+    assertThat(loaded.getOriginalName()).isEqualTo("photo.png");
+    assertThat(loaded.getExtension()).isEqualTo("png");
+    assertThat(loaded.getSizeBytes()).isEqualTo(2048L);
+    assertThat(loaded.getLastModifiedAt()).isEqualTo(lastModifiedAt);
+    assertThat(loaded.getSha256()).isEqualTo(sha256);
+    assertThat(loaded.getFirstDiscoveredAt()).isEqualTo(scanTime);
+    assertThat(loaded.getLastSeenAt()).isEqualTo(scanTime);
+    assertThat(loaded.getAllowedRoot().getId()).isEqualTo(savedRootId);
+    assertThat(loaded.getAllowedRoot().getCanonicalPath()).isEqualTo(canonicalPath);
+  }
 }
