@@ -399,9 +399,9 @@ formatu, zamiast zgadywać go wyłącznie z nazwy.
 
 ## 12. Najbliższy etap
 
-Planowana migracja `V3__create_file_record.sql` nie istnieje jeszcze. Jej celem
-będzie utworzenie tabeli katalogu na podstawie pól, które obecnie posiada
-`AcceptedImage`:
+Migracja `V3__create_file_record.sql` istnieje i została poprawnie zastosowana
+na lokalnym PostgreSQL 18.6. Utworzyła tabelę katalogu na podstawie pól, które
+obecnie posiada `AcceptedImage`:
 
 - powiązanie z `AllowedRoot`;
 - relative path i original name;
@@ -411,8 +411,8 @@ będzie utworzenie tabeli katalogu na podstawie pól, które obecnie posiada
 - SHA-256;
 - first discovered at i last seen at.
 
-Po wykonaniu migracji kolejne kroki to mapowanie JPA, repozytorium, zapis wyniku
-skanu oraz test integracyjny:
+Kolejne kroki to mapowanie JPA, repozytorium, zapis wyniku skanu oraz test
+integracyjny:
 
 ```text
 scan 1 -> 2 rekordy

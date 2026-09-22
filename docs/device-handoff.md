@@ -89,17 +89,20 @@ Nie tworzymy mikroserwisów ani pustych pakietów „na przyszłość”.
 Istnieją migracje:
 
 - `V1__initialize_database.sql` — rozpoczęcie historii;
-- `V2__create_allowed_root.sql` — tabela zaakceptowanych katalogów źródłowych.
+- `V2__create_allowed_root.sql` — tabela zaakceptowanych katalogów źródłowych;
+- `V3__create_file_record.sql` — tabela metadanych znalezionych obrazów,
+  zweryfikowana na lokalnym PostgreSQL 18.6.
 
-`V3__create_file_record.sql` jeszcze nie istnieje. To najbliższy etap:
+Najbliższy etap:
 
-1. utworzyć tabelę `file_record`;
-2. zapisywać zaakceptowane obrazy w PostgreSQL;
-3. identyfikować ten sam plik przez `(allowed_root_id, relative_path)`;
-4. aktualizować istniejący rekord podczas ponownego skanu zamiast dodawać
+1. odwzorować `allowed_root` i `file_record` jako encje JPA;
+2. dodać repozytoria Spring Data;
+3. zapisywać zaakceptowane obrazy w PostgreSQL;
+4. identyfikować ten sam plik przez `(allowed_root_id, relative_path)`;
+5. aktualizować istniejący rekord podczas ponownego skanu zamiast dodawać
    kolejną kopię;
-5. używać `sha256` do znalezienia tej samej zawartości pod różnymi ścieżkami;
-6. dodać test integracyjny: dwa skany tego samego katalogu nadal dają dwa,
+6. używać `sha256` do znalezienia tej samej zawartości pod różnymi ścieżkami;
+7. dodać test integracyjny: dwa skany tego samego katalogu nadal dają dwa,
    a nie cztery rekordy.
 
 Nie ustawiamy `UNIQUE` na samym `sha256`, ponieważ dwa oddzielne pliki mogą mieć
