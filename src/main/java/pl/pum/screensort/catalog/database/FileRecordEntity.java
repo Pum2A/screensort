@@ -100,4 +100,19 @@ public class FileRecordEntity {
   public Instant getLastSeenAt() {
     return lastSeenAt;
   }
+
+  public void updateFromScan(
+      String originalName,
+      String extension,
+      long sizeBytes,
+      String sha256,
+      Instant lastModifiedAt,
+      Instant seenAt) {
+    this.originalName = originalName;
+    this.extension = extension;
+    this.sizeBytes = sizeBytes;
+    this.sha256 = sha256;
+    this.lastModifiedAt = lastModifiedAt;
+    this.lastSeenAt = seenAt;
+  }
 }
