@@ -12,7 +12,10 @@ class ScanningComponentContextTest {
   @Test
   void createsScannerWithAllRequiredDependencies() {
     try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-      context.scan("pl.pum.screensort.scanning");
+      context.scan(
+          "pl.pum.screensort.scanning.hashing",
+          "pl.pum.screensort.scanning.image",
+          "pl.pum.screensort.scanning.safety");
       context.refresh();
 
       assertNotNull(context.getBean(FileHasher.class));

@@ -51,7 +51,7 @@ class CatalogUpdaterJpaTest {
 
     AcceptedImage firstScanImage =
         new AcceptedImage(imagePath, "photo.png", "png", 2048L, firstModifiedAt, "a".repeat(64));
-    catalogUpdater.update(allowedRoot, new ScanResult(List.of(firstScanImage), List.of()));
+    catalogUpdater.update(allowedRoot, new ScanResult(allowedRoot, List.of(firstScanImage), List.of()));
 
     AllowedRootEntity savedRoot =
         allowedRootRepository.findByCanonicalPath(folder.toString()).orElseThrow();
@@ -68,7 +68,7 @@ class CatalogUpdaterJpaTest {
 
     AcceptedImage secondScanImage =
         new AcceptedImage(imagePath, "photo.png", "png", 4096L, secondModifiedAt, "b".repeat(64));
-    catalogUpdater.update(allowedRoot, new ScanResult(List.of(secondScanImage), List.of()));
+    catalogUpdater.update(allowedRoot, new ScanResult(allowedRoot, List.of(secondScanImage), List.of()));
 
     AllowedRootEntity sameRoot =
         allowedRootRepository.findByCanonicalPath(folder.toString()).orElseThrow();

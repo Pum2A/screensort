@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import pl.pum.screensort.scanning.image.ImageScanner;
+import pl.pum.screensort.scanning.ScanWorkflow;
 import pl.pum.screensort.scanning.image.ScanResult;
 import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
 import pl.pum.screensort.scanning.web.dto.ScanRequest;
@@ -17,16 +17,16 @@ import pl.pum.screensort.scanning.web.dto.ScanResultDto;
 
 @RestController
 public class ScanRestController {
-  private final ImageScanner imageScanner;
+  private final ScanWorkflow scanWorkflow;
 
-  public ScanRestController(ImageScanner imageScanner) {
-    this.imageScanner = imageScanner;
+  public ScanRestController(ScanWorkflow scanWorkflow) {
+    this.scanWorkflow = scanWorkflow;
   }
 
   @PostMapping("/api/scan")
   public ScanResultDto scan(@Valid @RequestBody ScanRequest request) throws IOException {
 
-    ScanResult result = imageScanner.scan(Path.of(request.folderPath()));
+    ScanResult result = scanWorkflow.scanAndSave(Path.of(request.folderPath()));
     return ScanResultDto.from(result);
   }
 

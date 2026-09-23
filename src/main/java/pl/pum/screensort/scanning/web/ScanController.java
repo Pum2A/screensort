@@ -5,7 +5,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import pl.pum.screensort.scanning.image.ImageScanner;
+import pl.pum.screensort.scanning.ScanWorkflow;
 import pl.pum.screensort.scanning.image.ScanResult;
 import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
 
@@ -16,10 +16,10 @@ import java.nio.file.Path;
 @Controller
 public class ScanController {
 
-    private final ImageScanner imageScanner;
+    private final ScanWorkflow scanWorkflow;
 
-    public ScanController(ImageScanner imageScanner) {
-        this.imageScanner = imageScanner;
+    public ScanController(ScanWorkflow scanWorkflow) {
+        this.scanWorkflow = scanWorkflow;
     }
 
     @GetMapping("/")
@@ -38,7 +38,7 @@ public class ScanController {
         }
 
         try {
-            ScanResult result = imageScanner.scan(Path.of(folderPath.trim()));
+            ScanResult result = scanWorkflow.scanAndSave(Path.of(folderPath.trim()));
 
 
             model.addAttribute("images", result.accepted());

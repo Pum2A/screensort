@@ -41,7 +41,7 @@ public class ImageScanner {
           Optional<String> hash = hasher.hash(path);
           if (hash.isPresent()) {
             accepted.add(createAcceptedImage(path, hash.get()));
-            System.out.println("Accepted: " + path + "hash: " + hash.get());
+            System.out.println("Accepted: " + path + " hash: " + hash.get());
           } else {
             rejected.add(
                 new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE));
@@ -55,7 +55,7 @@ public class ImageScanner {
       }
     }
 
-    return new ScanResult(accepted, rejected);
+    return new ScanResult(allowedRoot, accepted, rejected);
   }
 
   private boolean hasSupportedExtension(Path path) {
