@@ -80,11 +80,19 @@ npm.cmd run dev
 
 Open <http://127.0.0.1:5173/>. During development, Vite forwards `/api` requests to Spring Boot at `127.0.0.1:8080`.
 
+Scan `demo-images` twice to check catalog persistence. Both scans should show two accepted PNG files and one rejected ZIP. From the project root, inspect the saved rows in the local PostgreSQL container:
+
+```powershell
+docker compose exec postgres psql -U screensort -d screensort -c "SELECT ar.canonical_path, fr.relative_path, fr.id, fr.last_seen_at FROM file_record fr JOIN allowed_root ar ON ar.id = fr.allowed_root_id ORDER BY ar.canonical_path, fr.relative_path;"
+```
+
+The second scan should keep the same file IDs while refreshing `last_seen_at`. Scanning never modifies the source images.
+
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
 ## Current milestone
 
-Project bootstrap, source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, the REST scan endpoint and its React client are complete. The next backend step is a persistent PostgreSQL catalog with idempotent rescanning.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. The next step is to expose catalog state for review in the UI.
 
 ## Not in the first release
 
