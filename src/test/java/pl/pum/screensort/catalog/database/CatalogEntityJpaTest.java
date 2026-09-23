@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -25,37 +26,59 @@ class CatalogEntityJpaTest {
       new PostgreSQLContainer(DockerImageName.parse("postgres:18.6"));
 
   @Autowired private EntityManager entityManager;
+  @Autowired private AllowedRootRepository allowedRootRepository;
+
+  private static void printTableHeader(String title) {
+    System.out.println();
+    System.out.println("=== " + title + " ===");
+    System.out.printf("%-20s | %-35s | %-35s | %s%n", "FIELD", "EXPECTED", "ACTUAL", "RESULT");
+    System.out.println("-".repeat(105));
+  }
+
+  private static void printComparison(String field, Object expected, Object actual) {
+    String result = Objects.equals(expected, actual) ? "OK" : "MISMATCH";
+    System.out.printf(
+        "%-20s | %-35s | %-35s | %s%n",
+        field, formatTableCell(expected), formatTableCell(actual), result);
+  }
+
+  private static String formatTableCell(Object value) {
+    String text = String.valueOf(value);
+    if (text.length() <= 35) {
+      return text;
+    }
+    return text.substring(0, 16) + "..." + text.substring(text.length() - 16);
+  }
 
   @Test
-  void savesAndReadsAllowedRoot() {
+  void savesAndFindsAllowedRootByCanonicalPath() {
     Instant now = Instant.parse("2026-09-22T12:00:00Z");
     String canonicalPath = "C:\\Test\\Pictures";
 
     AllowedRootEntity allowedRoot = new AllowedRootEntity(canonicalPath, false, now);
 
-    // ACT — zapisujemy encję do PostgreSQL
-    entityManager.persist(allowedRoot);
+    AllowedRootEntity saved = allowedRootRepository.save(allowedRoot);
+
     entityManager.flush();
 
-    Long savedId = allowedRoot.getId();
+    Long savedId = saved.getId();
 
-    // Usuwamy zapisaną encję z pamięci Hibernate
     entityManager.clear();
 
-    // Odczytujemy ją ponownie z PostgreSQL
-    AllowedRootEntity loaded = entityManager.find(AllowedRootEntity.class, savedId);
+    Optional<AllowedRootEntity> found = allowedRootRepository.findByCanonicalPath(canonicalPath);
 
-    // ASSERT — sprawdzamy otrzymane dane
-    assertThat(savedId).isNotNull();
-    assertThat(loaded).isNotNull();
+    assertThat(found).isPresent();
 
-    printTableHeader("AllowedRootEntity database round trip");
+    AllowedRootEntity loaded = found.orElseThrow();
+
+    printTableHeader("AllowedRootRepository findByCanonicalPath");
     printComparison("id", savedId, loaded.getId());
     printComparison("canonicalPath", canonicalPath, loaded.getCanonicalPath());
     printComparison("recursiveScan", false, loaded.isRecursiveScan());
     printComparison("createdAt", now, loaded.getCreatedAt());
     printComparison("updatedAt", now, loaded.getUpdatedAt());
 
+    assertThat(loaded.getId()).isEqualTo(savedId);
     assertThat(loaded.getCanonicalPath()).isEqualTo(canonicalPath);
     assertThat(loaded.isRecursiveScan()).isFalse();
     assertThat(loaded.getCreatedAt()).isEqualTo(now);
@@ -123,27 +146,5 @@ class CatalogEntityJpaTest {
     assertThat(loaded.getLastSeenAt()).isEqualTo(scanTime);
     assertThat(loaded.getAllowedRoot().getId()).isEqualTo(savedRootId);
     assertThat(loaded.getAllowedRoot().getCanonicalPath()).isEqualTo(canonicalPath);
-  }
-
-  private static void printTableHeader(String title) {
-    System.out.println();
-    System.out.println("=== " + title + " ===");
-    System.out.printf("%-20s | %-35s | %-35s | %s%n", "FIELD", "EXPECTED", "ACTUAL", "RESULT");
-    System.out.println("-".repeat(105));
-  }
-
-  private static void printComparison(String field, Object expected, Object actual) {
-    String result = Objects.equals(expected, actual) ? "OK" : "MISMATCH";
-    System.out.printf(
-        "%-20s | %-35s | %-35s | %s%n",
-        field, formatTableCell(expected), formatTableCell(actual), result);
-  }
-
-  private static String formatTableCell(Object value) {
-    String text = String.valueOf(value);
-    if (text.length() <= 35) {
-      return text;
-    }
-    return text.substring(0, 16) + "..." + text.substring(text.length() - 16);
   }
 }
