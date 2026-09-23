@@ -27,6 +27,7 @@ class CatalogEntityJpaTest {
 
   @Autowired private EntityManager entityManager;
   @Autowired private AllowedRootRepository allowedRootRepository;
+  @Autowired private FileRecordRepository fileRecordRepository;
 
   private static void printTableHeader(String title) {
     System.out.println();
@@ -86,7 +87,7 @@ class CatalogEntityJpaTest {
   }
 
   @Test
-  void savesAndReadsFileRecordWithAllowedRoot() {
+  void savesAndFindsFileRecordByAllowedRootAndRelativePath() {
     Instant scanTime = Instant.parse("2026-09-22T12:00:00Z");
     Instant lastModifiedAt = Instant.parse("2026-09-20T08:30:00Z");
     String canonicalPath = "C:\\Test\\Pictures";
@@ -106,24 +107,27 @@ class CatalogEntityJpaTest {
             lastModifiedAt,
             scanTime);
 
-    entityManager.persist(fileRecord);
+    FileRecordEntity saved = fileRecordRepository.save(fileRecord);
     entityManager.flush();
 
-    Long savedFileId = fileRecord.getId();
+    Long savedFileId = saved.getId();
     Long savedRootId = allowedRoot.getId();
 
     entityManager.clear();
 
-    FileRecordEntity loaded = entityManager.find(FileRecordEntity.class, savedFileId);
+    Optional<FileRecordEntity> found =
+        fileRecordRepository.findByAllowedRootAndRelativePath(allowedRoot, "holidays\\photo.png");
 
     assertThat(savedFileId).isNotNull();
-    assertThat(loaded).isNotNull();
+    assertThat(found).isPresent();
+
+    FileRecordEntity loaded = found.orElseThrow();
 
     AllowedRootEntity loadedRoot = loaded.getAllowedRoot();
     Long loadedRootId = loadedRoot.getId();
     String loadedRootPath = loadedRoot.getCanonicalPath();
 
-    printTableHeader("FileRecordEntity database round trip");
+    printTableHeader("FileRecordRepository findByAllowedRootAndRelativePath");
     printComparison("id", savedFileId, loaded.getId());
     printComparison("relativePath", "holidays\\photo.png", loaded.getRelativePath());
     printComparison("originalName", "photo.png", loaded.getOriginalName());
@@ -146,5 +150,17 @@ class CatalogEntityJpaTest {
     assertThat(loaded.getLastSeenAt()).isEqualTo(scanTime);
     assertThat(loaded.getAllowedRoot().getId()).isEqualTo(savedRootId);
     assertThat(loaded.getAllowedRoot().getCanonicalPath()).isEqualTo(canonicalPath);
+
+    Optional<FileRecordEntity> missingPath =
+        fileRecordRepository.findByAllowedRootAndRelativePath(allowedRoot, "holidays\\missing.png");
+    printComparison("missing path exists", false, missingPath.isPresent());
+    assertThat(missingPath).isEmpty();
+
+    AllowedRootEntity otherRoot =
+        allowedRootRepository.save(new AllowedRootEntity("C:\\Test\\Other", false, scanTime));
+    Optional<FileRecordEntity> missingRoot =
+        fileRecordRepository.findByAllowedRootAndRelativePath(otherRoot, "holidays\\photo.png");
+    printComparison("other root has file", false, missingRoot.isPresent());
+    assertThat(missingRoot).isEmpty();
   }
 }
