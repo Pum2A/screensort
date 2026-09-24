@@ -1,6 +1,7 @@
 package pl.pum.screensort.scanning.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,6 +50,10 @@ class ScanRestControllerIntegrationTest {
         .isTrue();
     String requestJson = "{\"folderPath\":\"" + folder.toString().replace("\\", "\\\\") + "\"}";
 
+    mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(0));
+
     mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.accepted.length()").value(1));
@@ -58,6 +63,15 @@ class ScanRestControllerIntegrationTest {
     FileRecordEntity firstRecord =
         fileRecordRepository.findByAllowedRootAndRelativePath(root, "photo.png").orElseThrow();
     Long firstId = firstRecord.getId();
+
+    mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value(firstId.intValue()))
+        .andExpect(jsonPath("$[0].allowedRootId").value(root.getId().intValue()))
+        .andExpect(jsonPath("$[0].sourceFolder").value(folder.toRealPath().toString()))
+        .andExpect(jsonPath("$[0].relativePath").value("photo.png"))
+        .andExpect(jsonPath("$[0].sha256").value(firstRecord.getSha256()));
 
     mockMvc.perform(post("/scan").param("folderPath", folder.toString()))
         .andExpect(status().isOk())
@@ -74,6 +88,10 @@ class ScanRestControllerIntegrationTest {
     assertThat(fileRecordRepository.count()).isEqualTo(1);
     assertThat(secondRecord.getId()).isEqualTo(firstId);
     assertThat(secondRecord.getSha256()).hasSize(64);
+    mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(1))
+        .andExpect(jsonPath("$[0].id").value(firstId.intValue()));
     System.out.printf(
         "Web scans: roots=%d, files=%d, file ID=%d%n",
         allowedRootRepository.count(), fileRecordRepository.count(), firstId);
