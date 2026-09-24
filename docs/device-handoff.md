@@ -1,6 +1,6 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja: 2026-09-22
+Ostatnia aktualizacja: 2026-09-24
 
 Ten dokument jest bieżącym skrótem projektu. Użyj go po zmianie komputera albo
 przy rozpoczęciu nowej rozmowy z agentem AI.
@@ -60,10 +60,12 @@ main class:   ScreenSortApplication
 7. `POST /api/scan` przyjmuje JSON z `folderPath`; błędne lub puste żądanie
    zwraca HTTP 400.
 8. React wywołuje lokalne API i pokazuje zaakceptowane oraz odrzucone pliki.
-9. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
-   `ImageScanner`.
-10. Ostatnia pełna weryfikacja backendu zakończyła się wynikiem: 9 testów,
-    0 błędów, `BUILD SUCCESS`.
+9. `ScanWorkflow` przekazuje wynik do `CatalogUpdater`, który zapisuje nowe
+   pliki w PostgreSQL albo aktualizuje istniejące rekordy przy kolejnym skanie.
+10. `GET /api/catalog/files` przez `CatalogReader` odczytuje zapisane obrazy,
+    a React pokazuje je po uruchomieniu oraz po skanowaniu.
+11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
+    `ImageScanner`.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -71,18 +73,28 @@ Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 d095274923ae2ae713da857aead939d4878c362d9bad9d39a6258c5c9607bd8d
 ```
 
-## Aktualna struktura funkcji skanowania
+## Aktualna struktura projektu
 
 ```text
 pl.pum.screensort.scanning
-├── safety       # czy wolno skanować wskazany katalog
-├── hashing      # obliczanie SHA-256
-├── image        # klasyfikacja plików i wynik skanu
-└── web          # kontrolery HTTP i DTO dla granicy API
+├── ScanWorkflow  # koordynuje skan i zapis
+├── api           # REST i DTO dla Reacta
+├── safety        # czy wolno skanować wskazany katalog
+├── hashing       # obliczanie SHA-256
+├── image         # klasyfikacja plików i wynik skanu
+└── prototype     # starszy ekran Thymeleaf
+
+pl.pum.screensort.catalog
+├── CatalogUpdater / CatalogReader  # zapis i odczyt katalogu
+├── api           # REST dla Reacta
+├── dto           # opis pliku pokazywany w UI
+└── database      # encje i repozytoria JPA
 ```
 
 Projekt pozostaje modularnym monolitem organizowanym według funkcji produktu.
 Nie tworzymy mikroserwisów ani pustych pakietów „na przyszłość”.
+Pełniejszy schemat przepływu danych i mapa plików:
+[`struktura-projektu.md`](struktura-projektu.md).
 
 ## Baza danych i następny etap
 
@@ -90,23 +102,16 @@ Istnieją migracje:
 
 - `V1__initialize_database.sql` — rozpoczęcie historii;
 - `V2__create_allowed_root.sql` — tabela zaakceptowanych katalogów źródłowych;
-- `V3__create_file_record.sql` — tabela metadanych znalezionych obrazów,
-  zweryfikowana na lokalnym PostgreSQL 18.6.
+- `V3__create_file_record.sql` — tabela metadanych znalezionych obrazów.
 
 Najbliższy etap:
 
-Encje JPA `AllowedRootEntity` i `FileRecordEntity` istnieją i zostały
-zweryfikowane przez Hibernate względem lokalnego PostgreSQL.
-
-1. dodać test integracyjny zapisu i odczytu encji na PostgreSQL Testcontainers;
-2. dodać repozytoria Spring Data;
-3. zapisywać zaakceptowane obrazy w PostgreSQL;
-4. identyfikować ten sam plik przez `(allowed_root_id, relative_path)`;
-5. aktualizować istniejący rekord podczas ponownego skanu zamiast dodawać
-   kolejną kopię;
-6. używać `sha256` do znalezienia tej samej zawartości pod różnymi ścieżkami;
-7. dodać test integracyjny: dwa skany tego samego katalogu nadal dają dwa,
-   a nie cztery rekordy.
+Encje JPA, repozytoria, zapis/odczyt i testy integracyjne z Testcontainers już
+istnieją. Tożsamością pliku w katalogu jest `(allowed_root_id, relative_path)`;
+ponowny skan aktualizuje rekord. React pokazuje dane zapisane w bazie.
+Następną funkcję należy wybrać z właścicielem projektu i realizować małymi,
+zrozumiałymi krokami. Wykrywanie tej samej zawartości pod różnymi ścieżkami
+na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
 
 Nie ustawiamy `UNIQUE` na samym `sha256`, ponieważ dwa oddzielne pliki mogą mieć
 identyczną zawartość. Szczegółowe uzasadnienia znajdują się w
@@ -117,7 +122,7 @@ identyczną zawartość. Szczegółowe uzasadnienia znajdują się w
 - `ScreenSortApplication` tylko uruchamia Springa; nie zawiera całego workflow.
 - Kontroler tłumaczy HTTP na wywołanie funkcji aplikacji.
 - Skaner odpowiada za odczyt katalogu, klasyfikację i metadane.
-- Warstwa katalogu będzie odpowiadać za zapis i odczyt z bazy.
+- Warstwa katalogu odpowiada za zapis i odczyt z bazy.
 - Repozytorium bazodanowe nie odczytuje plików z dysku.
 - Encje bazy nie powinny być bezpośrednio zwracane do Reacta.
 - Tauri zapewni natywny wybór folderu, ale wybrana ścieżka nadal przechodzi
@@ -186,7 +191,8 @@ Nie edytuj tych samych niezacommitowanych plików niezależnie na dwóch kompute
 Kontynuuj pomaganie mi w budowie ScreenSort z repozytorium otwartego w workspace.
 
 Najpierw przeczytaj README.md, docs/device-handoff.md,
-docs/decyzje-techniczne.md, docs/project-brief.md, docs/architecture.md,
+docs/struktura-projektu.md, docs/decyzje-techniczne.md,
+docs/project-brief.md, docs/architecture.md,
 docs/roadmap.md oraz trzy ADR-y. Sprawdź git status i wszystkie lokalne zmiany.
 Kanoniczne prywatne repozytorium to https://github.com/Pum2A/screensort, branch main.
 
@@ -200,8 +206,8 @@ ani usuwaj źródłowych obrazów. Każdą spójną funkcję lub poprawkę spraw
 zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
-POST /api/scan i React połączony z API. Spring ma 9 przechodzących testów.
-Docelowa powłoka desktopowa to Tauri + cienki most Rust, nie JavaFX.
-Następny etap to tabela file_record i idempotentny katalog PostgreSQL: drugi skan
-tego samego katalogu ma aktualizować te same rekordy, a nie tworzyć duplikaty.
+POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
+React pokazuje zarówno wynik skanu, jak i zapisane pliki. Docelowa powłoka
+desktopowa to Tauri + cienki most Rust, nie JavaFX. Nie implementuj kolejnej
+funkcji bez omówienia jej celu i przepływu danych z właścicielem projektu.
 ```

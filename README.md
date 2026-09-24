@@ -6,9 +6,9 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Early safe-cataloging slice with a modern frontend foundation.
+Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application starts successfully and exposes a local Thymeleaf prototype for scanning a selected directory. The current scanner discovers valid PNG, JPG and JPEG files without modifying the source directory. A separate React, TypeScript and Vite frontend foundation now exists in `frontend/`; it will replace the prototype incrementally as REST endpoints are introduced.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan` and display saved files from PostgreSQL through `GET /api/catalog/files`. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 
@@ -40,6 +40,7 @@ Select source folder
 
 - [Product brief](docs/project-brief.md)
 - [Initial architecture](docs/architecture.md)
+- [Mapa obecnego projektu po polsku](docs/struktura-projektu.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
@@ -92,7 +93,7 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. The next step is to expose catalog state for review in the UI.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. React now shows the saved catalog records; manual review, OCR and safe copying are not implemented yet.
 
 ## Not in the first release
 

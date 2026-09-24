@@ -47,11 +47,13 @@ flowchart TD
 | `review` | Manual corrections and approval state |
 | `search` | Queries over names, OCR text, categories and tags |
 | `organization` | Copy planning, execution, verification and recovery |
-| `web` | Local REST API, temporary prototype controllers and HTTP boundary |
+| `api` inside each implemented feature | Local REST API and HTTP/JSON boundary; the temporary Thymeleaf screen is in `scanning/prototype` |
 | `desktop` | Future thin Tauri shell, Rust native bridge and folder picker |
 | `shared` | Small cross-cutting primitives with no business ownership |
 
 This is one Maven application at the start. Package boundaries are preferred over premature Maven modules.
+The table also describes planned modules. For the **current** file layout, see
+[the project map](struktura-projektu.md).
 
 ## 5. Dependency direction
 
