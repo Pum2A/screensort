@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web.dto;
+package pl.pum.screensort.scanning.api.dto;
 
 import java.util.List;
 import pl.pum.screensort.scanning.image.ScanResult;

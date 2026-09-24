@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web;
+package pl.pum.screensort.scanning.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;

@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web;
+package pl.pum.screensort.scanning.prototype;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

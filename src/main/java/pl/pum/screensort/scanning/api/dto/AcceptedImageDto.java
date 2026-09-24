@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web.dto;
+package pl.pum.screensort.scanning.api.dto;
 
 import pl.pum.screensort.scanning.image.AcceptedImage;
 

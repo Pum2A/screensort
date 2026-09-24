@@ -1,4 +1,4 @@
-package pl.pum.screensort.catalog.web.dto;
+package pl.pum.screensort.catalog.dto;
 
 import java.time.Instant;
 import pl.pum.screensort.catalog.database.FileRecordEntity;

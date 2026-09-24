@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.web;
+package pl.pum.screensort.scanning.api;
 
 import jakarta.validation.Valid;
 import java.io.IOException;
@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.scanning.ScanWorkflow;
 import pl.pum.screensort.scanning.image.ScanResult;
 import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
-import pl.pum.screensort.scanning.web.dto.ScanRequest;
-import pl.pum.screensort.scanning.web.dto.ScanResultDto;
+import pl.pum.screensort.scanning.api.dto.ScanRequest;
+import pl.pum.screensort.scanning.api.dto.ScanResultDto;
 
 @RestController
 public class ScanRestController {

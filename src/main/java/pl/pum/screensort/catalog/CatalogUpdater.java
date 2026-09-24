@@ -8,7 +8,7 @@ import pl.pum.screensort.catalog.database.AllowedRootEntity;
 import pl.pum.screensort.catalog.database.AllowedRootRepository;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
-import pl.pum.screensort.catalog.web.dto.CatalogFileDto;
+import pl.pum.screensort.catalog.dto.CatalogFileDto;
 import pl.pum.screensort.scanning.image.AcceptedImage;
 import pl.pum.screensort.scanning.image.ScanResult;
 import pl.pum.screensort.scanning.safety.AllowedRoot;
