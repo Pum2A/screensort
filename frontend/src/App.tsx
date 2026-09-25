@@ -1,4 +1,6 @@
 import {useEffect, useState} from 'react'
+import {isTauri} from '@tauri-apps/api/core'
+import {open} from '@tauri-apps/plugin-dialog'
 import './App.css'
 
 const LAST_FOLDER_KEY = 'screensort.lastFolder'
@@ -54,6 +56,7 @@ function formatSize(bytes: number): string {
 }
 
 function App() {
+    const desktop = isTauri()
     const [folderPath, setFolderPath] = useState(
         () => localStorage.getItem(LAST_FOLDER_KEY) ?? 'demo-images',
     )
@@ -65,6 +68,20 @@ function App() {
     const [catalogFiles, setCatalogFiles] = useState<CatalogFile[] | null>(null)
     const [catalogLoading, setCatalogLoading] = useState(true)
     const [catalogError, setCatalogError] = useState<string | null>(null)
+
+    async function handleChooseFolder() {
+        setError(null)
+
+        try {
+            const selected = await open({directory: true, multiple: false})
+            if (typeof selected === 'string') {
+                setFolderPath(selected)
+                setResult(null)
+            }
+        } catch {
+            setError('Nie udało się otworzyć okna wyboru folderu.')
+        }
+    }
 
     useEffect(() => {
         let ignore = false
@@ -145,10 +162,16 @@ function App() {
                         type="text"
                         value={folderPath}
                         onChange={(event) => setFolderPath(event.target.value)}
+                        readOnly={desktop}
                         placeholder="demo-images"
                         aria-label="Folder path"
                         className="folder-input"
                     />
+                    {desktop && (
+                        <button type="button" className="secondary-button" onClick={handleChooseFolder} disabled={loading}>
+                            Wybierz folder
+                        </button>
+                    )}
                     <button type="button" onClick={handleScan} disabled={loading}>
                         {loading ? 'Scanning…' : 'Scan folder'}
                     </button>

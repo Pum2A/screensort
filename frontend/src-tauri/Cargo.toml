@@ -1,0 +1,22 @@
+[package]
+name = "screensort-desktop"
+version = "0.1.0"
+description = "ScreenSort desktop shell"
+authors = ["ScreenSort contributors"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "screensort_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3" }
+
+[dependencies]
+tauri = { version = "2.11.6" }
+tauri-plugin-dialog = "2"

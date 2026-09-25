@@ -33,12 +33,12 @@ Tauri will:
 
 - bundle and display the built React frontend in a native web view;
 - start or connect to the local Spring Boot application;
-- open the native Windows directory chooser;
-- pass the selected folder path to the backend through a deliberately narrow,
-  controlled command surface.
+- open the native Windows directory chooser through Tauri's dialog plugin;
+- pass the selected folder path to the backend through the existing local API.
 
-Most application code stays in React and TypeScript. Rust is used only for the
-thin native bridge (opening the picker, forwarding the path). The backend stays
+Most UI code stays in React and TypeScript. Tauri's dialog plugin opens the
+picker without a custom Rust command. Rust remains a thin desktop shell and may
+later manage the bundled Java process. The backend stays
 a Spring Boot modular monolith. This decision does not introduce microservices.
 
 The selected path is untrusted input even when it comes from the native picker.
@@ -85,10 +85,11 @@ folder path, which the scanning use case requires.
 
 ## Sequencing
 
-The desktop shell is the final delivery step. It is built only after the local
-REST API is stable, including proper HTTP error handling and request-body input.
-Building the shell on an unfinished API would mean debugging the shell and the
-API at the same time.
+The owner chose to bring forward a narrow development shell so the native folder
+picker can be exercised with the existing REST API. The first slice provides
+the Tauri window and picker only. Java process management, production API
+routing, a database that needs no Docker on an end-user machine, and installer
+verification are separate steps. No installer is released before these work.
 
 ## Safety constraints
 
