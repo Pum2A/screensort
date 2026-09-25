@@ -1,5 +1,10 @@
 # ScreenSort
 
+## Mapa projektu do czytania
+
+- [Diagramy obecnej architektury](docs/diagramy-architektury.md) i [PDF na telefon](output/pdf/screensort-architektura.pdf).
+- [Następny etap i analiza wydajności](docs/nastepny-etap-i-wydajnosc.md) i [PDF na telefon](output/pdf/screensort-plan-wydajnosc.pdf).
+
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
 The application scans a user-selected folder, extracts visible text with OCR, analyzes visual content, proposes a new file name and category, and presents every suggestion for manual review. Approved files are copied to a separate output directory. Original files are never modified in the MVP.
