@@ -18,8 +18,19 @@ public class ScanWorkflow {
   }
 
   public ScanResult scanAndSave(Path folder) throws IOException {
+    long start = System.nanoTime();
     ScanResult result = imageScanner.scan(folder);
+    long afterScan = System.nanoTime();
+
     catalogUpdater.update(result.allowedRoot(), result);
+    long afterSave = System.nanoTime();
+
+    double scanMs = (afterScan - start) / 1_000_000.0;
+    double databaseMs = (afterSave - afterScan) / 1_000_000.0;
+
+    System.out.println("Skanowanie: " + scanMs + " ms");
+    System.out.println("Baza danych: " + databaseMs + " ms");
+
     return result;
   }
 }
