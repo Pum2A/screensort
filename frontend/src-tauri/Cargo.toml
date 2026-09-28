@@ -15,8 +15,8 @@ name = "screensort_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.6.3" }
+tauri-build = { version = "2.6.3", features = [] }
 
 [dependencies]
-tauri = { version = "2.11.6" }
+tauri = { version = "2.11.6", features = [] }
 tauri-plugin-dialog = "2"
