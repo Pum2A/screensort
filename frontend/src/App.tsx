@@ -168,7 +168,8 @@ function App() {
                         className="folder-input"
                     />
                     {desktop && (
-                        <button type="button" className="secondary-button" onClick={handleChooseFolder} disabled={loading}>
+                        <button type="button" className="secondary-button" onClick={handleChooseFolder}
+                                disabled={loading}>
                             Wybierz folder
                         </button>
                     )}
@@ -237,17 +238,28 @@ function App() {
                                     <span>{formatSize(file.sizeBytes)}</span>
                                 </summary>
                                 <dl>
-                                    <dt>Database ID</dt><dd>{file.id}</dd>
-                                    <dt>Folder ID</dt><dd>{file.allowedRootId}</dd>
-                                    <dt>Source folder</dt><dd>{file.sourceFolder}</dd>
-                                    <dt>Relative path</dt><dd>{file.relativePath}</dd>
-                                    <dt>Original name</dt><dd>{file.originalName}</dd>
-                                    <dt>Extension</dt><dd>{file.extension}</dd>
-                                    <dt>Size in bytes</dt><dd>{file.sizeBytes}</dd>
-                                    <dt>Last modified</dt><dd>{file.lastModifiedAt}</dd>
-                                    <dt>SHA-256</dt><dd>{file.sha256}</dd>
-                                    <dt>First discovered</dt><dd>{file.firstDiscoveredAt}</dd>
-                                    <dt>Last seen</dt><dd>{file.lastSeenAt}</dd>
+                                    <dt>Database ID</dt>
+                                    <dd>{file.id}</dd>
+                                    <dt>Folder ID</dt>
+                                    <dd>{file.allowedRootId}</dd>
+                                    <dt>Source folder</dt>
+                                    <dd>{file.sourceFolder}</dd>
+                                    <dt>Relative path</dt>
+                                    <dd>{file.relativePath}</dd>
+                                    <dt>Original name</dt>
+                                    <dd>{file.originalName}</dd>
+                                    <dt>Extension</dt>
+                                    <dd>{file.extension}</dd>
+                                    <dt>Size in bytes</dt>
+                                    <dd>{file.sizeBytes}</dd>
+                                    <dt>Last modified</dt>
+                                    <dd>{file.lastModifiedAt}</dd>
+                                    <dt>SHA-256</dt>
+                                    <dd>{file.sha256}</dd>
+                                    <dt>First discovered</dt>
+                                    <dd>{file.firstDiscoveredAt}</dd>
+                                    <dt>Last seen</dt>
+                                    <dd>{file.lastSeenAt}</dd>
                                 </dl>
                             </details>
                         ))}
