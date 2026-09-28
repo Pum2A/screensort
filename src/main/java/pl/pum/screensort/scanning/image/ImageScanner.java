@@ -33,41 +33,24 @@ public class ImageScanner {
     AllowedRoot allowedRoot = folderValidator.validate(folder);
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
-    long classifyNanos = 0;
-    long hashNanos = 0;
     ScanTiming timing = new ScanTiming();
 
     try (DirectoryStream<Path> files = Files.newDirectoryStream(allowedRoot.path())) {
       for (Path path : files) {
-        long beforeClassify = System.nanoTime();
-        Optional<RejectionReason> reason = classify(path, timing);
-        classifyNanos += System.nanoTime() - beforeClassify;
 
-        if (reason.isEmpty()) {
-          long beforeHash = System.nanoTime();
-          Optional<String> hash = hasher.hash(path);
-          hashNanos += System.nanoTime() - beforeHash;
-          if (hash.isPresent()) {
-            accepted.add(createAcceptedImage(path, hash.get()));
-            System.out.println("Accepted: " + path + " hash: " + hash.get());
-          } else {
-            rejected.add(
-                new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE));
-            System.out.println("Rejected file: " + path);
-          }
+        FileOutcome outcome = fileOutcome(path, timing);
+        if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
 
-        } else {
-          rejected.add(new RejectedFile(path, path.getFileName().toString(), reason.get()));
-          System.out.println("Rejected: " + reason.get());
+          AcceptedImage image = acceptedOutcome.image();
+          accepted.add(image);
+          System.out.println("Accepted: " + image.path());
+        } else if (outcome instanceof FileOutcome.Rejected rejectedOutcome) {
+          RejectedFile file = rejectedOutcome.file();
+          rejected.add(file);
+          System.out.println("Rejected: " + file.reason());
         }
       }
     }
-    System.out.println("Classify: " + classifyNanos / 1_000_000.0 + " ms");
-    System.out.println("ImageIO.read (" + timing.imageReadCount + " files): "
-        + timing.imageReadNanos / 1_000_000.0 + " ms");
-    System.out.println("Other classify: "
-        + (classifyNanos - timing.imageReadNanos) / 1_000_000.0 + " ms");
-    System.out.println("Hash: " + hashNanos / 1_000_000.0 + " ms");
     return new ScanResult(allowedRoot, accepted, rejected);
   }
 
@@ -109,7 +92,7 @@ public class ImageScanner {
     return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt, hash);
   }
 
-  private Optional<RejectionReason> classify(Path path, ScanTiming timing) {
+  private Optional<RejectionReason> findRejectionReason(Path path, ScanTiming timing) {
     if (Files.isSymbolicLink(path)) {
       return Optional.of(RejectionReason.SYMBOLIC_LINK);
     }
@@ -131,6 +114,31 @@ public class ImageScanner {
     }
 
     return Optional.empty();
+  }
+
+  private FileOutcome fileOutcome(Path path, ScanTiming timing) throws IOException {
+
+    Optional<RejectionReason> rejectionReason = findRejectionReason(path, timing);
+    if (rejectionReason.isPresent()) {
+      RejectedFile file =
+          new RejectedFile(path, path.getFileName().toString(), rejectionReason.get());
+      return new FileOutcome.Rejected(file);
+    } else {
+      Optional<String> hash = hasher.hash(path);
+      if (hash.isEmpty()) {
+        RejectedFile file =
+            new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
+        return new FileOutcome.Rejected(file);
+      }
+      AcceptedImage image = createAcceptedImage(path, hash.get());
+      return new FileOutcome.Accepted(image);
+    }
+  }
+
+  private sealed interface FileOutcome {
+    record Accepted(AcceptedImage image) implements FileOutcome {}
+
+    record Rejected(RejectedFile file) implements FileOutcome {}
   }
 
   private static final class ScanTiming {
