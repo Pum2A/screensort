@@ -33,12 +33,20 @@ public class ImageScanner {
     AllowedRoot allowedRoot = folderValidator.validate(folder);
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
+    long classifyNanos = 0;
+    long hashNanos = 0;
+    ScanTiming timing = new ScanTiming();
 
     try (DirectoryStream<Path> files = Files.newDirectoryStream(allowedRoot.path())) {
       for (Path path : files) {
-        Optional<RejectionReason> reason = classify(path);
+        long beforeClassify = System.nanoTime();
+        Optional<RejectionReason> reason = classify(path, timing);
+        classifyNanos += System.nanoTime() - beforeClassify;
+
         if (reason.isEmpty()) {
+          long beforeHash = System.nanoTime();
           Optional<String> hash = hasher.hash(path);
+          hashNanos += System.nanoTime() - beforeHash;
           if (hash.isPresent()) {
             accepted.add(createAcceptedImage(path, hash.get()));
             System.out.println("Accepted: " + path + " hash: " + hash.get());
@@ -54,7 +62,12 @@ public class ImageScanner {
         }
       }
     }
-
+    System.out.println("Classify: " + classifyNanos / 1_000_000.0 + " ms");
+    System.out.println("ImageIO.read (" + timing.imageReadCount + " files): "
+        + timing.imageReadNanos / 1_000_000.0 + " ms");
+    System.out.println("Other classify: "
+        + (classifyNanos - timing.imageReadNanos) / 1_000_000.0 + " ms");
+    System.out.println("Hash: " + hashNanos / 1_000_000.0 + " ms");
     return new ScanResult(allowedRoot, accepted, rejected);
   }
 
@@ -96,7 +109,7 @@ public class ImageScanner {
     return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt, hash);
   }
 
-  private Optional<RejectionReason> classify(Path path) {
+  private Optional<RejectionReason> classify(Path path, ScanTiming timing) {
     if (Files.isSymbolicLink(path)) {
       return Optional.of(RejectionReason.SYMBOLIC_LINK);
     }
@@ -109,10 +122,19 @@ public class ImageScanner {
     if (!hasAllowedSize(path)) {
       return Optional.of(RejectionReason.TOO_LARGE);
     }
-    if (!isReadableImage(path)) {
+    long beforeImageRead = System.nanoTime();
+    boolean readableImage = isReadableImage(path);
+    timing.imageReadNanos += System.nanoTime() - beforeImageRead;
+    timing.imageReadCount++;
+    if (!readableImage) {
       return Optional.of(RejectionReason.UNREADABLE_IMAGE);
     }
 
     return Optional.empty();
+  }
+
+  private static final class ScanTiming {
+    private long imageReadNanos;
+    private int imageReadCount;
   }
 }
