@@ -3,7 +3,6 @@ package pl.pum.screensort.scanning.image;
 import static pl.pum.screensort.scanning.image.RejectionReason.METADATA_UNREADABLE;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
@@ -11,6 +10,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.scanning.hashing.FileHasher;
@@ -34,11 +34,12 @@ public class ImageScanner {
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
     ScanTiming timing = new ScanTiming();
+    try (Stream<Path> paths = Files.list(allowedRoot.path())) {
+      List<FileOutcome> outcomes = paths
+          .map(path -> fileOutcome(path, timing))
+          .toList();
 
-    try (DirectoryStream<Path> files = Files.newDirectoryStream(allowedRoot.path())) {
-      for (Path path : files) {
-
-        FileOutcome outcome = fileOutcome(path, timing);
+      for (FileOutcome outcome : outcomes) {
         if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
 
           AcceptedImage image = acceptedOutcome.image();
@@ -116,7 +117,7 @@ public class ImageScanner {
     return Optional.empty();
   }
 
-  private FileOutcome fileOutcome(Path path, ScanTiming timing) throws IOException {
+  private FileOutcome fileOutcome(Path path, ScanTiming timing) {
 
     Optional<RejectionReason> rejectionReason = findRejectionReason(path, timing);
     if (rejectionReason.isPresent()) {
@@ -130,8 +131,14 @@ public class ImageScanner {
             new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
         return new FileOutcome.Rejected(file);
       }
-      AcceptedImage image = createAcceptedImage(path, hash.get());
-      return new FileOutcome.Accepted(image);
+      try {
+        AcceptedImage image = createAcceptedImage(path, hash.get());
+        return new FileOutcome.Accepted(image);
+      } catch (IOException exception) {
+        RejectedFile file =
+            new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
+        return new FileOutcome.Rejected(file);
+      }
     }
   }
 
