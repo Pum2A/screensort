@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
@@ -30,6 +31,7 @@ public class ImageScanner {
   }
 
   public ScanResult scan(Path folder) throws IOException {
+    long scanStartedAt = System.nanoTime();
     AllowedRoot allowedRoot = folderValidator.validate(folder);
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
@@ -52,6 +54,16 @@ public class ImageScanner {
         }
       }
     }
+
+    long scanNanos = System.nanoTime() - scanStartedAt;
+    long otherNanos = scanNanos - timing.imageReadNanos - timing.hashNanos;
+    System.out.printf(Locale.ROOT,
+        "Scan timing: total=%.3f ms; imageRead=%.3f ms (%d calls); hash=%.3f ms (%d calls); other=%.3f ms%n",
+        scanNanos / 1_000_000.0,
+        timing.imageReadNanos / 1_000_000.0, timing.imageReadCount,
+        timing.hashNanos / 1_000_000.0, timing.hashCount,
+        otherNanos / 1_000_000.0);
+
     return new ScanResult(allowedRoot, accepted, rejected);
   }
 
@@ -125,7 +137,10 @@ public class ImageScanner {
           new RejectedFile(path, path.getFileName().toString(), rejectionReason.get());
       return new FileOutcome.Rejected(file);
     } else {
+      long beforeHash = System.nanoTime();
       Optional<String> hash = hasher.hash(path);
+      timing.hashNanos += System.nanoTime() - beforeHash;
+      timing.hashCount++;
       if (hash.isEmpty()) {
         RejectedFile file =
             new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
@@ -151,5 +166,7 @@ public class ImageScanner {
   private static final class ScanTiming {
     private long imageReadNanos;
     private int imageReadCount;
+    private long hashNanos;
+    private int hashCount;
   }
 }
