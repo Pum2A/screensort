@@ -15,7 +15,8 @@ class ScanningComponentContextTest {
       context.scan(
           "pl.pum.screensort.scanning.hashing",
           "pl.pum.screensort.scanning.image",
-          "pl.pum.screensort.scanning.safety");
+          "pl.pum.screensort.scanning.safety",
+          "pl.pum.screensort.scanning.workers");
       context.refresh();
 
       assertNotNull(context.getBean(FileHasher.class));

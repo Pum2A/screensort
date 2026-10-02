@@ -11,8 +11,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.scanning.hashing.FileHasher;
 import pl.pum.screensort.scanning.safety.AllowedRoot;
@@ -24,10 +26,15 @@ public class ImageScanner {
 
   private final ScanFolderValidator folderValidator;
   private final FileHasher hasher;
+  private final ExecutorService scanWorkers;
 
-  public ImageScanner(ScanFolderValidator folderValidator, FileHasher hasher) {
+  public ImageScanner(
+      ScanFolderValidator folderValidator,
+      FileHasher hasher,
+      @Qualifier("scanWorkers") ExecutorService scanWorkers) {
     this.folderValidator = folderValidator;
     this.hasher = hasher;
+    this.scanWorkers = scanWorkers;
   }
 
   public ScanResult scan(Path folder) throws IOException {
