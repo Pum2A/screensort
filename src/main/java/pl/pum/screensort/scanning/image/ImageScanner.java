@@ -37,11 +37,15 @@ public class ImageScanner {
     List<RejectedFile> rejected = new ArrayList<>();
     ScanTiming timing = new ScanTiming();
     try (Stream<Path> paths = Files.list(allowedRoot.path())) {
-      List<FileOutcome> outcomes = paths
-          .map(path -> fileOutcome(path, timing))
-          .toList();
+      List<ProcessedFile> processedFiles = paths.map(path -> processFile(path)).toList();
 
-      for (FileOutcome outcome : outcomes) {
+      for (ProcessedFile processedFile : processedFiles) {
+        FileOutcome outcome = processedFile.fileOutcome();
+        ScanTiming fileTiming = processedFile.timing();
+        timing.imageReadNanos += fileTiming.imageReadNanos;
+        timing.imageReadCount += fileTiming.imageReadCount;
+        timing.hashNanos += fileTiming.hashNanos;
+        timing.hashCount += fileTiming.hashCount;
         if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
 
           AcceptedImage image = acceptedOutcome.image();
@@ -57,11 +61,14 @@ public class ImageScanner {
 
     long scanNanos = System.nanoTime() - scanStartedAt;
     long otherNanos = scanNanos - timing.imageReadNanos - timing.hashNanos;
-    System.out.printf(Locale.ROOT,
+    System.out.printf(
+        Locale.ROOT,
         "Scan timing: total=%.3f ms; imageRead=%.3f ms (%d calls); hash=%.3f ms (%d calls); other=%.3f ms%n",
         scanNanos / 1_000_000.0,
-        timing.imageReadNanos / 1_000_000.0, timing.imageReadCount,
-        timing.hashNanos / 1_000_000.0, timing.hashCount,
+        timing.imageReadNanos / 1_000_000.0,
+        timing.imageReadCount,
+        timing.hashNanos / 1_000_000.0,
+        timing.hashCount,
         otherNanos / 1_000_000.0);
 
     return new ScanResult(allowedRoot, accepted, rejected);
@@ -157,11 +164,19 @@ public class ImageScanner {
     }
   }
 
+  private ProcessedFile processFile(Path path) {
+    ScanTiming timing = new ScanTiming();
+    FileOutcome fileOutcome = fileOutcome(path, timing);
+    return new ProcessedFile(fileOutcome, timing);
+  }
+
   private sealed interface FileOutcome {
     record Accepted(AcceptedImage image) implements FileOutcome {}
 
     record Rejected(RejectedFile file) implements FileOutcome {}
   }
+
+  private record ProcessedFile(FileOutcome fileOutcome, ScanTiming timing) {}
 
   private static final class ScanTiming {
     private long imageReadNanos;
