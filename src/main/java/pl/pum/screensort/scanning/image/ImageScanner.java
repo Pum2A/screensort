@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
@@ -23,6 +24,7 @@ import pl.pum.screensort.scanning.safety.ScanFolderValidator;
 @Service
 public class ImageScanner {
   private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
+  private static final int MAX_IN_FLIGHT = 4;
 
   private final ScanFolderValidator folderValidator;
   private final FileHasher hasher;
@@ -43,6 +45,10 @@ public class ImageScanner {
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
     ScanTiming timing = new ScanTiming();
+    ExecutorCompletionService<ProcessedFile> completed =
+        new ExecutorCompletionService<>(scanWorkers);
+    int inFlight = 0;
+
     try (Stream<Path> paths = Files.list(allowedRoot.path())) {
       List<ProcessedFile> processedFiles = paths.map(path -> processFile(path)).toList();
 
