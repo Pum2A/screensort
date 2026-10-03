@@ -7,12 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -48,19 +47,40 @@ public class ImageScanner {
     ExecutorCompletionService<ProcessedFile> completed =
         new ExecutorCompletionService<>(scanWorkers);
     int inFlight = 0;
+    List<Future<ProcessedFile>> pending = new ArrayList<>(MAX_IN_FLIGHT);
 
     try (Stream<Path> paths = Files.list(allowedRoot.path())) {
-      List<ProcessedFile> processedFiles = paths.map(path -> processFile(path)).toList();
+      Iterator<Path> entries = paths.iterator();
 
-      for (ProcessedFile processedFile : processedFiles) {
+      while (entries.hasNext() || inFlight > 0) {
+
+        // Zlecamy zadania, dopóki mamy wolne miejsca.
+        while (inFlight < MAX_IN_FLIGHT && entries.hasNext()) {
+          Path path = entries.next();
+
+          Future<ProcessedFile> task = completed.submit(() -> processFile(path));
+
+          pending.add(task);
+          inFlight++;
+        }
+
+        // Odbieramy następne ukończone zadanie.
+        Future<ProcessedFile> finished = completed.take();
+        ProcessedFile processedFile = finished.get();
+
+        pending.remove(finished);
+        inFlight--;
+
+        // Dotychczasowe zbieranie wyników i pomiarów.
         FileOutcome outcome = processedFile.fileOutcome();
         ScanTiming fileTiming = processedFile.timing();
+
         timing.imageReadNanos += fileTiming.imageReadNanos;
         timing.imageReadCount += fileTiming.imageReadCount;
         timing.hashNanos += fileTiming.hashNanos;
         timing.hashCount += fileTiming.hashCount;
-        if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
 
+        if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
           AcceptedImage image = acceptedOutcome.image();
           accepted.add(image);
           System.out.println("Accepted: " + image.path());
@@ -70,19 +90,26 @@ public class ImageScanner {
           System.out.println("Rejected: " + file.reason());
         }
       }
+    } catch (InterruptedException exception) {
+      Thread.currentThread().interrupt();
+      throw new IOException("Skan został przerwany.", exception);
+    } catch (ExecutionException exception) {
+      throw new IOException("Przetwarzanie pliku nie powiodło się.", exception.getCause());
+    } finally {
+      for (Future<ProcessedFile> task : pending) {
+        task.cancel(true);
+      }
     }
 
     long scanNanos = System.nanoTime() - scanStartedAt;
-    long otherNanos = scanNanos - timing.imageReadNanos - timing.hashNanos;
     System.out.printf(
         Locale.ROOT,
-        "Scan timing: total=%.3f ms; imageRead=%.3f ms (%d calls); hash=%.3f ms (%d calls); other=%.3f ms%n",
+        "Scan timing: total=%.3f ms; imageReadSum=%.3f ms (%d calls); hashSum=%.3f ms (%d calls)%n",
         scanNanos / 1_000_000.0,
         timing.imageReadNanos / 1_000_000.0,
         timing.imageReadCount,
         timing.hashNanos / 1_000_000.0,
-        timing.hashCount,
-        otherNanos / 1_000_000.0);
+        timing.hashCount);
 
     return new ScanResult(allowedRoot, accepted, rejected);
   }
