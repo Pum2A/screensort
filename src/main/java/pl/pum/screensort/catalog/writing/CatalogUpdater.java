@@ -1,4 +1,4 @@
-package pl.pum.screensort.catalog;
+package pl.pum.screensort.catalog.writing;
 
 import jakarta.transaction.Transactional;
 import java.time.Instant;

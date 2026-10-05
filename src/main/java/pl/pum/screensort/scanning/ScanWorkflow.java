@@ -3,7 +3,7 @@ package pl.pum.screensort.scanning;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.catalog.CatalogUpdater;
+import pl.pum.screensort.catalog.writing.CatalogUpdater;
 import pl.pum.screensort.scanning.image.ImageScanner;
 import pl.pum.screensort.scanning.image.ScanResult;
 

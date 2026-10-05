@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import pl.pum.screensort.catalog.CatalogReader;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
+import pl.pum.screensort.catalog.reading.CatalogReader;
 import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
 
 @RestController

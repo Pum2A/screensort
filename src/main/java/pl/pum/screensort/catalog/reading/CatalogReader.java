@@ -1,4 +1,4 @@
-package pl.pum.screensort.catalog;
+package pl.pum.screensort.catalog.reading;
 
 import java.io.IOException;
 import java.nio.file.Path;
