@@ -37,7 +37,7 @@ To są **hipotezy z kodu**, nie wyniki profilera:
 | Odczyt katalogu | `findAllByAllowedRootOrderByRelativePathAsc` pobiera całą listę. | Więcej danych w pamięci, JSON i sieci lokalnej. |
 | Widok Reacta | `.map()` renderuje wszystkie elementy wyniku i katalogu. | Dużo elementów DOM; szczególnie ważne po dodaniu miniatur. |
 
-Źródła w projekcie: [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/CatalogUpdater.java), [`CatalogReader`](../src/main/java/pl/pum/screensort/catalog/CatalogReader.java), [`App.tsx`](../frontend/src/App.tsx).
+Źródła w projekcie: [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java), [`CatalogReader`](../src/main/java/pl/pum/screensort/catalog/reading/CatalogReader.java), [`App.tsx`](../frontend/src/App.tsx).
 
 ## Czy zmienić `ArrayList` na inną strukturę?
 

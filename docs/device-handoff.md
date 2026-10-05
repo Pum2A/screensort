@@ -1,6 +1,6 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja: 2026-09-24
+Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-05
 
 Ten dokument jest bieżącym skrótem projektu. Użyj go po zmianie komputera albo
 przy rozpoczęciu nowej rozmowy z agentem AI.
@@ -85,7 +85,8 @@ pl.pum.screensort.scanning
 └── prototype     # starszy ekran Thymeleaf
 
 pl.pum.screensort.catalog
-├── CatalogUpdater / CatalogReader  # zapis i odczyt katalogu
+├── reading       # CatalogReader dla UI, pusty KnownFilesReader dla skanera
+├── writing       # CatalogUpdater: zapis i aktualizacja katalogu
 ├── api           # REST dla Reacta
 ├── dto           # opis pliku pokazywany w UI
 └── database      # encje i repozytoria JPA
@@ -109,8 +110,17 @@ Najbliższy etap:
 Encje JPA, repozytoria, zapis/odczyt i testy integracyjne z Testcontainers już
 istnieją. Tożsamością pliku w katalogu jest `(allowed_root_id, relative_path)`;
 ponowny skan aktualizuje rekord. React pokazuje dane zapisane w bazie.
-Następną funkcję należy wybrać z właścicielem projektu i realizować małymi,
-zrozumiałymi krokami. Wykrywanie tej samej zawartości pod różnymi ścieżkami
+Ustalony następny etap to skanowanie przyrostowe. Właściciel uzupełnił record
+`KnownFile` (`relativePath`, `sizeBytes`, `lastModifiedAt`, `sha256`), a agent
+przygotował pusty szkielet `KnownFilesReader` w `catalog/reading`. Reader nie
+jest jeszcze komponentem Springa, nie wykonuje zapytań i nie jest podłączony
+do workflow. Następnie wspólnie dodajemy zapytanie pobierające cztery pola
+dla wybranego folderu i mapę znanych plików. Dopiero po tym podłączamy ją do
+skanera przed dekodowaniem i hashowaniem. Nie implementuj tych kroków za
+właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są wskazówką,
+nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego sprawdzenia.
+
+Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
 
 Nie ustawiamy `UNIQUE` na samym `sha256`, ponieważ dwa oddzielne pliki mogą mieć

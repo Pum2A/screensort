@@ -21,8 +21,11 @@ screenSorter/
 │   │   ├── hashing/                obliczanie SHA-256
 │   │   └── prototype/              starszy ekran Thymeleaf, nie React
 │   └── catalog/                    funkcja: zapisz i odczytaj katalog obrazów
-│       ├── CatalogUpdater.java     zapis/aktualizacja po skanowaniu
-│       ├── CatalogReader.java      odczyt zapisanych obrazów
+│       ├── reading/                odczyt danych z katalogu
+│       │   ├── CatalogReader.java  zapisane obrazy dla UI
+│       │   └── KnownFilesReader.java  pusty szkielet odczytu dla skanera
+│       ├── writing/                zapis i aktualizacja danych katalogu
+│       │   └── CatalogUpdater.java zapis wyników po skanowaniu
 │       ├── api/                    HTTP/JSON dla Reacta
 │       ├── dto/                    opis pliku zwracany z katalogu
 │       └── database/               encje i repozytoria JPA/PostgreSQL
@@ -50,6 +53,8 @@ odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 | `image` | Czyta pliki, odrzuca nieprawidłowe i tworzy `ScanResult`. | Logika przetwarzania danych. |
 | `hashing` | Liczy skrót zawartości pliku. | Małe narzędzie używane przez skaner. |
 | `database` | Mapowanie tabel na encje JPA i gotowe operacje repozytoriów. | Warstwa dostępu do trwałych danych. |
+| `reading` | Odczyt danych katalogu dla konkretnego odbiorcy: UI lub skanera. | Funkcja pobierająca i przygotowująca dane do użycia. |
+| `writing` | Zapis nowych rekordów i aktualizacja istniejących po skanie. | Funkcja synchronizująca wynik z trwałym magazynem. |
 | `prototype` | Zachowany ekran Thymeleaf pod `/`; oddzielony od API Reacta. | Stary widok, nadal działający. |
 
 `CatalogFileDto` jest w `catalog/dto`, ponieważ używa go zarówno
@@ -57,6 +62,13 @@ odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 Nie należy do samej bazy danych. DTO skanowania są w `scanning/api/dto`, bo
 opisują wyłącznie wejście i wyjście HTTP; `ScanWorkflow` korzysta z `ScanResult`,
 a nie z tych DTO.
+
+`KnownFile` w `scanning/image` opisuje poprzednio zapisany stan jednego pliku:
+ścieżkę względną, rozmiar, datę modyfikacji i SHA-256. Nie jest encją JPA ani
+zawartością zdjęcia. `KnownFilesReader` w `catalog/reading` jest na razie
+wyłącznie pustym szkieletem do wspólnego uzupełnienia. Nie odczytuje jeszcze
+bazy i nie jest podłączony do `ScanWorkflow`; obecny skan nie pomija znanych
+plików. Zapytanie o cztery pola i budowanie mapy będą następnym krokiem.
 
 ## Jak płyną dane
 
@@ -69,14 +81,14 @@ Kliknięcie „Scan folder” w React
        → scanning/safety/ScanFolderValidator
        → scanning/hashing/FileHasher
        → ScanResult (accepted + rejected)
-  → catalog/CatalogUpdater
+  → catalog/writing/CatalogUpdater
   → catalog/database/*Repository → PostgreSQL
   → scanning/api/dto/ScanResultDto → JSON → React
 
 Wejście/odświeżenie widoku katalogu w React
   → GET /api/catalog/files?folderPath=...
   → catalog/api/CatalogRestController
-  → catalog/CatalogReader
+  → catalog/reading/CatalogReader
        → scanning/safety/ScanFolderValidator
        → catalog/database/*Repository → PostgreSQL
   → catalog/dto/CatalogFileDto → JSON → React
@@ -93,7 +105,8 @@ tylko uruchamia Springa; nie jest miejscem na cały kod programu.
 - Nowa reguła rozpoznawania pliku: `scanning/image`.
 - Nowe pole odpowiedzi skanowania dla Reacta: `scanning/api/dto` i typ w React.
 - Nowe pole trwale zapisane w katalogu: migracja w `db/migration`, encja w
-  `catalog/database`, zapis/odczyt w `catalog` i — jeśli UI ma je widzieć — DTO.
+  `catalog/database`, zapis w `catalog/writing`, odczyt w `catalog/reading`
+  i — jeśli UI ma je widzieć — DTO.
 - Nowa operacja HTTP dotycząca katalogu: `catalog/api`.
 
 Nie twórz pustego pakietu „na zapas”. Rozbudowuj istniejącą funkcję dopiero,

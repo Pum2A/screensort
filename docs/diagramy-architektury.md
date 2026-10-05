@@ -93,7 +93,7 @@ flowchart TD
     SR --> DTO[ScanResultDto: odpowiedź dla Reacta]
 ```
 
-Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/safety/ScanFolderValidator.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/CatalogUpdater.java).
+Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/safety/ScanFolderValidator.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java).
 
 Skan jest obecnie **nierekurencyjny**: przegląda elementy bezpośrednio w wybranym folderze. Odrzucone pliki trafiają do odpowiedzi bieżącego skanu, ale nie do tabeli `file_record`. Dla zaakceptowanego pliku kluczem lokalizacji jest para `(allowed_root_id, relative_path)`. Ponowny skan tej samej lokalizacji aktualizuje istniejący rekord, m.in. `last_seen_at`. Taki sam hash w innej lokalizacji nie jest jeszcze automatycznie oznaczany jako duplikat.
 
@@ -111,7 +111,7 @@ flowchart LR
     MAP --> JSON[JSON: Saved images w React]
 ```
 
-Główne pliki: [`CatalogRestController`](../src/main/java/pl/pum/screensort/catalog/api/CatalogRestController.java), [`CatalogReader`](../src/main/java/pl/pum/screensort/catalog/CatalogReader.java), [`CatalogFileDto`](../src/main/java/pl/pum/screensort/catalog/dto/CatalogFileDto.java). Odczyt katalogu **nie skanuje obrazów ponownie**. Wykorzystuje walidator ścieżki, a następnie czyta dane z PostgreSQL-a.
+Główne pliki: [`CatalogRestController`](../src/main/java/pl/pum/screensort/catalog/api/CatalogRestController.java), [`CatalogReader`](../src/main/java/pl/pum/screensort/catalog/reading/CatalogReader.java), [`CatalogFileDto`](../src/main/java/pl/pum/screensort/catalog/dto/CatalogFileDto.java). Odczyt katalogu **nie skanuje obrazów ponownie**. Wykorzystuje walidator ścieżki, a następnie czyta dane z PostgreSQL-a.
 
 ## 5. Te same zdjęcia, różne obiekty
 
