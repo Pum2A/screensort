@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-09-22
+Ostatnia aktualizacja: 2026-10-05
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -90,6 +90,31 @@ Poprawność można sprawdzić na dwa sposoby:
 
 Samo sprawdzenie długości 64 znaków wykrywa część błędów, ale nie dowodzi, że
 wynik jest poprawny. Test z konkretną oczekiwaną wartością jest silniejszy.
+
+### Odczyt porcjami zamiast całego pliku w RAM
+
+`FileHasher` czyta plik przez `InputStream` do jednego bufora o wielkości
+64 KiB (65 536 bajtów). Każdy odczyt ponownie wykorzystuje tę samą tablicę.
+`MessageDigest.update(buffer, 0, bytesRead)` otrzymuje tylko faktycznie odczytane
+bajty; ostatnia porcja może być krótsza niż bufor. Po końcu pliku `digest()`
+zwraca jeden SHA-256 całej zawartości, a nie osobne hashe porcji.
+
+64 KiB to praktyczny początkowy kompromis między wielkością bufora a liczbą
+odczytów, nie udowodniony najszybszy rozmiar. Wcześniejsze `readAllBytes`
+tworzyło tablicę zależną od rozmiaru pliku. Teraz tablica ma stałą wielkość;
+dwa aktywne zadania hashowania potrzebują łącznie 128 KiB na te bufory.
+Nie jest to limit pamięci całej aplikacji: dekodowanie obrazów przez `ImageIO`,
+wyniki skanu i pozostałe komponenty nadal zajmują własną pamięć.
+
+Bufor i `MessageDigest` są lokalne dla pojedynczego wywołania, więc workery nie
+współdzielą ich zmiennego stanu. `try-with-resources` zamyka plik także przy
+błędzie. Nadal czytamy wszystkie bajty: zmiana ogranicza pamięć, ale nie pomija
+niezmienionych plików ani nie gwarantuje dużego przyspieszenia skanu.
+
+Testy porównują hash obrazu demo i znane wyniki dla `abc` oraz pustego pliku,
+a także odczyt porcjami z odczytem jednorazowym dla rozmiarów tuż przed, na
+i za granicą bufora oraz dla kilku porcji z niepełnym końcem. Pliki testowe
+powstają wyłącznie w katalogach tymczasowych; źródłowe obrazy są tylko czytane.
 
 ## 4. Flyway — migracje bazy
 
