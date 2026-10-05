@@ -30,7 +30,7 @@ public class ScanWorkflow {
     this.knownFilesReader = knownFilesReader;
   }
 
-  // STAN I PLAN: kroki 1-6 są podłączone; korzystanie z mapy w skanerze jest TODO.
+  // STAN I PLAN: kroki 1-7 są podłączone; korzystanie z mapy w workerze jest TODO.
   // Konstruktor przekazuje narzędzia; ta metoda dostaje folder konkretnego skanu.
   // WEJŚCIE: Path folder - ścieżka wybrana przez użytkownika, jeszcze niesprawdzona.
   // WYJŚCIE: ScanResult - wynik skanowania, po zapisaniu go w katalogu bazy danych.
@@ -55,8 +55,10 @@ public class ScanWorkflow {
   // Walidator nie zapisuje wyniku. Nie otaczaj całego skanu transakcją bazy.
   // JUŻ JEST 6: Zwróć result do kontrolera, który przygotuje odpowiedź dla UI.
   //
-  // TODO 7: W ImageScanner przekaż folder i mapę do przetwarzania pojedynczego pliku.
-  // Dopiero tam porównamy aktualne metadane z poprzednim opisem KnownFile.
+  // GOTOWE 7: ImageScanner przekazuje folder i mapę do processFile dla jednego pliku.
+  // TODO 8: W processFile oblicz ścieżkę względną pliku i wyszukaj ją w mapie.
+  // Wynik to poprzedni opis KnownFile albo brak wpisu, a nie decyzja o akceptacji.
+  // Dopiero potem przygotujemy tanie kontrole i porównanie aktualnych metadanych.
   // Porównanie i pomijanie ciężkiego odczytu nie są jeszcze zaimplementowane.
   // PÓŹNIEJ: Dodaj osobne pomiary walidacji, odczytu mapy, skanowania i zapisu.
   // Właściciel usunął wcześniejsze zbiorcze printy czasu z tego workflow.

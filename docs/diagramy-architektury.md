@@ -106,8 +106,9 @@ maksymalnie cztery zadania w toku na jeden skan, odbiera ukończone wyniki i
 zbiera je w `ScanResult`. Powyższy diagram pokazuje etapy, a nie jeden wątek.
 `KnownFilesReader` już odczytuje cztery pola znanych plików danego folderu
 i zwraca niemodyfikowalną mapę `relativePath -> KnownFile`. Workflow pobiera
-ją przed skanem i przekazuje razem z `AllowedRoot` do skanera. Mapa nie trafia
-jeszcze do workerów i nie jest używana do porównania; pomijanie ciężkiego
+ją przed skanem i przekazuje razem z `AllowedRoot` do skanera, który przekazuje
+te dane do `processFile`. Worker nie używa jeszcze mapy do wyszukiwania ani
+porównania plików; pomijanie ciężkiego
 odczytu niezmienionych plików pozostaje kolejnym etapem.
 
 Skan jest obecnie **nierekurencyjny**: przegląda elementy bezpośrednio w wybranym folderze. Odrzucone pliki trafiają do odpowiedzi bieżącego skanu, ale nie do tabeli `file_record`. Dla zaakceptowanego pliku kluczem lokalizacji jest para `(allowed_root_id, relative_path)`. Ponowny skan tej samej lokalizacji aktualizuje istniejący rekord, m.in. `last_seen_at`. Taki sam hash w innej lokalizacji nie jest jeszcze automatycznie oznaczany jako duplikat.

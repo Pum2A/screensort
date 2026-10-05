@@ -135,10 +135,11 @@ zapisuje wynik. Skaner nie ma już walidatora w konstruktorze i nie sprawdza
 folderu ponownie. Właściciel usunął wcześniejsze zbiorcze pomiary czasu
 skanowania i zapisu z workflow; pomiary wewnątrz `ImageScanner` pozostają.
 
-Mapa jest argumentem skanera, ale nie jest jeszcze przekazywana do workerów
-ani używana do porównania plików. Obecny skan nadal dekoduje i hashuje również
-wcześniej poznane pliki. Następnie wspólnie przekazujemy folder i mapę do
-`processFile`, a potem przygotowujemy porównanie aktualnych metadanych przed
+Skaner przekazuje folder i mapę do `processFile`, ale worker jeszcze ich nie
+używa do wyszukiwania ani porównania plików. Obecny skan nadal dekoduje i hashuje
+również wcześniej poznane pliki. Następnie wspólnie obliczamy ścieżkę względną
+pojedynczego pliku i szukamy jej w mapie, a potem przygotowujemy tanie kontrole
+oraz porównanie aktualnych metadanych przed
 ciężkim odczytem obrazu i hashowaniem. Nie implementuj tych kroków za
 właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są
 wskazówką, nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego
@@ -244,8 +245,9 @@ POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
 React pokazuje zarówno wynik skanu, jak i zapisane pliki. Docelowa powłoka
 desktopowa to Tauri + cienki most Rust, nie JavaFX. ScanWorkflow waliduje folder,
 odczytuje mapę przez KnownFilesReader i przekazuje AllowedRoot oraz mapę do
-ImageScanner.scan. Mapa nie trafia jeszcze do processFile i nie pomija ciężkiego
-odczytu znanych plików. Następny wspólny krok to przekazanie folderu i mapy do
-przetwarzania pojedynczego pliku. Nie implementuj kolejnej funkcji bez omówienia
+ImageScanner.scan. Skaner przekazuje te dane do processFile, ale worker nie
+wyszukuje jeszcze poprzedniego opisu i nie pomija ciężkiego odczytu znanych
+plików. Następny wspólny krok to obliczenie ścieżki względnej i wyszukanie jej
+w mapie. Nie implementuj kolejnej funkcji bez omówienia
 jej celu i przepływu danych z właścicielem projektu.
 ```

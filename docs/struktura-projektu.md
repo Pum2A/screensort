@@ -89,8 +89,9 @@ i buduje mapę `relativePath -> KnownFile`. Zwraca niemodyfikowalną migawkę
 przez `Map.copyOf`; nie otwiera zdjęć ani nie porównuje aktualnych metadanych.
 Odczyt sprawdza `KnownFilesReaderJpaTest` na tymczasowym PostgreSQL-u.
 Reader jest podłączony do `ScanWorkflow`, który przekazuje mapę i `AllowedRoot`
-do `ImageScanner.scan`. Skaner nie przekazuje jeszcze mapy do workerów, więc
-nadal przetwarza ponownie znane pliki. To będzie następnym wspólnym krokiem.
+do `ImageScanner.scan`, a skaner przekazuje je do `processFile`. Worker nie
+wyszukuje jeszcze pliku w mapie ani nie porównuje metadanych, więc nadal
+przetwarza ponownie znane pliki. Wyszukiwanie będzie następnym wspólnym krokiem.
 Numerowane TODO w klasie pozostają jako schemat już uzupełnionej implementacji.
 
 `KnownFilesReader` pozostaje w `catalog/reading`, ponieważ korzysta z bazy
