@@ -13,7 +13,7 @@ screenSorter/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
 │   │   ├── workflow/               kolejność kroków całego skanowania
-│   │   │   └── ScanWorkflow.java   obecnie: skanowanie → zapis wyniku
+│   │   │   └── ScanWorkflow.java   walidacja → znane pliki → skan → zapis
 │   │   ├── api/                    HTTP/JSON dla Reacta
 │   │   │   ├── ScanRestController.java
 │   │   │   └── dto/                dane żądania i odpowiedzi HTTP
@@ -63,7 +63,7 @@ odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 |---|---|---|
 | `api` | Przyjmuje żądania HTTP i oddaje JSON. | Handler żądania do backendu. |
 | `dto` | Kształt danych przekazywanych przez API; nie jest tabelą bazy. | Typ obiektu przesyłanego przez `fetch`. |
-| `workflow` | `ScanWorkflow` łączy skaner z zapisem katalogu; sam nie czyta każdego pliku. | Funkcja koordynująca kilka kroków. |
+| `workflow` | `ScanWorkflow` łączy walidację, odczyt znanych plików, skanowanie i zapis; sam nie czyta każdego pliku. | Funkcja koordynująca kilka kroków. |
 | `folder` | Sprawdza wybraną ścieżkę i zwraca `AllowedRoot`. Zawiera także błąd nieprawidłowego folderu. | Walidacja danych wejściowych, ale po stronie backendu. |
 | `image` | `ImageScanner` czyta pliki, odrzuca nieprawidłowe i tworzy `ScanResult`. | Logika przetwarzania danych. |
 | `result` | Opisy zaakceptowanych i odrzuconych plików, powody odrzucenia oraz zbiorczy wynik. | Dane zwrócone przez funkcję przetwarzającą. |
@@ -88,8 +88,9 @@ zweryfikowany `AllowedRoot`, odczytuje z bazy cztery pola dla tego folderu
 i buduje mapę `relativePath -> KnownFile`. Zwraca niemodyfikowalną migawkę
 przez `Map.copyOf`; nie otwiera zdjęć ani nie porównuje aktualnych metadanych.
 Odczyt sprawdza `KnownFilesReaderJpaTest` na tymczasowym PostgreSQL-u.
-Reader nie jest jeszcze podłączony do `ScanWorkflow`; obecny skan nadal
-przetwarza ponownie znane pliki. Podłączenie mapy będzie następnym krokiem.
+Reader jest podłączony do `ScanWorkflow`, który przekazuje mapę i `AllowedRoot`
+do `ImageScanner.scan`. Skaner nie przekazuje jeszcze mapy do workerów, więc
+nadal przetwarza ponownie znane pliki. To będzie następnym wspólnym krokiem.
 Numerowane TODO w klasie pozostają jako schemat już uzupełnionej implementacji.
 
 `KnownFilesReader` pozostaje w `catalog/reading`, ponieważ korzysta z bazy
@@ -107,8 +108,10 @@ Kliknięcie „Scan folder” w React
   → POST /api/scan
   → scanning/api/ScanRestController
   → scanning/workflow/ScanWorkflow
-  → scanning/image/ImageScanner
-       → scanning/folder/ScanFolderValidator
+       → scanning/folder/ScanFolderValidator → AllowedRoot
+       → catalog/reading/KnownFilesReader → repozytoria → PostgreSQL
+         → Map<String, KnownFile> (poprzednie opisy plików)
+  → scanning/image/ImageScanner (AllowedRoot + mapa; mapa jeszcze nieużywana)
        → scanning/workers (pula wątków do przetwarzania plików)
        → scanning/hashing/FileHasher
        → scanning/result/ScanResult (accepted + rejected)

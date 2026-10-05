@@ -76,10 +76,13 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    POST[ScanRestController: POST /api/scan] --> WF[ScanWorkflow: najpierw skan, potem zapis]
-    WF --> SC[ImageScanner: otwórz folder]
-    SC --> V[ScanFolderValidator: sprawdź ścieżkę]
+    POST[ScanRestController: POST /api/scan] --> WF[ScanWorkflow: walidacja, znane pliki, skan, zapis]
+    WF --> V[ScanFolderValidator: sprawdź ścieżkę]
     V --> AR[AllowedRoot: zweryfikowany folder]
+    AR --> READ[KnownFilesReader: poprzednie opisy plików]
+    READ --> PG[(PostgreSQL)]
+    READ --> KM[Mapa relativePath do KnownFile]
+    KM --> SC[ImageScanner: folder i mapa, jeszcze bez porównania]
     SC --> D[Files.list: bezpośrednie elementy folderu]
     D --> C{Jeden element: zwykły plik, rozszerzenie, rozmiar, odczyt obrazu?}
     C -->|nie| RJ[RejectedFile i RejectionReason]
@@ -91,20 +94,21 @@ flowchart TD
     SR --> UP[CatalogUpdater: synchronizacja z bazą]
     UP --> ROOT[AllowedRootRepository: znajdź lub utwórz folder]
     UP --> FILE[FileRecordRepository: znajdź lub utwórz/aktualizuj plik]
-    ROOT --> PG[(PostgreSQL)]
+    ROOT --> PG
     FILE --> PG
     SR --> DTO[ScanResultDto: odpowiedź dla Reacta]
 ```
 
-Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/workflow/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/folder/ScanFolderValidator.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java).
+Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/workflow/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/folder/ScanFolderValidator.java), [`KnownFilesReader`](../src/main/java/pl/pum/screensort/catalog/reading/KnownFilesReader.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java).
 
 Przetwarzanie pojedynczych plików wykonuje pula dwóch workerów. Skaner zleca
 maksymalnie cztery zadania w toku na jeden skan, odbiera ukończone wyniki i
 zbiera je w `ScanResult`. Powyższy diagram pokazuje etapy, a nie jeden wątek.
 `KnownFilesReader` już odczytuje cztery pola znanych plików danego folderu
-i zwraca niemodyfikowalną mapę `relativePath -> KnownFile`. Nie jest jeszcze
-podłączony do workflow i nie bierze udziału w powyższym przepływie; pomijanie
-ciężkiego odczytu niezmienionych plików pozostaje kolejnym etapem.
+i zwraca niemodyfikowalną mapę `relativePath -> KnownFile`. Workflow pobiera
+ją przed skanem i przekazuje razem z `AllowedRoot` do skanera. Mapa nie trafia
+jeszcze do workerów i nie jest używana do porównania; pomijanie ciężkiego
+odczytu niezmienionych plików pozostaje kolejnym etapem.
 
 Skan jest obecnie **nierekurencyjny**: przegląda elementy bezpośrednio w wybranym folderze. Odrzucone pliki trafiają do odpowiedzi bieżącego skanu, ale nie do tabeli `file_record`. Dla zaakceptowanego pliku kluczem lokalizacji jest para `(allowed_root_id, relative_path)`. Ponowny skan tej samej lokalizacji aktualizuje istniejący rekord, m.in. `last_seen_at`. Taki sam hash w innej lokalizacji nie jest jeszcze automatycznie oznaczany jako duplikat.
 

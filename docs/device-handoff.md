@@ -67,7 +67,8 @@ main class:   ScreenSortApplication
 11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
     `ImageScanner`.
 12. `KnownFilesReader` odczytuje cztery pola znanych plików wybranego folderu
-    i zwraca mapę tylko do odczytu. Nie jest jeszcze podłączony do skanowania.
+    i zwraca mapę tylko do odczytu. Workflow przekazuje ją do skanera, ale
+    skaner nie korzysta jeszcze z niej do pomijania ponownego przetwarzania.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -79,7 +80,7 @@ d095274923ae2ae713da857aead939d4878c362d9bad9d39a6258c5c9607bd8d
 
 ```text
 pl.pum.screensort.scanning
-├── workflow      # ScanWorkflow: koordynuje skan i zapis
+├── workflow      # walidacja → odczyt znanych plików → skan → zapis
 ├── api           # REST i DTO dla Reacta
 ├── folder        # walidator folderu, AllowedRoot i wyjątek
 ├── hashing       # obliczanie SHA-256
@@ -128,12 +129,18 @@ błąd bazy nie jest ukrywany jako brak danych. Test `KnownFilesReaderJpaTest`
 sprawdza te przypadki, ograniczenie odczytu do jednego folderu oraz brak
 możliwości modyfikacji mapy, korzystając z tymczasowego PostgreSQL-a.
 
-Reader nie jest jeszcze podłączony do `ScanWorkflow` ani `ImageScanner`.
-Obecny skan nadal dekoduje i hashuje również wcześniej poznane pliki.
-Następnie wspólnie zmieniamy kolejność workflow: walidacja folderu → odczyt
-znanych plików → przekazanie mapy do skanera. Dopiero skaner porówna aktualne
-metadane przed ciężkim odczytem obrazu i hashowaniem. Nie implementuj tych
-kroków za właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są
+`ScanWorkflow` już wykonuje walidację folderu, odczytuje mapę przez readera
+i wywołuje `ImageScanner.scan(AllowedRoot, Map<String, KnownFile>)`, a następnie
+zapisuje wynik. Skaner nie ma już walidatora w konstruktorze i nie sprawdza
+folderu ponownie. Właściciel usunął wcześniejsze zbiorcze pomiary czasu
+skanowania i zapisu z workflow; pomiary wewnątrz `ImageScanner` pozostają.
+
+Mapa jest argumentem skanera, ale nie jest jeszcze przekazywana do workerów
+ani używana do porównania plików. Obecny skan nadal dekoduje i hashuje również
+wcześniej poznane pliki. Następnie wspólnie przekazujemy folder i mapę do
+`processFile`, a potem przygotowujemy porównanie aktualnych metadanych przed
+ciężkim odczytem obrazu i hashowaniem. Nie implementuj tych kroków za
+właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są
 wskazówką, nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego
 sprawdzenia i uzgodnienie precyzji czasu systemu plików oraz PostgreSQL-a.
 
@@ -235,9 +242,10 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
 React pokazuje zarówno wynik skanu, jak i zapisane pliki. Docelowa powłoka
-desktopowa to Tauri + cienki most Rust, nie JavaFX. KnownFilesReader już czyta
-cztery pola znanych plików do niemodyfikowalnej mapy, ale nie jest podłączony
-do workflow/skanera. Następny wspólny krok to podłączenie tego odczytu przed
-przetwarzaniem plików. Nie implementuj kolejnej funkcji bez omówienia jej celu
-i przepływu danych z właścicielem projektu.
+desktopowa to Tauri + cienki most Rust, nie JavaFX. ScanWorkflow waliduje folder,
+odczytuje mapę przez KnownFilesReader i przekazuje AllowedRoot oraz mapę do
+ImageScanner.scan. Mapa nie trafia jeszcze do processFile i nie pomija ciężkiego
+odczytu znanych plików. Następny wspólny krok to przekazanie folderu i mapy do
+przetwarzania pojedynczego pliku. Nie implementuj kolejnej funkcji bez omówienia
+jej celu i przepływu danych z właścicielem projektu.
 ```
