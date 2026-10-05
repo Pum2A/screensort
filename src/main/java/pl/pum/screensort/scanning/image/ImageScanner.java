@@ -1,6 +1,6 @@
 package pl.pum.screensort.scanning.image;
 
-import static pl.pum.screensort.scanning.image.RejectionReason.METADATA_UNREADABLE;
+import static pl.pum.screensort.scanning.result.RejectionReason.METADATA_UNREADABLE;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,8 +17,12 @@ import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.scanning.hashing.FileHasher;
-import pl.pum.screensort.scanning.safety.AllowedRoot;
-import pl.pum.screensort.scanning.safety.ScanFolderValidator;
+import pl.pum.screensort.scanning.folder.AllowedRoot;
+import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.scanning.result.AcceptedImage;
+import pl.pum.screensort.scanning.result.RejectedFile;
+import pl.pum.screensort.scanning.result.RejectionReason;
+import pl.pum.screensort.scanning.result.ScanResult;
 
 @Service
 public class ImageScanner {

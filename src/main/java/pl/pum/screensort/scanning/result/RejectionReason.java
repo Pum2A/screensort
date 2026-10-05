@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.image;
+package pl.pum.screensort.scanning.result;
 
 public enum RejectionReason {
     UNREADABLE_IMAGE,

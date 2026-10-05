@@ -1,6 +1,6 @@
 package pl.pum.screensort.scanning.api.dto;
 
-import pl.pum.screensort.scanning.image.AcceptedImage;
+import pl.pum.screensort.scanning.result.AcceptedImage;
 
 public record AcceptedImageDto(String path, String originalName, String extension, long sizeBytes) {
   public static AcceptedImageDto from(AcceptedImage source) {

@@ -12,8 +12,8 @@ import pl.pum.screensort.catalog.database.AllowedRootRepository;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
-import pl.pum.screensort.scanning.safety.AllowedRoot;
-import pl.pum.screensort.scanning.safety.ScanFolderValidator;
+import pl.pum.screensort.scanning.folder.AllowedRoot;
+import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 @Service
 public class CatalogReader {

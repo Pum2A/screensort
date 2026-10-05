@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.safety;
+package pl.pum.screensort.scanning.folder;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

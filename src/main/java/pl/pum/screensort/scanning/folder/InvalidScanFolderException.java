@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.safety;
+package pl.pum.screensort.scanning.folder;
 
 import java.io.IOException;
 

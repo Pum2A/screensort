@@ -7,7 +7,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.junit.jupiter.api.Test;
 import pl.pum.screensort.scanning.hashing.FileHasher;
-import pl.pum.screensort.scanning.safety.ScanFolderValidator;
+import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.scanning.result.ScanResult;
 
 class ImageScannerTest {
 

@@ -1,4 +1,4 @@
-package pl.pum.screensort.scanning.image;
+package pl.pum.screensort.scanning.result;
 
 import java.nio.file.Path;
 import java.time.Instant;

@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-import pl.pum.screensort.scanning.ScanWorkflow;
-import pl.pum.screensort.scanning.image.ScanResult;
-import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
+import pl.pum.screensort.scanning.workflow.ScanWorkflow;
+import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 import pl.pum.screensort.scanning.api.dto.ScanRequest;
 import pl.pum.screensort.scanning.api.dto.ScanResultDto;
 

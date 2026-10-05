@@ -5,9 +5,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import pl.pum.screensort.scanning.ScanWorkflow;
-import pl.pum.screensort.scanning.image.ScanResult;
-import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
+import pl.pum.screensort.scanning.workflow.ScanWorkflow;
+import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
 import java.io.IOException;
 import java.nio.file.InvalidPathException;

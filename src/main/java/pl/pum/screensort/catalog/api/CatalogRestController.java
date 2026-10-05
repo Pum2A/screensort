@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
 import pl.pum.screensort.catalog.reading.CatalogReader;
-import pl.pum.screensort.scanning.safety.InvalidScanFolderException;
+import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
 @RestController
 public class CatalogRestController {
