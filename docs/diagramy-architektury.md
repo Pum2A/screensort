@@ -4,6 +4,9 @@ Ten dokument opisuje **kod, który istnieje dziś**. Diagramy pokazują połącz
 
 Wersja do czytania na telefonie: [PDF z mapą architektury](../output/pdf/screensort-architektura.pdf). Osobny [plan kolejnego etapu i wydajności](nastepny-etap-i-wydajnosc.md) również ma [wersję PDF](../output/pdf/screensort-plan-wydajnosc.pdf).
 
+PDF-y są wcześniejszą migawką. Aktualny układ pakietów po uporządkowaniu
+`scanning` opisuje [mapa plików projektu](struktura-projektu.md).
+
 ## 1. Gdzie działa każda część
 
 ```mermaid
@@ -77,7 +80,7 @@ flowchart TD
     WF --> SC[ImageScanner: otwórz folder]
     SC --> V[ScanFolderValidator: sprawdź ścieżkę]
     V --> AR[AllowedRoot: zweryfikowany folder]
-    SC --> D[DirectoryStream: bezpośrednie elementy folderu]
+    SC --> D[Files.list: bezpośrednie elementy folderu]
     D --> C{Jeden element: zwykły plik, rozszerzenie, rozmiar, odczyt obrazu?}
     C -->|nie| RJ[RejectedFile i RejectionReason]
     C -->|tak| H[FileHasher: SHA-256]
@@ -93,7 +96,12 @@ flowchart TD
     SR --> DTO[ScanResultDto: odpowiedź dla Reacta]
 ```
 
-Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/safety/ScanFolderValidator.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java).
+Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanning/api/ScanRestController.java), [`ScanWorkflow`](../src/main/java/pl/pum/screensort/scanning/workflow/ScanWorkflow.java), [`ScanFolderValidator`](../src/main/java/pl/pum/screensort/scanning/folder/ScanFolderValidator.java), [`ImageScanner`](../src/main/java/pl/pum/screensort/scanning/image/ImageScanner.java), [`FileHasher`](../src/main/java/pl/pum/screensort/scanning/hashing/FileHasher.java), [`CatalogUpdater`](../src/main/java/pl/pum/screensort/catalog/writing/CatalogUpdater.java).
+
+Przetwarzanie pojedynczych plików wykonuje pula dwóch workerów. Skaner zleca
+maksymalnie cztery zadania w toku na jeden skan, odbiera ukończone wyniki i
+zbiera je w `ScanResult`. Powyższy diagram pokazuje etapy, a nie jeden wątek.
+`KnownFilesReader` jest jeszcze szkieletem z TODO i nie bierze udziału w tym przepływie.
 
 Skan jest obecnie **nierekurencyjny**: przegląda elementy bezpośrednio w wybranym folderze. Odrzucone pliki trafiają do odpowiedzi bieżącego skanu, ale nie do tabeli `file_record`. Dla zaakceptowanego pliku kluczem lokalizacji jest para `(allowed_root_id, relative_path)`. Ponowny skan tej samej lokalizacji aktualizuje istniejący rekord, m.in. `last_seen_at`. Taki sam hash w innej lokalizacji nie jest jeszcze automatycznie oznaczany jako duplikat.
 

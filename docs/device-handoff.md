@@ -77,11 +77,14 @@ d095274923ae2ae713da857aead939d4878c362d9bad9d39a6258c5c9607bd8d
 
 ```text
 pl.pum.screensort.scanning
-├── ScanWorkflow  # koordynuje skan i zapis
+├── workflow      # ScanWorkflow: koordynuje skan i zapis
 ├── api           # REST i DTO dla Reacta
-├── safety        # czy wolno skanować wskazany katalog
+├── folder        # walidator folderu, AllowedRoot i wyjątek
 ├── hashing       # obliczanie SHA-256
-├── image         # klasyfikacja plików i wynik skanu
+├── image         # ImageScanner: przetwarzanie plików
+├── result        # ScanResult, AcceptedImage, RejectedFile, RejectionReason
+├── knownfiles    # KnownFile: poprzednio zapisane metadane
+├── workers       # konfiguracja puli wątków skanera
 └── prototype     # starszy ekran Thymeleaf
 
 pl.pum.screensort.catalog
@@ -112,9 +115,14 @@ istnieją. Tożsamością pliku w katalogu jest `(allowed_root_id, relative_path
 ponowny skan aktualizuje rekord. React pokazuje dane zapisane w bazie.
 Ustalony następny etap to skanowanie przyrostowe. Właściciel uzupełnił record
 `KnownFile` (`relativePath`, `sizeBytes`, `lastModifiedAt`, `sha256`), a agent
-przygotował pusty szkielet `KnownFilesReader` w `catalog/reading`. Reader nie
+przygotował pusty szkielet `KnownFilesReader` w `catalog/reading` z numerowanymi
+TODO dla właściciela. `KnownFile` jest w `scanning/knownfiles`. Reader nie
 jest jeszcze komponentem Springa, nie wykonuje zapytań i nie jest podłączony
-do workflow. Następnie wspólnie dodajemy zapytanie pobierające cztery pola
+do workflow. Wejściem readera ma być zweryfikowany `AllowedRoot`, wynikiem mapa
+`relativePath -> KnownFile` tylko dla tego folderu. Nie otwiera obrazów ani nie
+porównuje aktualnych metadanych; to będzie zadanie skanera. Brak folderu w bazie
+oznacza pustą mapę, ale błędu bazy nie wolno ukryć jako pustej mapy.
+Następnie wspólnie dodajemy zapytanie pobierające cztery pola
 dla wybranego folderu i mapę znanych plików. Dopiero po tym podłączamy ją do
 skanera przed dekodowaniem i hashowaniem. Nie implementuj tych kroków za
 właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są wskazówką,
