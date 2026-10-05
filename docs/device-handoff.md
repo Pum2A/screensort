@@ -66,6 +66,8 @@ main class:   ScreenSortApplication
     a React pokazuje je po uruchomieniu oraz po skanowaniu.
 11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
     `ImageScanner`.
+12. `KnownFilesReader` odczytuje cztery pola znanych plików wybranego folderu
+    i zwraca mapę tylko do odczytu. Nie jest jeszcze podłączony do skanowania.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -88,7 +90,7 @@ pl.pum.screensort.scanning
 └── prototype     # starszy ekran Thymeleaf
 
 pl.pum.screensort.catalog
-├── reading       # CatalogReader dla UI, pusty KnownFilesReader dla skanera
+├── reading       # CatalogReader dla UI, KnownFilesReader dla skanera
 ├── writing       # CatalogUpdater: zapis i aktualizacja katalogu
 ├── api           # REST dla Reacta
 ├── dto           # opis pliku pokazywany w UI
@@ -114,19 +116,26 @@ Encje JPA, repozytoria, zapis/odczyt i testy integracyjne z Testcontainers już
 istnieją. Tożsamością pliku w katalogu jest `(allowed_root_id, relative_path)`;
 ponowny skan aktualizuje rekord. React pokazuje dane zapisane w bazie.
 Ustalony następny etap to skanowanie przyrostowe. Właściciel uzupełnił record
-`KnownFile` (`relativePath`, `sizeBytes`, `lastModifiedAt`, `sha256`), a agent
-przygotował pusty szkielet `KnownFilesReader` w `catalog/reading` z numerowanymi
-TODO dla właściciela. `KnownFile` jest w `scanning/knownfiles`. Reader nie
-jest jeszcze komponentem Springa, nie wykonuje zapytań i nie jest podłączony
-do workflow. Wejściem readera ma być zweryfikowany `AllowedRoot`, wynikiem mapa
-`relativePath -> KnownFile` tylko dla tego folderu. Nie otwiera obrazów ani nie
-porównuje aktualnych metadanych; to będzie zadanie skanera. Brak folderu w bazie
-oznacza pustą mapę, ale błędu bazy nie wolno ukryć jako pustej mapy.
-Następnie wspólnie dodajemy zapytanie pobierające cztery pola
-dla wybranego folderu i mapę znanych plików. Dopiero po tym podłączamy ją do
-skanera przed dekodowaniem i hashowaniem. Nie implementuj tych kroków za
-właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są wskazówką,
-nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego sprawdzenia.
+`KnownFile` (`relativePath`, `sizeBytes`, `lastModifiedAt`, `sha256`) w
+`scanning/knownfiles` oraz `KnownFilesReader` w `catalog/reading`. Reader jest
+komponentem Springa; metoda `read(AllowedRoot)` działa w transakcji tylko do
+odczytu. Znajduje folder po canonicalPath, a następnie pobiera `List<KnownFile>`
+przez `FileRecordRepository.findAllByAllowedRoot_Id(Long rootId)`. To projekcja
+czterech pól, bez ładowania pełnych encji plików i bez bajtów obrazów.
+Reader buduje HashMap `relativePath -> KnownFile` i zwraca niemodyfikowalną
+migawkę przez `Map.copyOf`. Brak folderu lub plików w bazie oznacza pustą mapę;
+błąd bazy nie jest ukrywany jako brak danych. Test `KnownFilesReaderJpaTest`
+sprawdza te przypadki, ograniczenie odczytu do jednego folderu oraz brak
+możliwości modyfikacji mapy, korzystając z tymczasowego PostgreSQL-a.
+
+Reader nie jest jeszcze podłączony do `ScanWorkflow` ani `ImageScanner`.
+Obecny skan nadal dekoduje i hashuje również wcześniej poznane pliki.
+Następnie wspólnie zmieniamy kolejność workflow: walidacja folderu → odczyt
+znanych plików → przekazanie mapy do skanera. Dopiero skaner porówna aktualne
+metadane przed ciężkim odczytem obrazu i hashowaniem. Nie implementuj tych
+kroków za właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są
+wskazówką, nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego
+sprawdzenia i uzgodnienie precyzji czasu systemu plików oraz PostgreSQL-a.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -226,6 +235,9 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
 React pokazuje zarówno wynik skanu, jak i zapisane pliki. Docelowa powłoka
-desktopowa to Tauri + cienki most Rust, nie JavaFX. Nie implementuj kolejnej
-funkcji bez omówienia jej celu i przepływu danych z właścicielem projektu.
+desktopowa to Tauri + cienki most Rust, nie JavaFX. KnownFilesReader już czyta
+cztery pola znanych plików do niemodyfikowalnej mapy, ale nie jest podłączony
+do workflow/skanera. Następny wspólny krok to podłączenie tego odczytu przed
+przetwarzaniem plików. Nie implementuj kolejnej funkcji bez omówienia jej celu
+i przepływu danych z właścicielem projektu.
 ```

@@ -38,7 +38,7 @@ screenSorter/
 │   └── catalog/                    funkcja: zapisz i odczytaj katalog obrazów
 │       ├── reading/                odczyt danych z katalogu
 │       │   ├── CatalogReader.java  zapisane obrazy dla UI
-│       │   └── KnownFilesReader.java  pusty szkielet odczytu dla skanera
+│       │   └── KnownFilesReader.java  lekka mapa metadanych dla skanera
 │       ├── writing/                zapis i aktualizacja danych katalogu
 │       │   └── CatalogUpdater.java zapis wyników po skanowaniu
 │       ├── api/                    HTTP/JSON dla Reacta
@@ -83,16 +83,19 @@ a nie z tych DTO.
 
 `KnownFile` w `scanning/knownfiles` opisuje poprzednio zapisany stan jednego pliku:
 ścieżkę względną, rozmiar, datę modyfikacji i SHA-256. Nie jest encją JPA ani
-zawartością zdjęcia. `KnownFilesReader` w `catalog/reading` jest na razie
-wyłącznie pustym szkieletem do wspólnego uzupełnienia. Nie odczytuje jeszcze
-bazy i nie jest podłączony do `ScanWorkflow`; obecny skan nie pomija znanych
-plików. Zapytanie o cztery pola i budowanie mapy będą następnym krokiem.
-W klasie są numerowane TODO opisujące wejście, wynik i kolejne działania.
+zawartością zdjęcia. `KnownFilesReader` w `catalog/reading` przyjmuje
+zweryfikowany `AllowedRoot`, odczytuje z bazy cztery pola dla tego folderu
+i buduje mapę `relativePath -> KnownFile`. Zwraca niemodyfikowalną migawkę
+przez `Map.copyOf`; nie otwiera zdjęć ani nie porównuje aktualnych metadanych.
+Odczyt sprawdza `KnownFilesReaderJpaTest` na tymczasowym PostgreSQL-u.
+Reader nie jest jeszcze podłączony do `ScanWorkflow`; obecny skan nadal
+przetwarza ponownie znane pliki. Podłączenie mapy będzie następnym krokiem.
+Numerowane TODO w klasie pozostają jako schemat już uzupełnionej implementacji.
 
 `KnownFilesReader` pozostaje w `catalog/reading`, ponieważ korzysta z bazy
 katalogu. Jego odbiorcą będzie skaner, ale nie oznacza to, że reader ma otwierać
 obrazy z dysku. `CatalogReader` przygotowuje dane dla UI, a `KnownFilesReader`
-przygotuje lżejsze dane dla skanowania. To dwa różne cele odczytu tej samej bazy.
+przygotowuje lżejsze dane dla skanowania. To dwa różne cele odczytu tej samej bazy.
 
 Prywatne `FileOutcome`, `ProcessedFile` i `ScanTiming` pozostają wewnątrz
 `ImageScanner`: są szczegółami jego pracy, nie wspólnym wynikiem dla innych klas.

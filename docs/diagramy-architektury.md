@@ -101,7 +101,10 @@ Główne pliki: [`ScanRestController`](../src/main/java/pl/pum/screensort/scanni
 Przetwarzanie pojedynczych plików wykonuje pula dwóch workerów. Skaner zleca
 maksymalnie cztery zadania w toku na jeden skan, odbiera ukończone wyniki i
 zbiera je w `ScanResult`. Powyższy diagram pokazuje etapy, a nie jeden wątek.
-`KnownFilesReader` jest jeszcze szkieletem z TODO i nie bierze udziału w tym przepływie.
+`KnownFilesReader` już odczytuje cztery pola znanych plików danego folderu
+i zwraca niemodyfikowalną mapę `relativePath -> KnownFile`. Nie jest jeszcze
+podłączony do workflow i nie bierze udziału w powyższym przepływie; pomijanie
+ciężkiego odczytu niezmienionych plików pozostaje kolejnym etapem.
 
 Skan jest obecnie **nierekurencyjny**: przegląda elementy bezpośrednio w wybranym folderze. Odrzucone pliki trafiają do odpowiedzi bieżącego skanu, ale nie do tabeli `file_record`. Dla zaakceptowanego pliku kluczem lokalizacji jest para `(allowed_root_id, relative_path)`. Ponowny skan tej samej lokalizacji aktualizuje istniejący rekord, m.in. `last_seen_at`. Taki sam hash w innej lokalizacji nie jest jeszcze automatycznie oznaczany jako duplikat.
 
