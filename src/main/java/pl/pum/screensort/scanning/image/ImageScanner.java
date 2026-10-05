@@ -16,9 +16,9 @@ import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.scanning.hashing.FileHasher;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.scanning.hashing.FileHasher;
+import pl.pum.screensort.scanning.knownfiles.KnownFile;
 import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.RejectedFile;
 import pl.pum.screensort.scanning.result.RejectionReason;
@@ -29,22 +29,17 @@ public class ImageScanner {
   private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
   private static final int MAX_IN_FLIGHT = 4;
 
-  private final ScanFolderValidator folderValidator;
   private final FileHasher hasher;
   private final ExecutorService scanWorkers;
 
-  public ImageScanner(
-      ScanFolderValidator folderValidator,
-      FileHasher hasher,
-      @Qualifier("scanWorkers") ExecutorService scanWorkers) {
-    this.folderValidator = folderValidator;
+  public ImageScanner(FileHasher hasher, @Qualifier("scanWorkers") ExecutorService scanWorkers) {
     this.hasher = hasher;
     this.scanWorkers = scanWorkers;
   }
 
-  public ScanResult scan(Path folder) throws IOException {
+  public ScanResult scan(AllowedRoot allowedRoot, Map<String, KnownFile> knownFilesByPath)
+      throws IOException {
     long scanStartedAt = System.nanoTime();
-    AllowedRoot allowedRoot = folderValidator.validate(folder);
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
     ScanTiming timing = new ScanTiming();

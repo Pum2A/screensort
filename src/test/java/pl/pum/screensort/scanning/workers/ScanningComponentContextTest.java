@@ -15,7 +15,6 @@ class ScanningComponentContextTest {
       context.scan(
           "pl.pum.screensort.scanning.hashing",
           "pl.pum.screensort.scanning.image",
-          "pl.pum.screensort.scanning.folder",
           "pl.pum.screensort.scanning.workers");
       context.refresh();
 
