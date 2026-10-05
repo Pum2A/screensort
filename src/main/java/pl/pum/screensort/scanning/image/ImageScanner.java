@@ -57,7 +57,8 @@ public class ImageScanner {
         while (inFlight < MAX_IN_FLIGHT && entries.hasNext()) {
           Path path = entries.next();
 
-          Future<ProcessedFile> task = completed.submit(() -> processFile(path));
+          Future<ProcessedFile> task =
+              completed.submit(() -> processFile(path, allowedRoot, knownFilesByPath));
 
           pending.add(task);
           inFlight++;
@@ -203,7 +204,8 @@ public class ImageScanner {
     }
   }
 
-  private ProcessedFile processFile(Path path) {
+  private ProcessedFile processFile(
+      Path path, AllowedRoot allowedRoot, Map<String, KnownFile> knownFilesByPath) {
     ScanTiming timing = new ScanTiming();
     FileOutcome fileOutcome = fileOutcome(path, timing);
     return new ProcessedFile(fileOutcome, timing);
