@@ -8,7 +8,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import java.awt.image.BufferedImage;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -41,7 +43,7 @@ class ScanRestControllerIntegrationTest {
   @Autowired private FileRecordRepository fileRecordRepository;
 
   @Test
-  void webScansRealImageAndKeepsOneDatabaseRecordAfterRescan(@TempDir Path folder)
+  void webReportsIncrementalSummaryAndKeepsStableFileIds(@TempDir Path folder)
       throws Exception {
     Path imagePath = folder.resolve("photo.png");
     assertThat(
@@ -56,7 +58,11 @@ class ScanRestControllerIntegrationTest {
 
     mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(1));
+        .andExpect(jsonPath("$.accepted.length()").value(1))
+        .andExpect(jsonPath("$.summary.newImages").value(1))
+        .andExpect(jsonPath("$.summary.rescannedImages").value(0))
+        .andExpect(jsonPath("$.summary.unchangedImages").value(0))
+        .andExpect(jsonPath("$.summary.rejectedFiles").value(0));
 
     AllowedRootEntity root =
         allowedRootRepository.findByCanonicalPath(folder.toRealPath().toString()).orElseThrow();
@@ -79,7 +85,11 @@ class ScanRestControllerIntegrationTest {
 
     mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(1));
+        .andExpect(jsonPath("$.accepted.length()").value(1))
+        .andExpect(jsonPath("$.summary.newImages").value(0))
+        .andExpect(jsonPath("$.summary.rescannedImages").value(0))
+        .andExpect(jsonPath("$.summary.unchangedImages").value(1))
+        .andExpect(jsonPath("$.summary.rejectedFiles").value(0));
 
     FileRecordEntity secondRecord =
         fileRecordRepository.findByAllowedRootAndRelativePath(root, "photo.png").orElseThrow();
@@ -88,6 +98,7 @@ class ScanRestControllerIntegrationTest {
     assertThat(fileRecordRepository.count()).isEqualTo(1);
     assertThat(secondRecord.getId()).isEqualTo(firstId);
     assertThat(secondRecord.getSha256()).hasSize(64);
+    assertThat(secondRecord.getSha256()).isEqualTo(firstRecord.getSha256());
     mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
@@ -95,5 +106,49 @@ class ScanRestControllerIntegrationTest {
     System.out.printf(
         "Web scans: roots=%d, files=%d, file ID=%d%n",
         allowedRootRepository.count(), fileRecordRepository.count(), firstId);
+
+    // Znany obraz z inną zawartością musi być sprawdzony ponownie, bez nowego ID.
+    assertThat(
+            ImageIO.write(
+                new BufferedImage(3, 3, BufferedImage.TYPE_INT_RGB), "png", imagePath.toFile()))
+        .isTrue();
+    Files.setLastModifiedTime(
+        imagePath, FileTime.from(firstRecord.getLastModifiedAt().plusSeconds(120)));
+    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accepted.length()").value(1))
+        .andExpect(jsonPath("$.summary.newImages").value(0))
+        .andExpect(jsonPath("$.summary.rescannedImages").value(1))
+        .andExpect(jsonPath("$.summary.unchangedImages").value(0))
+        .andExpect(jsonPath("$.summary.rejectedFiles").value(0));
+
+    FileRecordEntity changedRecord =
+        fileRecordRepository.findByAllowedRootAndRelativePath(root, "photo.png").orElseThrow();
+    assertThat(changedRecord.getId()).isEqualTo(firstId);
+    assertThat(changedRecord.getSha256()).isNotEqualTo(firstRecord.getSha256());
+    assertThat(fileRecordRepository.count()).isEqualTo(1);
+
+    // Jeden skan może jednocześnie zawierać nowy, znany i odrzucony plik.
+    assertThat(
+            ImageIO.write(
+                new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB),
+                "png",
+                folder.resolve("new-photo.png").toFile()))
+        .isTrue();
+    Files.writeString(folder.resolve("notes.txt"), "Not an image.");
+    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.accepted.length()").value(2))
+        .andExpect(jsonPath("$.rejected.length()").value(1))
+        .andExpect(jsonPath("$.summary.newImages").value(1))
+        .andExpect(jsonPath("$.summary.rescannedImages").value(0))
+        .andExpect(jsonPath("$.summary.unchangedImages").value(1))
+        .andExpect(jsonPath("$.summary.rejectedFiles").value(1));
+
+    assertThat(allowedRootRepository.count()).isEqualTo(1);
+    assertThat(fileRecordRepository.count()).isEqualTo(2);
+    mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.length()").value(2));
   }
 }

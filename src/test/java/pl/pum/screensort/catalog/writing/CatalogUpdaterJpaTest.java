@@ -24,6 +24,7 @@ import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
 import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.result.ScanSummary;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 
 @DataJpaTest
@@ -51,7 +52,9 @@ class CatalogUpdaterJpaTest {
 
     AcceptedImage firstScanImage =
         new AcceptedImage(imagePath, "photo.png", "png", 2048L, firstModifiedAt, "a".repeat(64));
-    catalogUpdater.update(allowedRoot, new ScanResult(allowedRoot, List.of(firstScanImage), List.of()));
+    catalogUpdater.update(
+        allowedRoot,
+        new ScanResult(allowedRoot, List.of(firstScanImage), List.of(), new ScanSummary(1, 0, 0, 0)));
 
     AllowedRootEntity savedRoot =
         allowedRootRepository.findByCanonicalPath(folder.toString()).orElseThrow();
@@ -68,7 +71,9 @@ class CatalogUpdaterJpaTest {
 
     AcceptedImage secondScanImage =
         new AcceptedImage(imagePath, "photo.png", "png", 4096L, secondModifiedAt, "b".repeat(64));
-    catalogUpdater.update(allowedRoot, new ScanResult(allowedRoot, List.of(secondScanImage), List.of()));
+    catalogUpdater.update(
+        allowedRoot,
+        new ScanResult(allowedRoot, List.of(secondScanImage), List.of(), new ScanSummary(0, 1, 0, 0)));
 
     AllowedRootEntity sameRoot =
         allowedRootRepository.findByCanonicalPath(folder.toString()).orElseThrow();

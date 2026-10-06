@@ -24,6 +24,7 @@ import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.RejectedFile;
 import pl.pum.screensort.scanning.result.RejectionReason;
 import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.result.ScanSummary;
 
 @Service
 public class ImageScanner {
@@ -43,6 +44,9 @@ public class ImageScanner {
     long scanStartedAt = System.nanoTime();
     List<AcceptedImage> accepted = new ArrayList<>();
     List<RejectedFile> rejected = new ArrayList<>();
+    int newImages = 0;
+    int rescannedImages = 0;
+    int unchangedImages = 0;
     ScanTiming timing = new ScanTiming();
     ExecutorCompletionService<ProcessedFile> completed =
         new ExecutorCompletionService<>(scanWorkers);
@@ -84,6 +88,11 @@ public class ImageScanner {
         if (outcome instanceof FileOutcome.Accepted acceptedOutcome) {
           AcceptedImage image = acceptedOutcome.image();
           accepted.add(image);
+          switch (acceptedOutcome.scanType()) {
+            case NEW -> newImages++;
+            case RESCANNED -> rescannedImages++;
+            case UNCHANGED -> unchangedImages++;
+          }
           System.out.println("Accepted: " + image.path());
         } else if (outcome instanceof FileOutcome.Rejected rejectedOutcome) {
           RejectedFile file = rejectedOutcome.file();
@@ -112,7 +121,15 @@ public class ImageScanner {
         timing.hashNanos / 1_000_000.0,
         timing.hashCount);
 
-    return new ScanResult(allowedRoot, accepted, rejected);
+    ScanSummary summary =
+        new ScanSummary(newImages, rescannedImages, unchangedImages, rejected.size());
+    System.out.printf(
+        "Scan summary: new=%d; rescanned=%d; unchanged=%d; rejected=%d%n",
+        summary.newImages(),
+        summary.rescannedImages(),
+        summary.unchangedImages(),
+        summary.rejectedFiles());
+    return new ScanResult(allowedRoot, accepted, rejected, summary);
   }
 
   private boolean hasSupportedExtension(Path path) {
@@ -187,7 +204,8 @@ public class ImageScanner {
           AcceptedImage image =
               createAcceptedImage(path, knownFile.sha256(), sizeBytes, lastModifiedAt);
 
-          return new FileOutcome.Accepted(image);
+          // Zgodność metadanych pozwala użyć poprzedniego hasha, bez odczytu zawartości.
+          return new FileOutcome.Accepted(image, ImageScanType.UNCHANGED);
         }
         long beforeImageRead = System.nanoTime();
         boolean readableImage = isReadableImage(path);
@@ -210,7 +228,8 @@ public class ImageScanner {
           return new FileOutcome.Rejected(file);
         }
         AcceptedImage image = createAcceptedImage(path, hash.get(), sizeBytes, lastModifiedAt);
-        return new FileOutcome.Accepted(image);
+        ImageScanType scanType = knownFile == null ? ImageScanType.NEW : ImageScanType.RESCANNED;
+        return new FileOutcome.Accepted(image, scanType);
       } catch (IOException exception) {
         RejectedFile file =
             new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
@@ -228,8 +247,14 @@ public class ImageScanner {
     return new ProcessedFile(fileOutcome, timing);
   }
 
+  private enum ImageScanType {
+    NEW,
+    RESCANNED,
+    UNCHANGED
+  }
+
   private sealed interface FileOutcome {
-    record Accepted(AcceptedImage image) implements FileOutcome {}
+    record Accepted(AcceptedImage image, ImageScanType scanType) implements FileOutcome {}
 
     record Rejected(RejectedFile file) implements FileOutcome {}
   }
