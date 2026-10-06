@@ -63,8 +63,10 @@ main class:   ScreenSortApplication
    a nad listami cztery liczniki podsumowania ostatniego skanu.
 9. `ScanWorkflow` przekazuje wynik do `CatalogUpdater`, który zapisuje nowe
    pliki w PostgreSQL albo aktualizuje istniejące rekordy przy kolejnym skanie.
-10. `GET /api/catalog/files` przez `CatalogReader` odczytuje zapisane obrazy,
-    a React pokazuje je po uruchomieniu oraz po skanowaniu.
+10. `GET /api/catalog/page` przez `CatalogReader.readPage` odczytuje stronę
+    zapisanych obrazów. React pokazuje maksymalnie 50 rekordów, liczbę wszystkich
+    zapisanych plików oraz przyciski „Poprzednia” i „Następna”. Katalog odczytywany
+    jest po uruchomieniu oraz po udanym skanowaniu.
 11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
     `ImageScanner`.
 12. `KnownFilesReader` odczytuje cztery pola znanych plików wybranego folderu
@@ -97,7 +99,7 @@ pl.pum.screensort.catalog
 ├── reading       # CatalogReader dla UI, KnownFilesReader dla skanera
 ├── writing       # CatalogUpdater: zapis i aktualizacja katalogu
 ├── api           # REST dla Reacta
-├── dto           # opis pliku pokazywany w UI
+├── dto           # opis pliku i strony katalogu pokazywanej w UI
 └── database      # encje i repozytoria JPA
 ```
 
@@ -157,19 +159,40 @@ Rozmiar i data modyfikacji są wskazówką, nie dowodem identycznej zawartości.
 sprawdzenia jest nadal do zaprojektowania. Przyszłe bezpieczne kopiowanie musi
 ponownie potwierdzić zawartość źródła.
 
-Najbliższy wspólny etap: stronicowany katalog i galeria z bezpiecznymi miniaturami
-oraz podglądem wybranego obrazu. Postęp długiego skanu, OCR, propozycje nazw,
+Najbliższy wspólny etap: bezpieczny odczyt miniatury po ID rekordu, następnie
+galeria oraz podgląd wybranego obrazu. Postęp długiego skanu, OCR, propozycje nazw,
 przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
 za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
 Javy i nie ma zweryfikowanego instalatora; Docker pozostaje narzędziem developerskim.
 
-Pierwszy krok paginacji jest przygotowany: `catalog/dto/CatalogPageDto` opisuje
-jedną stronę przez `files`, `pageNumber` (od 0), `pageSize`, `totalFiles` i
-`hasNext`. Tworzy kopię listy tylko do odczytu. Nie jest jeszcze używany przez
-API ani Reacta: katalog nadal pobierany jest w całości. Następny wspólny krok
-to ograniczenie zapytania w `FileRecordRepository`, następnie podłączenie
-`CatalogReader`, kontrolera i przycisków stron w React. Nie wycinaj strony
-dopiero z pełnej listy w Javie — ograniczenie musi działać już w zapytaniu bazy.
+Stronicowanie katalogu jest podłączone od PostgreSQL-a do Reacta:
+
+- `CatalogPageDto` opisuje stronę przez `files`, `pageNumber` (od 0), `pageSize`,
+  `totalFiles` i `hasNext`; lista jest kopią tylko do odczytu.
+- `FileRecordRepository` ma przeciążoną metodę
+  `findAllByAllowedRootOrderByRelativePathAsc(AllowedRootEntity, Pageable)`
+  zwracającą `Page<FileRecordEntity>`. Ograniczenie strony działa w bazie.
+- `CatalogReader.readPage` waliduje folder, tworzy `PageRequest` i mapuje tylko
+  pobrane rekordy na DTO. Brak folderu w bazie oznacza pustą stronę.
+- Kontroler udostępnia `GET /api/catalog/page`; numer musi być >= 0, rozmiar
+  od 1 do 50. Nieprawidłowe wartości zwracają HTTP 400.
+- `App.tsx` pobiera jedną stronę po 50 rekordów. Numer żądanej strony jest
+  osobnym stanem, a odpowiedź `CatalogPage` zawiera pliki i metadane strony.
+  Przyciski zmieniają numer; po udanym skanie wracamy do strony 0. Cleanup
+  efektu ignoruje odpowiedzi wcześniejszych żądań.
+
+Stary endpoint `GET /api/catalog/files` pozostaje dostępny, ale React już go
+nie używa. Wynik skanu i mapa z `KnownFilesReader` nadal obejmują cały skanowany
+folder; nie ograniczamy ich do strony UI. Ta zmiana nie wymaga migracji.
+
+Weryfikacja 2026-10-06: Maven `clean verify` — 39 testów, 38 zaliczonych,
+1 pominięty ręczny test pomiarowy; build i lint frontendu — poprawne. Odczyt
+API sprawdzono dla dwóch stron po jednym pliku, pustej strony i błędnych
+parametrów. W React sprawdzono przejście w obie strony oraz blokadę przycisków
+na granicach; po sprawdzeniu przywrócono 50 rekordów na stronę. Nie wykonano
+nowego skanu ani zmian danych użytkownika w ramach tych ręcznych sprawdzeń.
+Scenariusze paginacji sprawdzono ręcznie; nie dodano nowych testów automatycznych
+endpointu lub nawigacji Reacta.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -267,8 +290,9 @@ ani usuwaj źródłowych obrazów. Każdą spójną funkcję lub poprawkę spraw
 zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
-POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
-React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki.
+POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/page.
+React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
+po 50 na stronę, z przyciskami poprzednia/następna. API liczy strony od 0.
 Działa developerskie okno Tauri + natywny picker; nie JavaFX. ScanWorkflow waliduje folder,
 odczytuje mapę przez KnownFilesReader i przekazuje AllowedRoot oraz mapę do
 ImageScanner.scan. Worker wyszukuje poprzedni opis po ścieżce względnej.
@@ -276,7 +300,7 @@ Po tanich kontrolach porównuje rozmiar i datę modyfikacji; zgodność pozwala
 pominąć dekodowanie i użyć poprzedniego SHA-256. ImageScanType rozróżnia
 NEW, RESCANNED, UNCHANGED. Czas zapisu/porównania obcinamy do mikrosekund.
 Zgodne metadane nie dowodzą identyczności bajtów; przyszłe kopiowanie musi
-potwierdzić źródło ponownie. Następny etap to stronicowany katalog i galeria
-z bezpiecznymi miniaturami. Nie implementuj kolejnej funkcji bez omówienia
+potwierdzić źródło ponownie. Następny etap to bezpieczne miniatury po ID rekordu,
+potem galeria i większy podgląd. Nie implementuj kolejnej funkcji bez omówienia
 jej celu i przepływu danych z właścicielem projektu.
 ```

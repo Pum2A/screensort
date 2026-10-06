@@ -13,7 +13,7 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/files`. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page, with previous/next controls and a total file count. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 
@@ -105,7 +105,9 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows both the scan summary and saved catalog records; a thumbnail gallery, manual review, OCR and safe copying are not implemented yet.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows both the scan summary and paginated saved catalog records; a thumbnail gallery, manual review, OCR and safe copying are not implemented yet.
+
+Pagination is applied in the database query, not by slicing a full list in Java or React. The page API accepts `folderPath`, zero-based `pageNumber`, and `pageSize` from 1 to 50. After a successful scan, React reloads page 0 for that folder. The legacy `GET /api/catalog/files` endpoint remains available, but React no longer uses it. Scan results and the known-file map used by incremental scanning are not paginated by this change.
 
 ## Not in the first release
 

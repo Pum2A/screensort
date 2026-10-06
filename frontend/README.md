@@ -21,12 +21,34 @@ with `npm.cmd run dev` at <http://127.0.0.1:5173/>; it accepts a typed path.
 During development, Vite proxies `/api` to Spring Boot at
 <http://127.0.0.1:8080/>.
 
+## Saved catalog
+
+`App.tsx` reads `GET /api/catalog/page` with `folderPath`, `pageNumber` and
+`pageSize`. The default page size is 50. The response contains `files`,
+`pageNumber`, `pageSize`, `totalFiles` and `hasNext`; React keeps one page object
+and derives its file list instead of storing a second copy.
+
+Previous/next buttons change the requested page number. They are disabled at
+the relevant boundary and while a request or scan is running. The UI displays
+page numbers from 1, while the API counts from 0. A successful scan resets the
+catalog to page 0 and reloads it. Choosing a folder changes the scan input;
+the displayed catalog switches to that folder after the scan succeeds.
+
+The effect ignores responses from superseded requests. The remembered last
+folder uses the existing `screensort.lastFolder` local storage key; it is not
+a database table. Pagination does not start a scan or change source images.
+
 ## Verification
 
 ```powershell
 npm.cmd run lint
 npm.cmd run build
 ```
+
+To exercise both navigation buttons with the two demo records, temporarily
+change `CATALOG_PAGE_SIZE` in `App.tsx` to 1, then reload the UI and move forward
+and back. Restore 50 before committing. This checks saved records and requires
+no new scan if the demo folder is already cataloged.
 
 This is a development shell, not a distributable installer yet. Bundling and
 launching Java, routing production API requests, and replacing the Docker-only

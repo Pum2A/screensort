@@ -445,7 +445,8 @@ scan 2 -> nadal 2 rekordy
 restart -> rekordy nadal istnieją
 ```
 
-Kolejny etap to stronicowany katalog z miniaturami i podglądem obrazów.
+Stronicowany katalog już działa. Kolejny etap to bezpieczne miniatury po ID
+rekordu, następnie galeria i większy podgląd obrazów.
 Nie oznacza to jeszcze OCR, automatycznej zmiany nazw ani kopiowania.
 
 ## 13. Skan przyrostowy i podsumowanie
@@ -492,3 +493,51 @@ Ważne ograniczenie: można zmienić zawartość i zachować rozmiar oraz datę.
 tożsamości bajtów. Pełne sprawdzenie i przyszłe kopiowanie muszą móc ponownie
 policzyć hash. Testy sprawdzają liczniki, brak wywołania hashera przy zgodnych
 metadanych, ponowne wywołanie przy innej dacie lub rozmiarze i przepływ przez API.
+
+## 14. Stronicowanie katalogu: baza → API → React
+
+Zamiast pobierać wszystkie opisy i wycinać z nich 50 w Javie albo React,
+przekazujemy do repozytorium `PageRequest`. Ograniczenie działa już w zapytaniu
+PostgreSQL: mniej rekordów trafia do Javy, JSON-a i widoku. Nie jest to nowy
+algorytm skanowania ani pobieranie samych zdjęć — stronicujemy ich zapisane opisy.
+
+```text
+Poprzednia/Następna → numer żądanej strony w React
+  → GET /api/catalog/page?folderPath=...&pageNumber=...&pageSize=50
+  → kontroler: sprawdź numer i rozmiar
+  → reader: zweryfikuj folder i znajdź go w bazie
+  → repozytorium: pobierz stronę, uporządkuj po relativePath
+  → CatalogPageDto → JSON → katalog w React
+```
+
+| Decyzja | Dlaczego | Koszt lub alternatywa |
+|---|---|---|
+| `Page<FileRecordEntity>` | Potrzebujemy plików, liczby wszystkich i `hasNext`. | Spring Data może wykonać dodatkowe zapytanie zliczające. `Slice` wystarczyłoby do nawigacji bez dokładnego totalu. |
+| Kolejność `relativePath ASC` | Strony mają określoną kolejność; ścieżka jest unikalna w ramach folderu. | Przy równoczesnych zmianach katalogu strony offsetowe mogą się przesuwać; nie jest to zamrożona migawka całego katalogu. |
+| Numer od 0 w API | Tak działa `PageRequest`; UI dodaje 1 tylko przy wyświetlaniu. | „Strona 1” w UI to `pageNumber=0`, a nie 1. |
+| Rozmiar od 1 do 50 | Kontroler ogranicza liczbę rekordów pojedynczej odpowiedzi. | 50 to początkowy kompromis, nie wynik pomiaru dowodzący idealnego rozmiaru. |
+| `CatalogPageDto` zamiast encji | Oddzielamy kontrakt UI od Hibernate i relacji JPA. | Trzeba jawnie zamienić pobrane encje na `CatalogFileDto`. |
+| Jedna odpowiedź `catalogPage` w stanie | Pliki, total i `hasNext` pochodzą z tej samej odpowiedzi; nie przechowujemy drugiej kopii listy. | Numer żądanej strony jest osobny, bo wyzwala pobranie następnej odpowiedzi. |
+
+`URLSearchParams` zapisuje parametry w query string i koduje ścieżkę folderu.
+`fetchCatalog` odrzuca odpowiedź HTTP inną niż poprawna, potem odczytuje JSON.
+Typ TypeScript opisuje oczekiwany kształt; samo `as CatalogPage` nie sprawdza
+kształtu odpowiedzi w runtime.
+
+Efekt Reacta reaguje na folder katalogu, numer strony i sygnał odświeżenia.
+Cleanup ustawia `ignore`, aby późna odpowiedź poprzedniego żądania nie nadpisała
+nowszego widoku. Nie przerywa samego żądania. Stan ładowania i błąd resetujemy
+w handlerach, które uruchamiają pobranie; na starcie ładowanie jest już włączone.
+To odpowiada wzorcowi opisanemu w
+[dokumentacji Reacta o pobieraniu danych w efektach](https://react.dev/learn/synchronizing-with-effects#fetching-data).
+
+Po udanym skanie wracamy do strony 0 i odświeżamy katalog dla zeskanowanego
+folderu. Sam wybór folderu zmienia wejście skanu; katalog przełącza się dopiero
+po jego sukcesie. `screensort.lastFolder` jest istniejącym kluczem localStorage,
+nie nową tabelą ani nową funkcją paginacji.
+
+Ta zmiana nie ogranicza `POST /api/scan` ani mapy znanych plików. Skan nadal
+obejmuje cały dozwolony folder, a listy wyników skanu nadal trafiają w całości
+do Reacta. Ograniczamy tylko widok zapisanych rekordów. Nie potrzeba migracji,
+ponieważ nie zmieniamy tabel. Stary endpoint listy pozostaje przejściowo dostępny;
+React korzysta już wyłącznie z endpointu strony.

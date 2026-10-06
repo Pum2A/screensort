@@ -11,7 +11,7 @@ Ostatnia aktualizacja: 2026-10-06.
 ```text
 screenSorter/
 ├── frontend/src/                 React: ekran, stan i wywołania /api
-│   ├── App.tsx                   żądanie skanu i wyświetlenie wyniku
+│   ├── App.tsx                   skan, wynik i stronicowany katalog
 │   └── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
@@ -42,12 +42,12 @@ screenSorter/
 │   │   └── prototype/              starszy ekran Thymeleaf, nie React
 │   └── catalog/                    funkcja: zapisz i odczytaj katalog obrazów
 │       ├── reading/                odczyt danych z katalogu
-│       │   ├── CatalogReader.java  zapisane obrazy dla UI
+│       │   ├── CatalogReader.java  zapisane obrazy i strony dla UI
 │       │   └── KnownFilesReader.java  lekka mapa metadanych dla skanera
 │       ├── writing/                zapis i aktualizacja danych katalogu
 │       │   └── CatalogUpdater.java zapis wyników po skanowaniu
 │       ├── api/                    HTTP/JSON dla Reacta
-│       ├── dto/                    opis pliku zwracany z katalogu
+│       ├── dto/                    CatalogFileDto i CatalogPageDto
 │       └── database/               encje i repozytoria JPA/PostgreSQL
 ├── src/main/resources/
 │   ├── db/migration/               Flyway: struktura tabel SQL
@@ -123,6 +123,16 @@ a `rejectedFiles` — liście `rejected`.
 istniejącego `result`, a komponent `scanning/ScanSummary.tsx` tylko je wyświetla.
 Nie ma czterech dodatkowych stanów Reacta ani nowych kolumn w bazie.
 
+`CatalogPageDto` zawiera opisy plików jednej strony oraz jej numer, rozmiar,
+liczbę wszystkich zapisanych plików folderu i `hasNext`. `CatalogReader.readPage`
+przekazuje `PageRequest` do repozytorium: PostgreSQL zwraca tylko potrzebną
+porcję, posortowaną po ścieżce względnej. React przechowuje tę odpowiedź jako
+`catalogPage`; `catalogFiles` jest wyliczane z niej, nie stanowi kopii w stanie.
+Kliknięcie przycisku zmienia `catalogPageNumber` i powoduje nowe żądanie.
+Nie oznacza to skanowania dysku, dekodowania zdjęć ani obliczania SHA-256.
+`KnownFilesReader` nadal odczytuje wszystkie znane opisy dla skanowanego folderu,
+ponieważ porównanie plików nie może być ograniczone stroną oglądaną w UI.
+
 ## Jak płyną dane
 
 ```text
@@ -144,13 +154,16 @@ Kliknięcie „Scan folder” w React
   → catalog/database/*Repository → PostgreSQL
   → scanning/api/dto/ScanResultDto → JSON → React + ScanSummary.tsx
 
-Wejście/odświeżenie widoku katalogu w React
-  → GET /api/catalog/files?folderPath=...
+Wejście/odświeżenie katalogu lub kliknięcie „Następna” w React
+  → GET /api/catalog/page?folderPath=...&pageNumber=N&pageSize=50
   → catalog/api/CatalogRestController
-  → catalog/reading/CatalogReader
+       → kontrola numeru i rozmiaru strony (błąd: HTTP 400)
+  → catalog/reading/CatalogReader.readPage
        → scanning/folder/ScanFolderValidator
-       → catalog/database/*Repository → PostgreSQL
-  → catalog/dto/CatalogFileDto → JSON → React
+       → PageRequest → catalog/database/*Repository → PostgreSQL
+         → Page<FileRecordEntity> (porcja rekordów + liczba wszystkich)
+  → catalog/dto/CatalogPageDto (files: CatalogFileDto[] + metadane strony)
+  → JSON → React: katalog i przyciski stron
 ```
 
 Ważne: `ScanResult` to **wynik bieżącego odczytu dysku**. `FileRecordEntity` to
