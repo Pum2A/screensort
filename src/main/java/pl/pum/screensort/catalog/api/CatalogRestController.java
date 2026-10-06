@@ -2,12 +2,15 @@ package pl.pum.screensort.catalog.api;
 
 import java.io.IOException;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
+import pl.pum.screensort.catalog.dto.CatalogPageDto;
 import pl.pum.screensort.catalog.reading.CatalogReader;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
@@ -22,6 +25,21 @@ public class CatalogRestController {
   @GetMapping("/api/catalog/files")
   public List<CatalogFileDto> files(@RequestParam String folderPath) throws IOException {
     return catalogReader.read(folderPath);
+  }
+
+  @GetMapping("/api/catalog/page")
+  public CatalogPageDto page(
+      @RequestParam String folderPath,
+      @RequestParam(defaultValue = "0") int pageNumber,
+      @RequestParam(defaultValue = "50") int pageSize)
+      throws IOException {
+
+    if (pageNumber < 0 || pageSize < 1 || pageSize > 50) {
+      throw new ResponseStatusException(
+          HttpStatus.BAD_REQUEST, "Numer strony musi być >= 0, a rozmiar strony od 1 do 50.");
+    }
+
+    return catalogReader.readPage(folderPath, pageNumber, pageSize);
   }
 
   @ExceptionHandler(InvalidScanFolderException.class)
