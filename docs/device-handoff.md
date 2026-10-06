@@ -163,6 +163,14 @@ przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
 za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
 Javy i nie ma zweryfikowanego instalatora; Docker pozostaje narzędziem developerskim.
 
+Pierwszy krok paginacji jest przygotowany: `catalog/dto/CatalogPageDto` opisuje
+jedną stronę przez `files`, `pageNumber` (od 0), `pageSize`, `totalFiles` i
+`hasNext`. Tworzy kopię listy tylko do odczytu. Nie jest jeszcze używany przez
+API ani Reacta: katalog nadal pobierany jest w całości. Następny wspólny krok
+to ograniczenie zapytania w `FileRecordRepository`, następnie podłączenie
+`CatalogReader`, kontrolera i przycisków stron w React. Nie wycinaj strony
+dopiero z pełnej listy w Javie — ograniczenie musi działać już w zapytaniu bazy.
+
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
 
