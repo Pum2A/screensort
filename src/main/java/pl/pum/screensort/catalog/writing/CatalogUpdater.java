@@ -2,6 +2,7 @@ package pl.pum.screensort.catalog.writing;
 
 import jakarta.transaction.Transactional;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.catalog.database.AllowedRootEntity;
@@ -9,9 +10,9 @@ import pl.pum.screensort.catalog.database.AllowedRootRepository;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
+import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.ScanResult;
-import pl.pum.screensort.scanning.folder.AllowedRoot;
 
 @Service
 public class CatalogUpdater {
@@ -50,7 +51,7 @@ public class CatalogUpdater {
                 image.sizeBytes(),
                 image.hash(),
                 rootEntity,
-                image.lastModifiedAt(),
+                image.lastModifiedAt().truncatedTo(ChronoUnit.MICROS),
                 Instant.now());
 
         fileRecordRepository.save(newFile);
@@ -62,7 +63,7 @@ public class CatalogUpdater {
             image.extension(),
             image.sizeBytes(),
             image.hash(),
-            image.lastModifiedAt(),
+            image.lastModifiedAt().truncatedTo(ChronoUnit.MICROS),
             Instant.now());
         fileRecordRepository.save(storedFile);
         System.out.println(CatalogFileDto.from(storedFile));
