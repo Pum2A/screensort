@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
@@ -69,6 +71,18 @@ class ScanRestControllerIntegrationTest {
     FileRecordEntity firstRecord =
         fileRecordRepository.findByAllowedRootAndRelativePath(root, "photo.png").orElseThrow();
     Long firstId = firstRecord.getId();
+
+    // Prawdziwy przepływ: rekord JPA -> bezpieczny plik -> PNG, bez nowego skanu.
+    byte[] originalBytes = Files.readAllBytes(imagePath);
+    mockMvc.perform(get("/api/catalog/files/" + firstId + "/thumbnail"))
+        .andExpect(status().isOk())
+        .andExpect(content().contentType(MediaType.IMAGE_PNG))
+        .andExpect(header().string("Cache-Control", "no-store"));
+    mockMvc.perform(get("/api/catalog/files/" + firstId + "/preview"))
+        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/catalog/files/999999/thumbnail"))
+        .andExpect(status().isNotFound());
+    assertThat(Files.readAllBytes(imagePath)).isEqualTo(originalBytes);
 
     mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
         .andExpect(status().isOk())

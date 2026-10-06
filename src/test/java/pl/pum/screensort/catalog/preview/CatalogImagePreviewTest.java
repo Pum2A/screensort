@@ -1,0 +1,196 @@
+package pl.pum.screensort.catalog.preview;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.zip.CRC32;
+import javax.imageio.ImageIO;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
+import pl.pum.screensort.catalog.preview.CatalogImageSourceReader.ImageSource;
+import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+
+class CatalogImagePreviewTest {
+  @TempDir Path folder;
+  private CatalogImageSourceReader sourceReader;
+  private CatalogImagePreview preview;
+
+  @BeforeEach
+  void setUp() {
+    sourceReader = mock(CatalogImageSourceReader.class);
+    preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator());
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"png", "jpeg"})
+  void returnsBoundedPngWithoutChangingTheOriginal(String format) throws Exception {
+    Path image = writeImage("photo." + format, format, 1920, 1080, Color.GREEN);
+    byte[] original = Files.readAllBytes(image);
+    FileTime modified = Files.getLastModifiedTime(image);
+    source(image.getFileName().toString());
+
+    BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.THUMBNAIL)));
+    BufferedImage larger = ImageIO.read(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.PREVIEW)));
+    assertThat(thumbnail.getWidth()).isEqualTo(320);
+    assertThat(thumbnail.getHeight()).isEqualTo(180);
+    assertThat(larger.getWidth()).isEqualTo(1024);
+    assertThat(larger.getHeight()).isEqualTo(576);
+    assertThat(Files.readAllBytes(image)).isEqualTo(original);
+    assertThat(Files.getLastModifiedTime(image)).isEqualTo(modified);
+    try (var stream = ImageIO.createImageInputStream(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.THUMBNAIL)))) {
+      var reader = ImageIO.getImageReaders(stream).next();
+      try { assertThat(reader.getFormatName()).isEqualToIgnoringCase("png"); }
+      finally { reader.dispose(); }
+    }
+  }
+
+  @Test
+  void doesNotUpscaleSmallImages() throws Exception {
+    writeImage("small.png", "png", 8, 4, Color.RED);
+    source("small.png");
+    BufferedImage result = ImageIO.read(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.THUMBNAIL)));
+    assertThat(result.getWidth()).isEqualTo(8);
+    assertThat(result.getHeight()).isEqualTo(4);
+  }
+
+  @Test
+  void preservesPngTransparency() throws Exception {
+    var original = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+    original.setRGB(0, 0, 0x80ff0000);
+    assertThat(ImageIO.write(original, "png", folder.resolve("transparent.png").toFile())).isTrue();
+    source("transparent.png");
+    BufferedImage result = ImageIO.read(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.THUMBNAIL)));
+    assertThat(result.getRGB(0, 0)).isEqualTo(0x80ff0000);
+    assertThat(result.getRGB(1, 1)).isZero();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"../outside.png", "..", ".", "nested/photo.png", "", "photo.png:secret"})
+  void rejectsUnsafeStoredRelativePaths(String relative) throws Exception {
+    source(relative);
+    assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
+  }
+
+  @Test
+  void rejectsAbsoluteStoredPath() throws Exception {
+    Path image = writeImage("photo.png", "png", 2, 2, Color.RED);
+    source(image.toString());
+    assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
+  }
+
+  @Test
+  void rejectsDirectoryMasqueradingAsImage() throws Exception {
+    Files.createDirectory(folder.resolve("photo.png"));
+    source("photo.png");
+    assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
+  }
+
+  @Test
+  void rejectsFakePng() throws Exception {
+    Files.writeString(folder.resolve("fake.png"), "This is not an image.");
+    source("fake.png");
+    assertFailure(ImagePreviewException.Reason.INVALID_IMAGE);
+  }
+
+  @Test
+  void rejectsUnsupportedActualFormatEvenWithPngExtension() throws Exception {
+    writeImage("fake.png", "gif", 2, 2, Color.RED);
+    source("fake.png");
+    assertFailure(ImagePreviewException.Reason.INVALID_IMAGE);
+  }
+
+  @Test
+  void rejectsEmptyAndOversizedFilesBeforeDecoding() throws Exception {
+    Path image = Files.createFile(folder.resolve("photo.png"));
+    source("photo.png");
+    assertFailure(ImagePreviewException.Reason.TOO_LARGE);
+    try (var sparseFile = new RandomAccessFile(image.toFile(), "rw")) {
+      sparseFile.setLength(50L * 1024 * 1024 + 1);
+    }
+    assertFailure(ImagePreviewException.Reason.TOO_LARGE);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"100000,100000", "20001,1"})
+  void rejectsHugePixelCountOrEdgeBeforeAllocatingTheImage(int width, int height) throws Exception {
+    Path image = writeImage("photo.png", "png", 2, 2, Color.RED);
+    byte[] png = Files.readAllBytes(image);
+    ByteBuffer.wrap(png).putInt(16, width).putInt(20, height);
+    CRC32 crc = new CRC32();
+    crc.update(png, 12, 17);
+    ByteBuffer.wrap(png).putInt(29, (int) crc.getValue());
+    Files.write(image, png);
+    source("photo.png");
+    assertFailure(ImagePreviewException.Reason.TOO_LARGE);
+  }
+
+  @Test
+  void cacheDoesNotHideRemovalOrReplacementByDirectory() throws Exception {
+    Path image = writeImage("photo.png", "png", 2, 2, Color.RED);
+    source("photo.png");
+    preview.read(1, CatalogImagePreview.Size.THUMBNAIL);
+    Files.delete(image);
+    assertFailure(ImagePreviewException.Reason.NOT_FOUND);
+    Files.createDirectory(image);
+    assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
+  }
+
+  @Test
+  void cacheDoesNotHideChangedContentWithNewMetadata() throws Exception {
+    Path image = writeImage("photo.png", "png", 4, 4, Color.RED);
+    source("photo.png");
+    byte[] first = preview.read(1, CatalogImagePreview.Size.THUMBNAIL);
+    FileTime time = Files.getLastModifiedTime(image);
+    writeImage("photo.png", "png", 4, 4, Color.BLUE);
+    Files.setLastModifiedTime(image, FileTime.from(time.toInstant().plusSeconds(1)));
+    byte[] second = preview.read(1, CatalogImagePreview.Size.THUMBNAIL);
+    assertThat(second).isNotEqualTo(first);
+    BufferedImage result = ImageIO.read(new ByteArrayInputStream(second));
+    assertThat(result.getRGB(0, 0)).isEqualTo(Color.BLUE.getRGB());
+  }
+
+  @Test
+  void rejectsSymbolicLinkWhenThePlatformAllowsCreatingOne() throws Exception {
+    Path image = writeImage("original.png", "png", 2, 2, Color.RED);
+    try {
+      Files.createSymbolicLink(folder.resolve("link.png"), image);
+    } catch (java.io.IOException | UnsupportedOperationException e) {
+      org.junit.jupiter.api.Assumptions.abort("Symbolic links unavailable: " + e.getClass().getSimpleName());
+    }
+    source("link.png");
+    assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
+  }
+
+  private void source(String relative) throws Exception {
+    when(sourceReader.read(1)).thenReturn(new ImageSource(1, folder.toRealPath().toString(), relative, "0".repeat(64)));
+  }
+
+  private void assertFailure(ImagePreviewException.Reason reason) {
+    assertThatThrownBy(() -> preview.read(1, CatalogImagePreview.Size.THUMBNAIL))
+        .isInstanceOfSatisfying(ImagePreviewException.class, error -> assertThat(error.reason()).isEqualTo(reason));
+  }
+
+  private Path writeImage(String name, String format, int width, int height, Color color) throws Exception {
+    var image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    var graphics = image.createGraphics();
+    try { graphics.setColor(color); graphics.fillRect(0, 0, width, height); }
+    finally { graphics.dispose(); }
+    Path path = folder.resolve(name);
+    assertThat(ImageIO.write(image, format, path.toFile())).isTrue();
+    return path;
+  }
+}
