@@ -6,6 +6,7 @@ import type {ScanSummaryData} from './scanning/ScanSummary'
 import './App.css'
 
 const LAST_FOLDER_KEY = 'screensort.lastFolder'
+const CATALOG_PAGE_SIZE = 50
 
 type AcceptedImage = {
     path: string
@@ -40,15 +41,31 @@ type CatalogFile = {
     lastSeenAt: string
 }
 
-async function fetchCatalog(folderPath: string): Promise<CatalogFile[]> {
-    const query = new URLSearchParams({folderPath})
-    const response = await fetch(`/api/catalog/files?${query}`)
+type CatalogPage = {
+    files: CatalogFile[]
+    pageNumber: number
+    pageSize: number
+    totalFiles: number
+    hasNext: boolean
+}
+
+async function fetchCatalog(
+    folderPath: string,
+    pageNumber: number,
+    pageSize: number,
+): Promise<CatalogPage> {
+    const query = new URLSearchParams({
+        folderPath,
+        pageNumber: pageNumber.toString(),
+        pageSize: pageSize.toString(),
+    })
+    const response = await fetch(`/api/catalog/page?${query}`)
 
     if (!response.ok) {
         throw new Error(`Catalog request failed (HTTP ${response.status})`)
     }
 
-    return await response.json() as CatalogFile[]
+    return await response.json() as CatalogPage
 }
 
 function formatSize(bytes: number): string {
@@ -68,9 +85,11 @@ function App() {
     const [error, setError] = useState<string | null>(null)
     const [catalogFolder, setCatalogFolder] = useState(folderPath)
     const [catalogRefresh, setCatalogRefresh] = useState(0)
-    const [catalogFiles, setCatalogFiles] = useState<CatalogFile[] | null>(null)
+    const [catalogPageNumber, setCatalogPageNumber] = useState(0)
+    const [catalogPage, setCatalogPage] = useState<CatalogPage | null>(null)
     const [catalogLoading, setCatalogLoading] = useState(true)
     const [catalogError, setCatalogError] = useState<string | null>(null)
+    const catalogFiles = catalogPage?.files ?? []
 
     async function handleChooseFolder() {
         setError(null)
@@ -89,14 +108,14 @@ function App() {
     useEffect(() => {
         let ignore = false
 
-        fetchCatalog(catalogFolder)
-            .then((files) => {
-                if (!ignore) setCatalogFiles(files)
+        fetchCatalog(catalogFolder, catalogPageNumber, CATALOG_PAGE_SIZE)
+            .then((page) => {
+                if (!ignore) setCatalogPage(page)
             })
             .catch(() => {
                 if (!ignore) {
-                    setCatalogFiles(null)
-                    setCatalogError('Could not load saved images from the catalog.')
+                    setCatalogPage(null)
+                    setCatalogError('Nie udało się pobrać katalogu.')
                 }
             })
             .finally(() => {
@@ -106,7 +125,7 @@ function App() {
         return () => {
             ignore = true
         }
-    }, [catalogFolder, catalogRefresh])
+    }, [catalogFolder, catalogPageNumber, catalogRefresh])
 
     async function handleScan() {
         setLoading(true)
@@ -129,7 +148,8 @@ function App() {
             const data: ScanResult = await response.json()
             setResult(data)
             localStorage.setItem(LAST_FOLDER_KEY, folderPath)
-            setCatalogFiles(null)
+            setCatalogPage(null)
+            setCatalogPageNumber(0)
             setCatalogLoading(true)
             setCatalogError(null)
             setCatalogFolder(folderPath)
@@ -224,18 +244,22 @@ function App() {
             )}
 
             <section className="catalog" aria-label="Saved images">
-                <h2>Saved images {catalogFiles && `(${catalogFiles.length})`}</h2>
+                <h2>Saved images {catalogPage && `(${catalogPage.totalFiles})`}</h2>
                 <p className="catalog-folder">Folder: <code>{catalogFolder}</code></p>
 
                 {catalogLoading ? (
                     <p className="empty">Loading saved images...</p>
                 ) : catalogError ? (
                     <p className="scan-error">{catalogError}</p>
-                ) : catalogFiles?.length === 0 ? (
-                    <p className="empty">No saved images for this folder yet.</p>
+                ) : catalogFiles.length === 0 ? (
+                    <p className="empty">
+                        {catalogPage?.totalFiles === 0
+                            ? 'No saved images for this folder yet.'
+                            : 'No saved images on this page.'}
+                    </p>
                 ) : (
                     <div className="catalog-list">
-                        {(catalogFiles ?? []).map((file) => (
+                        {catalogFiles.map((file) => (
                             <details className="catalog-file" key={file.id}>
                                 <summary>
                                     <strong>{file.originalName}</strong>
@@ -269,6 +293,38 @@ function App() {
                             </details>
                         ))}
                     </div>
+                )}
+
+                {catalogPage && catalogPage.totalFiles > 0 && (
+                    <nav className="action-row" aria-label="Strony katalogu">
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={catalogLoading || loading || catalogPageNumber === 0}
+                            onClick={() => {
+                                setCatalogLoading(true)
+                                setCatalogError(null)
+                                setCatalogPageNumber((current) => Math.max(0, current - 1))
+                            }}
+                        >
+                            Poprzednia
+                        </button>
+
+                        <span aria-live="polite">Strona {catalogPage.pageNumber + 1}</span>
+
+                        <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={catalogLoading || loading || !catalogPage.hasNext}
+                            onClick={() => {
+                                setCatalogLoading(true)
+                                setCatalogError(null)
+                                setCatalogPageNumber((current) => current + 1)
+                            }}
+                        >
+                            Następna
+                        </button>
+                    </nav>
                 )}
             </section>
         </main>
