@@ -13,7 +13,7 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a thumbnail grid. Selecting a tile opens a larger preview and metadata panel. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image expands a larger uncropped preview and connected metadata branches below its row. Clicking again collapses the tree. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 
@@ -86,6 +86,17 @@ npm.cmd run dev
 ```
 
 Open <http://127.0.0.1:5173/>. During development, Vite forwards `/api` requests to Spring Boot at `127.0.0.1:8080`.
+
+Frontend verification (from `frontend`):
+
+```powershell
+npm.cmd run test
+npm.cmd run build
+npm.cmd run lint
+```
+
+Layout tests use the built-in Node.js test runner and the existing TypeScript
+compiler; generated test files stay in the ignored `.test-output` directory.
 
 Scan `demo-images` twice to check catalog persistence. Both scans should show two accepted PNG files and one rejected ZIP. From the project root, inspect the saved rows in the local PostgreSQL container:
 

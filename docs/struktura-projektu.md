@@ -4,7 +4,7 @@ Ten dokument opisuje kod, który **już istnieje**. To nie jest lista pakietów 
 utworzenia na przyszłość. Projekt jest jedną aplikacją Spring Boot z frontendem
 React, a nie zbiorem mikroserwisów.
 
-Ostatnia aktualizacja: 2026-10-06.
+Ostatnia aktualizacja: 2026-10-07.
 
 ## Gdzie czego szukać
 
@@ -13,8 +13,17 @@ screenSorter/
 ├── frontend/src/                 React: ekran, stan i wywołania /api
 │   ├── App.tsx                   skan, wynik i stronicowany katalog
 │   ├── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
-│   ├── catalog/                  siatka, podgląd, typy, API i formatowanie
+│   ├── catalog/                  kółka, drzewko szczegółów, typy i API
+│   │   ├── CatalogGallery.tsx    wybór zdjęcia i drzewko pod jego rzędem
+│   │   ├── ImageDetailsTree.tsx  podgląd + Plik / Lokalizacja / Historia / Techniczne
+│   │   ├── CatalogImage.tsx      ładowanie i błąd obrazu
+│   │   ├── galleryLayout.ts      obliczenia rzędu i linii połączeń
+│   │   ├── useGalleryColumns.ts  rzeczywista liczba kolumn CSS
+│   │   └── useTreeConnections.ts dopasowanie linii do wymiarów węzłów
+│   ├── assets/fonts/             lokalny font retro VT323
 │   └── ui/Icon.tsx               wspólne ikony SVG
+├── frontend/public/VT323-OFL.txt  licencja fontu dołączana do dystrybucji
+├── frontend/tests/               testy obliczeń układu, nie skanowania
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
@@ -177,7 +186,15 @@ Widoczny kafelek / wybór większego podglądu
        → ScanFolderValidator + kontrola ścieżki i zwykłego pliku
        → ograniczony cache lub dekoder ImageReader (max 2 naraz)
        → zmniejszenie i zakodowanie PNG w pamięci
-  → PNG → kafelek / ImageDetailsPanel
+  → PNG → okrągła miniatura / ImageDetailsTree
+
+Wybór zdjęcia w CatalogGallery (bez nowego skanu)
+  → selectedId + bieżąca strona DTO
+  → useGalleryColumns + selectedRowEnd
+  → jedno ImageDetailsTree po końcu wybranego rzędu
+  → useTreeConnections mierzy podgląd i gałęzie
+  → treeConnections wylicza dekoracyjne linie SVG
+  → rozwinięcie gałęzi / zmiana szerokości: dopasowanie geometrii, nie zapytanie do bazy
 ```
 
 Ważne: `ScanResult` to **wynik bieżącego odczytu dysku**. `FileRecordEntity` to

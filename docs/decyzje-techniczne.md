@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-10-06
+Ostatnia aktualizacja: 2026-10-07
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -560,3 +560,28 @@ nie dowód identyczności zawartości ani uprawnienie do późniejszego kopiowan
 Backend domyślnie nasłuchuje tylko na loopback, nie w sieci LAN.
 Pełne uzasadnienie, wartości limitów, alternatywy i ograniczenia:
 [`galeria-i-podglady.md`](galeria-i-podglady.md).
+
+## 16. Gałęzie pod okrągłą miniaturą
+
+Właściciel wybrał kierunek retro PC: kółka zamiast kart i jedno drzewko
+szczegółów pod rzędem wybranego obrazu. To zmiana prezentacji już istniejących
+danych, nie nowa architektura backendu. `ImageDetailsTree` zastępuje boczny
+`ImageDetailsPanel`, zachowując wszystkie pola `CatalogFile`.
+
+Nie stosujemy biblioteki grafów: użytkownik nie edytuje połączeń ani nie
+przesuwa węzłów. CSS grid układa treść; niewielkie SVG rysuje dekoracyjne
+połączenia w odstępach. Dwa hooki mierzą kolumny i prostokąty, a czysta funkcja
+oblicza położenie drzewka i linie. Dzięki temu testy układu nie potrzebują
+przeglądarki ani bazy. Obserwatory mają cleanup, a pomiar nie wywołuje API.
+
+Natywne `<details>/<summary>` zapewniają rozwijanie gałęzi i klawiaturę bez
+dodatkowego stanu dla każdego pola. Miniatura jest okrągłym kadrem, natomiast
+większy podgląd zachowuje cały obraz. `selectedId` pozostaje jedynym stanem
+wyboru. Kliknięcie ponownie zwija szczegóły; Escape i krzyżyk oddają fokus.
+
+VT323 jest lokalnym zasobem na licencji OFL, a licencja trafia do produkcyjnego
+pakietu przez `frontend/public`. Nie pobieramy fontów z internetu przy starcie.
+Konkurencyjne rozwiązania — font systemowy lub CDN — odpowiednio nie oddawały
+wybranego stylu albo wymagały zewnętrznego połączenia. Nie dodano zależności
+do renderowania drzewa ani testów: korzystamy z istniejącego Reacta,
+TypeScript i test runnera Node. Szczegóły: [`galeria-i-podglady.md`](galeria-i-podglady.md).
