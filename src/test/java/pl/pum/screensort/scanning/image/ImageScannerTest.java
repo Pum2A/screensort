@@ -12,6 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.hashing.FileHasher;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.RejectionReason;
 import pl.pum.screensort.scanning.result.ScanResult;
 
@@ -27,6 +28,11 @@ class ImageScannerTest {
 
       assertEquals(2, result.accepted().size()); // dwa PNG przeszły
       assertEquals(1, result.rejected().size()); // ZIP trafił do odrzuconych
+      for (AcceptedImage image : result.accepted()) {
+        assertEquals(Files.size(image.path()), image.sizeBytes());
+        assertEquals(
+            Files.getLastModifiedTime(image.path()).toInstant(), image.lastModifiedAt());
+      }
     }
   }
 
