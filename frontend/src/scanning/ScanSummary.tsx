@@ -35,22 +35,20 @@ export function ScanSummary({summary}: ScanSummaryProps) {
 
     return (
         <section className="scan-summary" aria-labelledby="scan-summary-title">
-            <h2 id="scan-summary-title">Podsumowanie ostatniego skanu</h2>
-            <p className="scan-summary-note">Te liczniki opisują ten skan, nie cały katalog w bazie.</p>
+            <h2 id="scan-summary-title">Ostatni skan zakończony</h2>
             <dl className="scan-summary-grid">
                 {counters.map(({label, count, description}) => (
                     <div className="scan-summary-card" key={label}>
                         <dt>{label}</dt>
-                        <dd>
-                            <strong>{count}</strong>
-                            <p>{description}</p>
-                        </dd>
+                        <dd title={description}>{count}</dd>
                     </div>
                 ))}
             </dl>
-            <p className="scan-summary-note">
-                Zgodność rozmiaru i daty modyfikacji nie jest ponowną weryfikacją zawartości pliku.
-            </p>
+            <details className="scan-summary-help"><summary>Co oznaczają te liczby?</summary>
+                <p>Te liczniki opisują ostatni skan, nie cały katalog w bazie.</p>
+                <ul>{counters.map(({label, description}) => <li key={label}>{label}: {description}</li>)}</ul>
+                <p>Zgodność rozmiaru i daty modyfikacji nie jest ponowną weryfikacją zawartości pliku.</p>
+            </details>
         </section>
     )
 }
