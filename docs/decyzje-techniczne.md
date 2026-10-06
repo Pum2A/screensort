@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-10-05
+Ostatnia aktualizacja: 2026-10-06
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -21,11 +21,11 @@ danych.
 | Backend | Java 25 + Spring Boot 4 | Działa | Java daje silne typowanie, a Spring składa komponenty i udostępnia REST API. |
 | Budowanie backendu | Maven Wrapper | Działa | Każdy komputer używa kontrolowanej wersji Mavena bez ręcznej instalacji projektu. |
 | Frontend | React 19 + TypeScript + Vite 8 | Działa | Komponentowy interfejs, typowanie danych z API i szybki development server. |
-| Baza | PostgreSQL | Działa jako infrastruktura | Relacje, constraints, indeksy i transakcje pasują do katalogu plików. Zapis obrazów jest następnym etapem. |
+| Baza | PostgreSQL | Działa | Przechowuje opisy obrazów i hashe, nie bajty obrazów. Relacje, constraints, indeksy i transakcje pasują do katalogu plików. |
 | Uruchamianie bazy | Docker Compose | Działa | Lokalny PostgreSQL ma powtarzalną konfigurację i nie wymaga ręcznej instalacji serwera. |
 | Wersjonowanie bazy | Flyway | Działa | Struktura bazy jest odtwarzalna z uporządkowanych migracji SQL. |
-| ORM i repozytoria | JPA/Hibernate + Spring Data JPA | Następny etap | Mapowanie wierszy PostgreSQL na obiekty Java i mniej ręcznego kodu SQL dla prostych operacji. |
-| Aplikacja desktopowa | Tauri 2 + Rust | Później | Natywne okno i folder picker przy zachowaniu interfejsu React. Rust będzie cienką warstwą systemową. |
+| ORM i repozytoria | JPA/Hibernate + Spring Data JPA | Działa | Mapowanie wierszy PostgreSQL na obiekty Java i mniej ręcznego kodu SQL dla prostych operacji. |
+| Aplikacja desktopowa | Tauri 2 + Rust | Działa w development | Natywne okno i folder picker przy zachowaniu interfejsu React. Installer i uruchamianie Javy przez powłokę są późniejszym etapem. |
 | OCR | Jeszcze nie wybrano | Później | Najpierw kończymy bezpieczny, trwały katalog. |
 
 ScreenSort pozostaje **modularnym monolitem**: jedna aplikacja Spring Boot i jedna
@@ -422,7 +422,7 @@ nie są tym samym. ScreenSort potrafi już odrzucić niedekodowalny obraz, ale n
 zapisuje jeszcze wykrytego formatu. MIME type dodamy po poprawnym rozpoznawaniu
 formatu, zamiast zgadywać go wyłącznie z nazwy.
 
-## 12. Najbliższy etap
+## 12. Obecny katalog i najbliższy etap
 
 Migracja `V3__create_file_record.sql` istnieje i została poprawnie zastosowana
 na lokalnym PostgreSQL 18.6. Utworzyła tabelę katalogu na podstawie pól, które
@@ -436,12 +436,59 @@ obecnie posiada `AcceptedImage`:
 - SHA-256;
 - first discovered at i last seen at.
 
-Encje JPA dla `allowed_root` i `file_record` istnieją i zostały zweryfikowane
-przez Hibernate względem lokalnego PostgreSQL. Kolejne kroki to integracyjny
-test zapisu i odczytu, repozytoria oraz zapis wyniku skanu:
+Encje JPA, repozytoria, zapis/odczyt i testy integracyjne z tymczasowym
+PostgreSQL-em już działają. React odczytuje zapisany katalog:
 
 ```text
 scan 1 -> 2 rekordy
 scan 2 -> nadal 2 rekordy
 restart -> rekordy nadal istnieją
 ```
+
+Kolejny etap to stronicowany katalog z miniaturami i podglądem obrazów.
+Nie oznacza to jeszcze OCR, automatycznej zmiany nazw ani kopiowania.
+
+## 13. Skan przyrostowy i podsumowanie
+
+`KnownFilesReader` pobiera cztery pola z bazy dla wybranego folderu:
+ścieżkę względną, rozmiar, datę modyfikacji i SHA-256. Nie pobiera zdjęć.
+Mapa `relativePath -> KnownFile` pozwala workerowi szybko znaleźć poprzedni
+opis bez osobnego zapytania SQL dla każdego odczytywanego wpisu folderu.
+
+Po kontrolach linku, zwykłego pliku, rozszerzenia i rozmiaru skaner porównuje
+aktualny rozmiar i datę modyfikacji z poprzednimi. Przy zgodności korzysta
+z zapisanego hasha. W przeciwnym razie odczytuje obraz i liczy hash od nowa.
+Obcinamy datę do mikrosekund zarówno przy zapisie, jak i porównaniu, ponieważ
+PostgreSQL nie przechowuje pełnej nanosekundowej precyzji `Instant`.
+
+| `ImageScanType` | Znaczenie | Odczyt obrazu i nowy hash |
+|---|---|---|
+| `NEW` | Brak poprzedniego opisu pod tą ścieżką | Tak |
+| `RESCANNED` | Znany obraz, ale inne metadane | Tak |
+| `UNCHANGED` | Zgodne metadane, wykorzystany poprzedni opis | Nie |
+
+Te etykiety dotyczą wyłącznie zaakceptowanych obrazów. Plik, który nie przejdzie
+kontroli, trafia tylko do odrzuconych. `RESCANNED` nie oznacza koniecznie innych
+bajtów: sama zmiana daty już wymaga ponownego sprawdzenia, nawet jeśli hash
+po przeliczeniu pozostanie taki sam.
+
+`ImageScanType` jest prywatnym enumem w skanerze, ponieważ opisuje jego pracę,
+a nie trwały stan rekordu bazy. Worker oddaje etykietę w `FileOutcome.Accepted`.
+Główny wątek skanu zwiększa liczniki po odebraniu wyników. Nie potrzeba
+współdzielonych liczników ani dodatkowej synchronizacji między workerami.
+
+`ScanSummary` to record z czterema licznikami: `newImages`, `rescannedImages`,
+`unchangedImages`, `rejectedFiles`. `ScanResult` sprawdza zgodność tych liczb
+z rozmiarami list wyników. API przekazuje ten niemutowalny record jako `summary`
+wewnątrz `ScanResultDto`. Nie jest encją JPA i nie ujawnia obiektów Hibernate.
+Osobny DTO z identycznymi czterema liczbami nie wniósłby teraz dodatkowych danych.
+
+React otrzymuje gotowe liczniki i wyświetla je komponentem `ScanSummary`.
+Nie wylicza ich z całego katalogu ani nie przechowuje czterech kopii w osobnych
+stanach. Ta funkcja nie wymaga nowej migracji: nie zmieniamy struktury bazy.
+
+Ważne ograniczenie: można zmienić zawartość i zachować rozmiar oraz datę.
+`UNCHANGED` jest decyzją optymalizacyjną na podstawie metadanych, nie dowodem
+tożsamości bajtów. Pełne sprawdzenie i przyszłe kopiowanie muszą móc ponownie
+policzyć hash. Testy sprawdzają liczniki, brak wywołania hashera przy zgodnych
+metadanych, ponowne wywołanie przy innej dacie lub rozmiarze i przepływ przez API.

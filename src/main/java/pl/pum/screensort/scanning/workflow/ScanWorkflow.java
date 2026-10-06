@@ -30,7 +30,7 @@ public class ScanWorkflow {
     this.knownFilesReader = knownFilesReader;
   }
 
-  // STAN I PLAN: kroki 1-7 są podłączone; korzystanie z mapy w workerze jest TODO.
+  // STAN I PLAN: walidacja, mapa znanych plików, skan przyrostowy i zapis są podłączone.
   // Konstruktor przekazuje narzędzia; ta metoda dostaje folder konkretnego skanu.
   // WEJŚCIE: Path folder - ścieżka wybrana przez użytkownika, jeszcze niesprawdzona.
   // WYJŚCIE: ScanResult - wynik skanowania, po zapisaniu go w katalogu bazy danych.
@@ -49,17 +49,18 @@ public class ScanWorkflow {
   //
   // GOTOWE 4: Przekazujemy skanerowi zweryfikowany folder oraz mapę.
   // Jego wynik nadal ma typ ScanResult i zostaje w zmiennej result poniżej.
-  // Sama mapa nie zastępuje przeglądania folderu i nie przyspiesza jeszcze skanu.
+  // Mapa nie zastępuje przeglądania folderu, ale pozwala pominąć ciężki odczyt znanych plików.
   //
   // JUŻ JEST 5: CatalogUpdater zapisuje lub aktualizuje dane z result w bazie.
   // Walidator nie zapisuje wyniku. Nie otaczaj całego skanu transakcją bazy.
   // JUŻ JEST 6: Zwróć result do kontrolera, który przygotuje odpowiedź dla UI.
   //
   // GOTOWE 7: ImageScanner przekazuje folder i mapę do processFile dla jednego pliku.
-  // TODO 8: W processFile oblicz ścieżkę względną pliku i wyszukaj ją w mapie.
+  // GOTOWE 8: processFile oblicza ścieżkę względną pliku i wyszukuje ją w mapie.
   // Wynik to poprzedni opis KnownFile albo brak wpisu, a nie decyzja o akceptacji.
-  // Dopiero potem przygotujemy tanie kontrole i porównanie aktualnych metadanych.
-  // Porównanie i pomijanie ciężkiego odczytu nie są jeszcze zaimplementowane.
+  // GOTOWE 9: Po tanich kontrolach porównujemy rozmiar i datę modyfikacji.
+  // Zgodne metadane pozwalają użyć zapisanego SHA-256 bez dekodowania i hashowania.
+  // ScanSummary rozróżnia nowe, sprawdzone ponownie, znane bez zmian i odrzucone.
   // PÓŹNIEJ: Dodaj osobne pomiary walidacji, odczytu mapy, skanowania i zapisu.
   // Właściciel usunął wcześniejsze zbiorcze printy czasu z tego workflow.
   public ScanResult scanAndSave(Path folder) throws IOException {

@@ -1,6 +1,6 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-05
+Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-06
 
 Ten dokument jest bieżącym skrótem projektu. Użyj go po zmianie komputera albo
 przy rozpoczęciu nowej rozmowy z agentem AI.
@@ -35,7 +35,7 @@ go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git
 - Spring MVC oraz lokalne REST API.
 - PostgreSQL uruchamiany przez Docker Compose i migracje Flyway.
 - React 19, TypeScript 6 i Vite 8.
-- Docelowo cienka powłoka desktopowa Tauri 2 z małym mostem w Rust.
+- Tauri 2 + Rust: działa okno developerskie i natywny picker folderu.
 - JUnit Jupiter.
 
 ```text
@@ -56,10 +56,11 @@ main class:   ScreenSortApplication
    z powodem.
 5. Poprawne pliki PNG/JPG/JPEG stają się rekordami `AcceptedImage` z metadanymi
    i hashem SHA-256.
-6. `ScanResult` zawiera oddzielne listy `accepted` i `rejected`.
+6. `ScanResult` zawiera oddzielne listy `accepted` i `rejected` oraz `ScanSummary`.
 7. `POST /api/scan` przyjmuje JSON z `folderPath`; błędne lub puste żądanie
    zwraca HTTP 400.
-8. React wywołuje lokalne API i pokazuje zaakceptowane oraz odrzucone pliki.
+8. React wywołuje lokalne API i pokazuje zaakceptowane oraz odrzucone pliki,
+   a nad listami cztery liczniki podsumowania ostatniego skanu.
 9. `ScanWorkflow` przekazuje wynik do `CatalogUpdater`, który zapisuje nowe
    pliki w PostgreSQL albo aktualizuje istniejące rekordy przy kolejnym skanie.
 10. `GET /api/catalog/files` przez `CatalogReader` odczytuje zapisane obrazy,
@@ -67,8 +68,10 @@ main class:   ScreenSortApplication
 11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
     `ImageScanner`.
 12. `KnownFilesReader` odczytuje cztery pola znanych plików wybranego folderu
-    i zwraca mapę tylko do odczytu. Workflow przekazuje ją do skanera, ale
-    skaner nie korzysta jeszcze z niej do pomijania ponownego przetwarzania.
+    i zwraca mapę tylko do odczytu. Workflow przekazuje ją do skanera, który
+    korzysta z niej do pomijania ciężkiego odczytu przy zgodnych metadanych.
+13. `ImageScanType` (prywatny enum w `ImageScanner`) rozróżnia `NEW`,
+    `RESCANNED` i `UNCHANGED`. Odrzucone pliki mają osobny licznik.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -85,7 +88,7 @@ pl.pum.screensort.scanning
 ├── folder        # walidator folderu, AllowedRoot i wyjątek
 ├── hashing       # obliczanie SHA-256
 ├── image         # ImageScanner: przetwarzanie plików
-├── result        # ScanResult, AcceptedImage, RejectedFile, RejectionReason
+├── result        # ScanResult, ScanSummary, AcceptedImage, RejectedFile, RejectionReason
 ├── knownfiles    # KnownFile: poprzednio zapisane metadane
 ├── workers       # konfiguracja puli wątków skanera
 └── prototype     # starszy ekran Thymeleaf
@@ -116,7 +119,7 @@ Najbliższy etap:
 Encje JPA, repozytoria, zapis/odczyt i testy integracyjne z Testcontainers już
 istnieją. Tożsamością pliku w katalogu jest `(allowed_root_id, relative_path)`;
 ponowny skan aktualizuje rekord. React pokazuje dane zapisane w bazie.
-Ustalony następny etap to skanowanie przyrostowe. Właściciel uzupełnił record
+Skanowanie przyrostowe jest podłączone. Właściciel uzupełnił record
 `KnownFile` (`relativePath`, `sizeBytes`, `lastModifiedAt`, `sha256`) w
 `scanning/knownfiles` oraz `KnownFilesReader` w `catalog/reading`. Reader jest
 komponentem Springa; metoda `read(AllowedRoot)` działa w transakcji tylko do
@@ -135,15 +138,30 @@ zapisuje wynik. Skaner nie ma już walidatora w konstruktorze i nie sprawdza
 folderu ponownie. Właściciel usunął wcześniejsze zbiorcze pomiary czasu
 skanowania i zapisu z workflow; pomiary wewnątrz `ImageScanner` pozostają.
 
-Skaner przekazuje folder i mapę do `processFile`, ale worker jeszcze ich nie
-używa do wyszukiwania ani porównania plików. Obecny skan nadal dekoduje i hashuje
-również wcześniej poznane pliki. Następnie wspólnie obliczamy ścieżkę względną
-pojedynczego pliku i szukamy jej w mapie, a potem przygotowujemy tanie kontrole
-oraz porównanie aktualnych metadanych przed
-ciężkim odczytem obrazu i hashowaniem. Nie implementuj tych kroków za
-właściciela bez jego wyraźnej prośby. Rozmiar i data modyfikacji są
-wskazówką, nie dowodem identycznej zawartości; potrzebna jest możliwość pełnego
-sprawdzenia i uzgodnienie precyzji czasu systemu plików oraz PostgreSQL-a.
+Skaner przekazuje folder i mapę do `processFile`. Worker oblicza ścieżkę
+względną i wyszukuje `KnownFile`. Po tanich kontrolach odczytuje aktualny
+rozmiar i datę modyfikacji. Gdy obie wartości pasują, używa zapisanego hasha
+bez `ImageIO.read` i bez ponownego hashowania. Nowe i niezgodne pliki przechodzą
+pełne przetwarzanie. `FileHasher` czyta bajty porcjami z buforem 64 KiB.
+Zapis oraz porównanie daty modyfikacji obcinają czas do mikrosekund,
+zgodnie z precyzją PostgreSQL-a; `AcceptedImage` zachowuje czas odczytany z dysku.
+
+Worker zwraca obraz z `ImageScanType` w `FileOutcome.Accepted`. Główny wątek
+odbierający wyniki buduje `ScanSummary(newImages, rescannedImages,
+unchangedImages, rejectedFiles)`. Podsumowanie trafia przez `ScanResultDto`
+do Reacta i komponentu `frontend/src/scanning/ScanSummary.tsx`.
+Nie zapisujemy liczników w bazie ani nie tworzymy migracji dla tej zmiany.
+
+Rozmiar i data modyfikacji są wskazówką, nie dowodem identycznej zawartości.
+`UNCHANGED` oznacza zgodne metadane, nie świeżą weryfikację bajtów. Tryb pełnego
+sprawdzenia jest nadal do zaprojektowania. Przyszłe bezpieczne kopiowanie musi
+ponownie potwierdzić zawartość źródła.
+
+Najbliższy wspólny etap: stronicowany katalog i galeria z bezpiecznymi miniaturami
+oraz podglądem wybranego obrazu. Postęp długiego skanu, OCR, propozycje nazw,
+przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
+za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
+Javy i nie ma zweryfikowanego instalatora; Docker pozostaje narzędziem developerskim.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -160,7 +178,7 @@ identyczną zawartość. Szczegółowe uzasadnienia znajdują się w
 - Warstwa katalogu odpowiada za zapis i odczyt z bazy.
 - Repozytorium bazodanowe nie odczytuje plików z dysku.
 - Encje bazy nie powinny być bezpośrednio zwracane do Reacta.
-- Tauri zapewni natywny wybór folderu, ale wybrana ścieżka nadal przechodzi
+- Tauri zapewnia natywny wybór folderu, ale wybrana ścieżka nadal przechodzi
   przez `ScanFolderValidator`.
 - Tylko przyszła funkcja `organization` może zapisywać pliki wyjściowe.
 
@@ -242,12 +260,15 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/files.
-React pokazuje zarówno wynik skanu, jak i zapisane pliki. Docelowa powłoka
-desktopowa to Tauri + cienki most Rust, nie JavaFX. ScanWorkflow waliduje folder,
+React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki.
+Działa developerskie okno Tauri + natywny picker; nie JavaFX. ScanWorkflow waliduje folder,
 odczytuje mapę przez KnownFilesReader i przekazuje AllowedRoot oraz mapę do
-ImageScanner.scan. Skaner przekazuje te dane do processFile, ale worker nie
-wyszukuje jeszcze poprzedniego opisu i nie pomija ciężkiego odczytu znanych
-plików. Następny wspólny krok to obliczenie ścieżki względnej i wyszukanie jej
-w mapie. Nie implementuj kolejnej funkcji bez omówienia
+ImageScanner.scan. Worker wyszukuje poprzedni opis po ścieżce względnej.
+Po tanich kontrolach porównuje rozmiar i datę modyfikacji; zgodność pozwala
+pominąć dekodowanie i użyć poprzedniego SHA-256. ImageScanType rozróżnia
+NEW, RESCANNED, UNCHANGED. Czas zapisu/porównania obcinamy do mikrosekund.
+Zgodne metadane nie dowodzą identyczności bajtów; przyszłe kopiowanie musi
+potwierdzić źródło ponownie. Następny etap to stronicowany katalog i galeria
+z bezpiecznymi miniaturami. Nie implementuj kolejnej funkcji bez omówienia
 jej celu i przepływu danych z właścicielem projektu.
 ```

@@ -13,7 +13,7 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan` and display saved files from PostgreSQL through `GET /api/catalog/files`. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/files`. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 
@@ -94,11 +94,18 @@ docker compose exec postgres psql -U screensort -d screensort -c "SELECT ar.cano
 
 The second scan should keep the same file IDs while refreshing `last_seen_at`. Scanning never modifies the source images.
 
+For a folder not previously cataloged, the summary reports two new images and
+one rejected file. On an unchanged rescan it reports two unchanged images and
+one rejected file: the stored SHA-256 values are reused without decoding or
+hashing those images again. A different size or modification time triggers a
+full rescan of that image. Matching metadata is an optimization, not proof that
+the file contents are identical; safe copying will require fresh verification.
+
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
 ## Current milestone
 
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. React now shows the saved catalog records; manual review, OCR and safe copying are not implemented yet.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows both the scan summary and saved catalog records; a thumbnail gallery, manual review, OCR and safe copying are not implemented yet.
 
 ## Not in the first release
 

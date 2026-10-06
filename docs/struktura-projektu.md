@@ -4,11 +4,15 @@ Ten dokument opisuje kod, który **już istnieje**. To nie jest lista pakietów 
 utworzenia na przyszłość. Projekt jest jedną aplikacją Spring Boot z frontendem
 React, a nie zbiorem mikroserwisów.
 
+Ostatnia aktualizacja: 2026-10-06.
+
 ## Gdzie czego szukać
 
 ```text
 screenSorter/
 ├── frontend/src/                 React: ekran, stan i wywołania /api
+│   ├── App.tsx                   żądanie skanu i wyświetlenie wyniku
+│   └── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
@@ -24,7 +28,8 @@ screenSorter/
 │   │   ├── image/                  wykonanie skanowania obrazów
 │   │   │   └── ImageScanner.java
 │   │   ├── result/                 dane wyniku bieżącego skanu
-│   │   │   ├── ScanResult.java     folder + accepted + rejected
+│   │   │   ├── ScanResult.java     folder + accepted + rejected + summary
+│   │   │   ├── ScanSummary.java    nowe / ponowne / bez zmian / odrzucone
 │   │   │   ├── AcceptedImage.java
 │   │   │   ├── RejectedFile.java
 │   │   │   └── RejectionReason.java
@@ -89,18 +94,34 @@ i buduje mapę `relativePath -> KnownFile`. Zwraca niemodyfikowalną migawkę
 przez `Map.copyOf`; nie otwiera zdjęć ani nie porównuje aktualnych metadanych.
 Odczyt sprawdza `KnownFilesReaderJpaTest` na tymczasowym PostgreSQL-u.
 Reader jest podłączony do `ScanWorkflow`, który przekazuje mapę i `AllowedRoot`
-do `ImageScanner.scan`, a skaner przekazuje je do `processFile`. Worker nie
-wyszukuje jeszcze pliku w mapie ani nie porównuje metadanych, więc nadal
-przetwarza ponownie znane pliki. Wyszukiwanie będzie następnym wspólnym krokiem.
-Numerowane TODO w klasie pozostają jako schemat już uzupełnionej implementacji.
+do `ImageScanner.scan`, a skaner przekazuje je do `processFile`. Worker szuka
+pliku po ścieżce względnej. Po tanich kontrolach porównuje rozmiar i datę
+modyfikacji z poprzednim opisem. Przy zgodności używa zapisanego SHA-256,
+pomijając dekodowanie obrazu i ponowne hashowanie. Nowy plik lub niezgodność
+metadanych oznacza pełny odczyt i hash. Czasy porównujemy po obcięciu do
+mikrosekund, tak samo jak przy zapisie do PostgreSQL.
+Zgodność metadanych nie dowodzi identyczności zawartości. Numerowane kroki
+w readerze pozostają jako schemat już uzupełnionej implementacji.
 
 `KnownFilesReader` pozostaje w `catalog/reading`, ponieważ korzysta z bazy
-katalogu. Jego odbiorcą będzie skaner, ale nie oznacza to, że reader ma otwierać
+katalogu. Jego odbiorcą jest skaner, ale nie oznacza to, że reader ma otwierać
 obrazy z dysku. `CatalogReader` przygotowuje dane dla UI, a `KnownFilesReader`
 przygotowuje lżejsze dane dla skanowania. To dwa różne cele odczytu tej samej bazy.
 
-Prywatne `FileOutcome`, `ProcessedFile` i `ScanTiming` pozostają wewnątrz
+Prywatne `ImageScanType`, `FileOutcome`, `ProcessedFile` i `ScanTiming` pozostają wewnątrz
 `ImageScanner`: są szczegółami jego pracy, nie wspólnym wynikiem dla innych klas.
+
+`ImageScanType` opisuje sposób przetworzenia zaakceptowanego obrazu:
+`NEW`, `RESCANNED` lub `UNCHANGED`. Worker zwraca tę etykietę razem z obrazem
+w `FileOutcome.Accepted`. Główny wątek skanu rozdziela wyniki na dwie istniejące
+listy i zwiększa liczniki. Workery nie modyfikują wspólnego podsumowania.
+`ScanSummary` zawiera cztery liczby dotyczące jednego skanu. `ScanResult`
+pilnuje, żeby suma trzech liczników obrazów odpowiadała liście `accepted`,
+a `rejectedFiles` — liście `rejected`.
+
+`ScanResultDto` przekazuje `summary` przez JSON. React trzyma je wewnątrz
+istniejącego `result`, a komponent `scanning/ScanSummary.tsx` tylko je wyświetla.
+Nie ma czterech dodatkowych stanów Reacta ani nowych kolumn w bazie.
 
 ## Jak płyną dane
 
@@ -112,13 +133,16 @@ Kliknięcie „Scan folder” w React
        → scanning/folder/ScanFolderValidator → AllowedRoot
        → catalog/reading/KnownFilesReader → repozytoria → PostgreSQL
          → Map<String, KnownFile> (poprzednie opisy plików)
-  → scanning/image/ImageScanner (AllowedRoot + mapa; mapa jeszcze nieużywana)
+  → scanning/image/ImageScanner (AllowedRoot + mapa znanych plików)
        → scanning/workers (pula wątków do przetwarzania plików)
-       → scanning/hashing/FileHasher
-       → scanning/result/ScanResult (accepted + rejected)
+       → tanie kontrole + porównanie metadanych z KnownFile
+          → zgodne: poprzedni SHA-256, etykieta UNCHANGED
+          → nowe/niezgodne: ImageIO + FileHasher, etykieta NEW/RESCANNED
+          → błąd kontroli: RejectedFile
+       → scanning/result/ScanResult (accepted + rejected + ScanSummary)
   → catalog/writing/CatalogUpdater
   → catalog/database/*Repository → PostgreSQL
-  → scanning/api/dto/ScanResultDto → JSON → React
+  → scanning/api/dto/ScanResultDto → JSON → React + ScanSummary.tsx
 
 Wejście/odświeżenie widoku katalogu w React
   → GET /api/catalog/files?folderPath=...
