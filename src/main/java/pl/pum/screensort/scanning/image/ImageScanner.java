@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -179,14 +180,23 @@ public class ImageScanner {
       try {
         long sizeBytes = Files.size(path);
         Instant lastModifiedAt = Files.getLastModifiedTime(path).toInstant();
+        if (knownFile != null
+            && knownFile.sizeBytes() == sizeBytes
+            && knownFile.lastModifiedAt().equals(lastModifiedAt.truncatedTo(ChronoUnit.MICROS))) {
 
+          AcceptedImage image =
+              createAcceptedImage(path, knownFile.sha256(), sizeBytes, lastModifiedAt);
+
+          return new FileOutcome.Accepted(image);
+        }
         long beforeImageRead = System.nanoTime();
         boolean readableImage = isReadableImage(path);
         timing.imageReadNanos += System.nanoTime() - beforeImageRead;
         timing.imageReadCount++;
         if (!readableImage) {
           RejectedFile file =
-              new RejectedFile(path, path.getFileName().toString(), RejectionReason.UNREADABLE_IMAGE);
+              new RejectedFile(
+                  path, path.getFileName().toString(), RejectionReason.UNREADABLE_IMAGE);
           return new FileOutcome.Rejected(file);
         }
 
