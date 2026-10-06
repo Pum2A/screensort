@@ -152,7 +152,7 @@ public class ImageScanner {
     return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt, hash);
   }
 
-  private Optional<RejectionReason> findRejectionReason(Path path, ScanTiming timing) {
+  private Optional<RejectionReason> findBasicRejectionReason(Path path) {
     if (Files.isSymbolicLink(path)) {
       return Optional.of(RejectionReason.SYMBOLIC_LINK);
     }
@@ -165,25 +165,28 @@ public class ImageScanner {
     if (!hasAllowedSize(path)) {
       return Optional.of(RejectionReason.TOO_LARGE);
     }
-    long beforeImageRead = System.nanoTime();
-    boolean readableImage = isReadableImage(path);
-    timing.imageReadNanos += System.nanoTime() - beforeImageRead;
-    timing.imageReadCount++;
-    if (!readableImage) {
-      return Optional.of(RejectionReason.UNREADABLE_IMAGE);
-    }
 
     return Optional.empty();
   }
 
-  private FileOutcome fileOutcome(Path path, ScanTiming timing) {
+  private FileOutcome fileOutcome(Path path, ScanTiming timing, KnownFile knownFile) {
 
-    Optional<RejectionReason> rejectionReason = findRejectionReason(path, timing);
+    Optional<RejectionReason> rejectionReason = findBasicRejectionReason(path);
     if (rejectionReason.isPresent()) {
       RejectedFile file =
           new RejectedFile(path, path.getFileName().toString(), rejectionReason.get());
       return new FileOutcome.Rejected(file);
     } else {
+      long beforeImageRead = System.nanoTime();
+      boolean readableImage = isReadableImage(path);
+      timing.imageReadNanos += System.nanoTime() - beforeImageRead;
+      timing.imageReadCount++;
+      if (!readableImage) {
+        RejectedFile file =
+            new RejectedFile(path, path.getFileName().toString(), RejectionReason.UNREADABLE_IMAGE);
+        return new FileOutcome.Rejected(file);
+      }
+
       long beforeHash = System.nanoTime();
       Optional<String> hash = hasher.hash(path);
       timing.hashNanos += System.nanoTime() - beforeHash;
@@ -207,7 +210,9 @@ public class ImageScanner {
   private ProcessedFile processFile(
       Path path, AllowedRoot allowedRoot, Map<String, KnownFile> knownFilesByPath) {
     ScanTiming timing = new ScanTiming();
-    FileOutcome fileOutcome = fileOutcome(path, timing);
+    String relativePath = allowedRoot.path().relativize(path).toString();
+    KnownFile knownFile = knownFilesByPath.get(relativePath);
+    FileOutcome fileOutcome = fileOutcome(path, timing, knownFile);
     return new ProcessedFile(fileOutcome, timing);
   }
 
