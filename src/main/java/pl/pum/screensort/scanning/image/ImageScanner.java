@@ -144,11 +144,10 @@ public class ImageScanner {
     return fileName.substring(dotPosition + 1).toLowerCase();
   }
 
-  private AcceptedImage createAcceptedImage(Path path, String hash) throws IOException {
+  private AcceptedImage createAcceptedImage(
+      Path path, String hash, long sizeBytes, Instant lastModifiedAt) {
     String originalName = path.getFileName().toString();
     String extension = getExtension(path);
-    long sizeBytes = Files.size(path);
-    Instant lastModifiedAt = Files.getLastModifiedTime(path).toInstant();
     return new AcceptedImage(path, originalName, extension, sizeBytes, lastModifiedAt, hash);
   }
 
@@ -177,27 +176,30 @@ public class ImageScanner {
           new RejectedFile(path, path.getFileName().toString(), rejectionReason.get());
       return new FileOutcome.Rejected(file);
     } else {
-      long beforeImageRead = System.nanoTime();
-      boolean readableImage = isReadableImage(path);
-      timing.imageReadNanos += System.nanoTime() - beforeImageRead;
-      timing.imageReadCount++;
-      if (!readableImage) {
-        RejectedFile file =
-            new RejectedFile(path, path.getFileName().toString(), RejectionReason.UNREADABLE_IMAGE);
-        return new FileOutcome.Rejected(file);
-      }
-
-      long beforeHash = System.nanoTime();
-      Optional<String> hash = hasher.hash(path);
-      timing.hashNanos += System.nanoTime() - beforeHash;
-      timing.hashCount++;
-      if (hash.isEmpty()) {
-        RejectedFile file =
-            new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
-        return new FileOutcome.Rejected(file);
-      }
       try {
-        AcceptedImage image = createAcceptedImage(path, hash.get());
+        long sizeBytes = Files.size(path);
+        Instant lastModifiedAt = Files.getLastModifiedTime(path).toInstant();
+
+        long beforeImageRead = System.nanoTime();
+        boolean readableImage = isReadableImage(path);
+        timing.imageReadNanos += System.nanoTime() - beforeImageRead;
+        timing.imageReadCount++;
+        if (!readableImage) {
+          RejectedFile file =
+              new RejectedFile(path, path.getFileName().toString(), RejectionReason.UNREADABLE_IMAGE);
+          return new FileOutcome.Rejected(file);
+        }
+
+        long beforeHash = System.nanoTime();
+        Optional<String> hash = hasher.hash(path);
+        timing.hashNanos += System.nanoTime() - beforeHash;
+        timing.hashCount++;
+        if (hash.isEmpty()) {
+          RejectedFile file =
+              new RejectedFile(path, path.getFileName().toString(), METADATA_UNREADABLE);
+          return new FileOutcome.Rejected(file);
+        }
+        AcceptedImage image = createAcceptedImage(path, hash.get(), sizeBytes, lastModifiedAt);
         return new FileOutcome.Accepted(image);
       } catch (IOException exception) {
         RejectedFile file =
