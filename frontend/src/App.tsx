@@ -1,6 +1,8 @@
 import {useEffect, useState} from 'react'
 import {isTauri} from '@tauri-apps/api/core'
 import {open} from '@tauri-apps/plugin-dialog'
+import {ScanSummary} from './scanning/ScanSummary'
+import type {ScanSummaryData} from './scanning/ScanSummary'
 import './App.css'
 
 const LAST_FOLDER_KEY = 'screensort.lastFolder'
@@ -21,6 +23,7 @@ type RejectedFile = {
 type ScanResult = {
     accepted: AcceptedImage[]
     rejected: RejectedFile[]
+    summary: ScanSummaryData
 }
 
 type CatalogFile = {
@@ -180,6 +183,8 @@ function App() {
 
                 {error && <p className="scan-error">{error}</p>}
             </section>
+
+            {result && <ScanSummary summary={result.summary}/>}
 
             {result && (
                 <section className="results" aria-label="Scan results">
