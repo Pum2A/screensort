@@ -55,6 +55,12 @@ This is one Maven application at the start. Package boundaries are preferred ove
 The table also describes planned modules. For the **current** file layout, see
 [the project map](struktura-projektu.md).
 
+Current catalog UI: paginated records, PNG thumbnails by record ID and a selected
+preview panel. `catalog/preview` performs source lookup, filesystem checks and
+bounded in-memory image generation outside the database transaction. No original
+images are written. The API binds to loopback by default. Exact limits, the current
+flow and race/cache limitations are documented in [the gallery guide](galeria-i-podglady.md).
+
 ## 5. Dependency direction
 
 ```text

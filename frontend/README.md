@@ -15,7 +15,7 @@ npm.cmd run tauri dev
 ```
 
 Tauri starts the Vite development server and loads it in a desktop window. The
-"Wybierz folder" button is visible only there. Select a folder and click "Scan
+"Wybierz folder" button is visible only there. Select a folder and click "Skanuj
 folder" to call the existing Java API. A browser-only fallback is available
 with `npm.cmd run dev` at <http://127.0.0.1:5173/>; it accepts a typed path.
 During development, Vite proxies `/api` to Spring Boot at
@@ -23,7 +23,7 @@ During development, Vite proxies `/api` to Spring Boot at
 
 ## Saved catalog
 
-`App.tsx` reads `GET /api/catalog/page` with `folderPath`, `pageNumber` and
+`catalog/api.ts`, called by `App.tsx`, reads `GET /api/catalog/page` with `folderPath`, `pageNumber` and
 `pageSize`. The default page size is 50. The response contains `files`,
 `pageNumber`, `pageSize`, `totalFiles` and `hasNext`; React keeps one page object
 and derives its file list instead of storing a second copy.
@@ -31,12 +31,34 @@ and derives its file list instead of storing a second copy.
 Previous/next buttons change the requested page number. They are disabled at
 the relevant boundary and while a request or scan is running. The UI displays
 page numbers from 1, while the API counts from 0. A successful scan resets the
-catalog to page 0 and reloads it. Choosing a folder changes the scan input;
-the displayed catalog switches to that folder after the scan succeeds.
+catalog to page 0 and reloads it. Choosing a folder also opens its saved catalog
+without starting a scan. In the browser fallback, use "Otwórz katalog" after typing
+a path. A folder with no saved records stays empty until scanned.
 
 The effect ignores responses from superseded requests. The remembered last
 folder uses the existing `screensort.lastFolder` local storage key; it is not
 a database table. Pagination does not start a scan or change source images.
+
+## Gallery and selected preview
+
+`catalog/CatalogGallery.tsx` renders the current page as compact tiles. Selection
+stores only `selectedId`; the selected file is derived from this page.
+`CatalogImage.tsx` loads lazy thumbnails by record ID, not by arbitrary paths.
+`ImageDetailsPanel.tsx` requests the larger preview only after selection and
+shows metadata from the last scan. Escape / the close button restore focus to
+the selected tile. Technical details remain available in a disclosure section.
+
+Thumbnail and preview URLs use `/api/catalog/files/{id}/thumbnail` and `/preview`.
+Failed image loads show a fallback without removing catalog metadata. The larger
+preview has a manual retry button. UI formatting uses binary KiB/MiB/GiB and
+local Polish dates; exact bytes and UTC timestamps remain in technical details.
+The responsive layout uses a side panel on desktop and a stacked panel on
+narrow windows. No image URLs, fonts or icon packages are fetched from external
+services. Full flow and limits: [gallery guide](../docs/galeria-i-podglady.md).
+
+For an isolated development instance, set `SCREENSORT_BACKEND_URL` in the terminal
+before starting Vite; the default remains `http://127.0.0.1:8080`. This variable
+changes only the development proxy, not production/Tauri API routing.
 
 ## Verification
 

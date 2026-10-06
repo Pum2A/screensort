@@ -59,14 +59,15 @@ main class:   ScreenSortApplication
 6. `ScanResult` zawiera oddzielne listy `accepted` i `rejected` oraz `ScanSummary`.
 7. `POST /api/scan` przyjmuje JSON z `folderPath`; błędne lub puste żądanie
    zwraca HTTP 400.
-8. React wywołuje lokalne API i pokazuje zaakceptowane oraz odrzucone pliki,
-   a nad listami cztery liczniki podsumowania ostatniego skanu.
+8. React wywołuje lokalne API, pokazuje cztery kompaktowe liczniki ostatniego
+   skanu oraz rozwijane powody odrzucenia. Zapisane obrazy są w galerii,
+   bez powielania listy zaakceptowanych nad katalogiem.
 9. `ScanWorkflow` przekazuje wynik do `CatalogUpdater`, który zapisuje nowe
    pliki w PostgreSQL albo aktualizuje istniejące rekordy przy kolejnym skanie.
 10. `GET /api/catalog/page` przez `CatalogReader.readPage` odczytuje stronę
-    zapisanych obrazów. React pokazuje maksymalnie 50 rekordów, liczbę wszystkich
-    zapisanych plików oraz przyciski „Poprzednia” i „Następna”. Katalog odczytywany
-    jest po uruchomieniu oraz po udanym skanowaniu.
+    zapisanych obrazów. React pokazuje maksymalnie 50 kafelków, liczbę wszystkich
+    zapisanych plików oraz przyciski stron. Katalog odczytywany jest po uruchomieniu,
+    wyborze folderu i po udanym skanowaniu. Odczyt galerii nie uruchamia skanu.
 11. `FileHasher` jest komponentem Springa i może być wstrzyknięty do
     `ImageScanner`.
 12. `KnownFilesReader` odczytuje cztery pola znanych plików wybranego folderu
@@ -74,6 +75,10 @@ main class:   ScreenSortApplication
     korzysta z niej do pomijania ciężkiego odczytu przy zgodnych metadanych.
 13. `ImageScanType` (prywatny enum w `ImageScanner`) rozróżnia `NEW`,
     `RESCANNED` i `UNCHANGED`. Odrzucone pliki mają osobny licznik.
+14. Miniatury i większy podgląd są pobierane po ID rekordu przez
+    `GET /api/catalog/files/{id}/thumbnail` oraz `/preview`. Źródła są tylko
+    odczytywane. Kontrolujemy ścieżki i limity; PNG powstają w pamięci.
+    React pokazuje panel szczegółów wybranego ID, a dane techniczne można rozwinąć.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -100,6 +105,7 @@ pl.pum.screensort.catalog
 ├── writing       # CatalogUpdater: zapis i aktualizacja katalogu
 ├── api           # REST dla Reacta
 ├── dto           # opis pliku i strony katalogu pokazywanej w UI
+├── preview       # odczyt źródła, kontrola pliku, miniatury PNG i ograniczony cache
 └── database      # encje i repozytoria JPA
 ```
 
@@ -159,8 +165,9 @@ Rozmiar i data modyfikacji są wskazówką, nie dowodem identycznej zawartości.
 sprawdzenia jest nadal do zaprojektowania. Przyszłe bezpieczne kopiowanie musi
 ponownie potwierdzić zawartość źródła.
 
-Najbliższy wspólny etap: bezpieczny odczyt miniatury po ID rekordu, następnie
-galeria oraz podgląd wybranego obrazu. Postęp długiego skanu, OCR, propozycje nazw,
+Galeria, bezpieczny odczyt miniatury po ID oraz większy podgląd są podłączone.
+Najbliższy wspólny krok to omówienie tych zmian i wybór kolejnego etapu,
+np. postępu długiego skanu. OCR, propozycje nazw,
 przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
 za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
 Javy i nie ma zweryfikowanego instalatora; Docker pozostaje narzędziem developerskim.
@@ -185,14 +192,38 @@ Stary endpoint `GET /api/catalog/files` pozostaje dostępny, ale React już go
 nie używa. Wynik skanu i mapa z `KnownFilesReader` nadal obejmują cały skanowany
 folder; nie ograniczamy ich do strony UI. Ta zmiana nie wymaga migracji.
 
-Weryfikacja 2026-10-06: Maven `clean verify` — 39 testów, 38 zaliczonych,
-1 pominięty ręczny test pomiarowy; build i lint frontendu — poprawne. Odczyt
-API sprawdzono dla dwóch stron po jednym pliku, pustej strony i błędnych
-parametrów. W React sprawdzono przejście w obie strony oraz blokadę przycisków
-na granicach; po sprawdzeniu przywrócono 50 rekordów na stronę. Nie wykonano
-nowego skanu ani zmian danych użytkownika w ramach tych ręcznych sprawdzeń.
-Scenariusze paginacji sprawdzono ręcznie; nie dodano nowych testów automatycznych
-endpointu lub nawigacji Reacta.
+Poprzednia weryfikacja paginacji: dwie strony po jednym pliku, pusta strona
+i błędne parametry; ręczne przejście w obie strony oraz blokady na granicach.
+Po sprawdzeniu przywrócono 50 rekordów na stronę.
+
+Galeria ma osobną funkcję `catalog/preview`: `CatalogImageSourceReader` czyta
+JPA w krótkiej transakcji, `CatalogImagePreview` sprawdza źródło i tworzy PNG,
+`PreviewCache` trzyma maksymalnie 128 wpisów / 16 MiB zakodowanych obrazów.
+Miniatura ma bok do 320 px, większy podgląd do 1024 px, bez powiększania małych
+źródeł. Limit źródła to 50 MiB / 40 mln pikseli / 20 000 px na bok; maksymalnie
+2 dekodery naraz. Cache nie pomija walidacji i nie dowodzi zgodności bajtów.
+Backend domyślnie nasłuchuje na `127.0.0.1`. To lokalny etap developerski,
+nie gotowy model autoryzacji dla publicznej dystrybucji.
+
+Frontend jest rozdzielony na `catalog/types.ts`, `api.ts`, `format.ts`,
+`CatalogGallery`, `CatalogImage` oraz `ImageDetailsPanel`. `selectedId` wybiera
+opis z bieżącej strony; nie kopiujemy całego DTO do nowego stanu. Wybranie
+folderu otwiera zapisany katalog bez skanu, a po sukcesie skanu wracamy do
+strony 0. Rust i natywny picker nie zostały zmienione. Tymczasowe serwery QA
+nie zastępują działającej aplikacji właściciela: po aktualizacji należy
+zrestartować Springa, aby nowe endpointy były zarejestrowane.
+
+Dokładny przepływ, mapa nowych plików, limity i ograniczenia:
+[`galeria-i-podglady.md`](galeria-i-podglady.md). W ręcznej kontroli galerii
+korzystano z istniejących dwóch rekordów demo, bez nowego skanu i bez zmian
+danych użytkownika. Sprawdzono prawdziwe miniatury, przełączanie podglądu,
+dane techniczne, Escape i szerokości 320/360/1024 px.
+
+Weryfikacja końcowa 2026-10-06: Maven `clean verify` — 68 testów,
+66 zaliczonych, 2 pominięte (ręczny benchmark i brak uprawnień do utworzenia
+linku symbolicznego w Windows). Build i lint Reacta — poprawne. Konsola
+przeglądarki bez błędów w sprawdzonym przepływie. Tymczasowe serwery QA
+zatrzymano; procesów właściciela na portach 8080 i 5173 nie zatrzymywano.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -292,7 +323,11 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/page.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
-po 50 na stronę, z przyciskami poprzednia/następna. API liczy strony od 0.
+po 50 na stronę jako siatkę prawdziwych miniatur. Kliknięcie pokazuje większy
+podgląd i panel szczegółów; techniczne dane są rozwijane. API liczy strony od 0.
+Podglądy są odczytywane po ID przez /api/catalog/files/{id}/thumbnail i /preview.
+catalog/preview sprawdza źródło i generuje ograniczone PNG w pamięci, nie zapisuje
+ich do źródła ani bazy. Backend domyślnie nasłuchuje tylko na 127.0.0.1.
 Działa developerskie okno Tauri + natywny picker; nie JavaFX. ScanWorkflow waliduje folder,
 odczytuje mapę przez KnownFilesReader i przekazuje AllowedRoot oraz mapę do
 ImageScanner.scan. Worker wyszukuje poprzedni opis po ścieżce względnej.
@@ -300,7 +335,7 @@ Po tanich kontrolach porównuje rozmiar i datę modyfikacji; zgodność pozwala
 pominąć dekodowanie i użyć poprzedniego SHA-256. ImageScanType rozróżnia
 NEW, RESCANNED, UNCHANGED. Czas zapisu/porównania obcinamy do mikrosekund.
 Zgodne metadane nie dowodzą identyczności bajtów; przyszłe kopiowanie musi
-potwierdzić źródło ponownie. Następny etap to bezpieczne miniatury po ID rekordu,
-potem galeria i większy podgląd. Nie implementuj kolejnej funkcji bez omówienia
+potwierdzić źródło ponownie. Galeria i podglądy już działają; przeczytaj też
+docs/galeria-i-podglady.md. Nie implementuj kolejnej funkcji bez omówienia
 jej celu i przepływu danych z właścicielem projektu.
 ```

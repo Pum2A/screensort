@@ -13,7 +13,7 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page, with previous/next controls and a total file count. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a thumbnail grid. Selecting a tile opens a larger preview and metadata panel. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 
@@ -46,6 +46,7 @@ Select source folder
 - [Product brief](docs/project-brief.md)
 - [Initial architecture](docs/architecture.md)
 - [Mapa obecnego projektu po polsku](docs/struktura-projektu.md)
+- [Galeria i podglądy — co zmieniliśmy i dlaczego](docs/galeria-i-podglady.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
@@ -105,7 +106,9 @@ The credentials in `compose.yaml` are development-only and must not be reused ou
 
 ## Current milestone
 
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows both the scan summary and paginated saved catalog records; a thumbnail gallery, manual review, OCR and safe copying are not implemented yet.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows a compact scan summary, thumbnail gallery and selected-image details. Manual review of suggestions, OCR and safe copying are not implemented yet.
+
+`GET /api/catalog/files/{id}/thumbnail` produces a PNG with a maximum edge of 320 px; `/preview` uses 1024 px. No source file is written. Preview input is limited to 50 MiB, 40 million pixels and 20,000 px per edge; unsupported or unavailable previews show a fallback in the UI. Up to two decoders work concurrently, and the encoded-image cache is bounded to 128 entries / 16 MiB. The API binds to `127.0.0.1` by default. See the gallery guide for security limitations and memory costs beyond the cache.
 
 Pagination is applied in the database query, not by slicing a full list in Java or React. The page API accepts `folderPath`, zero-based `pageNumber`, and `pageSize` from 1 to 50. After a successful scan, React reloads page 0 for that folder. The legacy `GET /api/catalog/files` endpoint remains available, but React no longer uses it. Scan results and the known-file map used by incremental scanning are not paginated by this change.
 

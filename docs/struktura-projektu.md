@@ -12,7 +12,9 @@ Ostatnia aktualizacja: 2026-10-06.
 screenSorter/
 ├── frontend/src/                 React: ekran, stan i wywołania /api
 │   ├── App.tsx                   skan, wynik i stronicowany katalog
-│   └── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
+│   ├── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
+│   ├── catalog/                  siatka, podgląd, typy, API i formatowanie
+│   └── ui/Icon.tsx               wspólne ikony SVG
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
@@ -48,6 +50,7 @@ screenSorter/
 │       │   └── CatalogUpdater.java zapis wyników po skanowaniu
 │       ├── api/                    HTTP/JSON dla Reacta
 │       ├── dto/                    CatalogFileDto i CatalogPageDto
+│       ├── preview/                odczyt źródła, bezpieczne PNG i ograniczony cache
 │       └── database/               encje i repozytoria JPA/PostgreSQL
 ├── src/main/resources/
 │   ├── db/migration/               Flyway: struktura tabel SQL
@@ -79,6 +82,7 @@ odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 | `reading` | Odczyt danych katalogu dla konkretnego odbiorcy: UI lub skanera. | Funkcja pobierająca i przygotowująca dane do użycia. |
 | `writing` | Zapis nowych rekordów i aktualizacja istniejących po skanie. | Funkcja synchronizująca wynik z trwałym magazynem. |
 | `prototype` | Zachowany ekran Thymeleaf pod `/`; oddzielony od API Reacta. | Stary widok, nadal działający. |
+| `preview` | Odczyt obrazu po ID, walidacja źródła, miniatura i większy podgląd. | Osobna funkcja przygotowująca obraz dla widoku, nie skanująca całego folderu. |
 
 `CatalogFileDto` jest w `catalog/dto`, ponieważ używa go zarówno
 `CatalogReader`, jak i `CatalogRestController` (oraz obecny podgląd w konsoli).
@@ -127,7 +131,7 @@ Nie ma czterech dodatkowych stanów Reacta ani nowych kolumn w bazie.
 liczbę wszystkich zapisanych plików folderu i `hasNext`. `CatalogReader.readPage`
 przekazuje `PageRequest` do repozytorium: PostgreSQL zwraca tylko potrzebną
 porcję, posortowaną po ścieżce względnej. React przechowuje tę odpowiedź jako
-`catalogPage`; `catalogFiles` jest wyliczane z niej, nie stanowi kopii w stanie.
+`catalogPage`; `CatalogGallery` dostaje jej listę, nie tworzymy drugiej kopii w stanie.
 Kliknięcie przycisku zmienia `catalogPageNumber` i powoduje nowe żądanie.
 Nie oznacza to skanowania dysku, dekodowania zdjęć ani obliczania SHA-256.
 `KnownFilesReader` nadal odczytuje wszystkie znane opisy dla skanowanego folderu,
@@ -163,13 +167,28 @@ Wejście/odświeżenie katalogu lub kliknięcie „Następna” w React
        → PageRequest → catalog/database/*Repository → PostgreSQL
          → Page<FileRecordEntity> (porcja rekordów + liczba wszystkich)
   → catalog/dto/CatalogPageDto (files: CatalogFileDto[] + metadane strony)
-  → JSON → React: katalog i przyciski stron
+  → JSON → React: CatalogGallery i przyciski stron
+
+Widoczny kafelek / wybór większego podglądu
+  → CatalogImage → GET /api/catalog/files/{id}/thumbnail lub /preview
+  → catalog/api/CatalogImageController
+  → catalog/preview/CatalogImagePreview
+       → CatalogImageSourceReader → repozytorium → PostgreSQL (transakcja read-only)
+       → ScanFolderValidator + kontrola ścieżki i zwykłego pliku
+       → ograniczony cache lub dekoder ImageReader (max 2 naraz)
+       → zmniejszenie i zakodowanie PNG w pamięci
+  → PNG → kafelek / ImageDetailsPanel
 ```
 
 Ważne: `ScanResult` to **wynik bieżącego odczytu dysku**. `FileRecordEntity` to
 **wiersz zapisany w PostgreSQL**. `CatalogFileDto` to **opis wysyłany do UI**.
 Mogą zawierać podobne pola, ale mają różne zadania. `ScreenSortApplication`
 tylko uruchamia Springa; nie jest miejscem na cały kod programu.
+
+Galeria nie zapisuje nowego wyniku skanu. Jej szczegółowy opis, mapa nowych
+plików oraz ograniczenia bezpieczeństwa i pamięci są w
+[`galeria-i-podglady.md`](galeria-i-podglady.md). Miniatury nie trafiają do folderu
+źródłowego ani do tabeli bazy. Metadane są z ostatniego skanu, podgląd z dysku.
 
 ## Gdzie dodać następną rzecz
 

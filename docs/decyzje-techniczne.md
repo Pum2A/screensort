@@ -445,8 +445,7 @@ scan 2 -> nadal 2 rekordy
 restart -> rekordy nadal istnieją
 ```
 
-Stronicowany katalog już działa. Kolejny etap to bezpieczne miniatury po ID
-rekordu, następnie galeria i większy podgląd obrazów.
+Stronicowany katalog, miniatury po ID rekordu, galeria i większy podgląd już działają.
 Nie oznacza to jeszcze OCR, automatycznej zmiany nazw ani kopiowania.
 
 ## 13. Skan przyrostowy i podsumowanie
@@ -532,8 +531,8 @@ To odpowiada wzorcowi opisanemu w
 [dokumentacji Reacta o pobieraniu danych w efektach](https://react.dev/learn/synchronizing-with-effects#fetching-data).
 
 Po udanym skanie wracamy do strony 0 i odświeżamy katalog dla zeskanowanego
-folderu. Sam wybór folderu zmienia wejście skanu; katalog przełącza się dopiero
-po jego sukcesie. `screensort.lastFolder` jest istniejącym kluczem localStorage,
+folderu. W aktualnej galerii sam wybór folderu otwiera też jego zapisany katalog,
+bez skanowania. `screensort.lastFolder` jest istniejącym kluczem localStorage,
 nie nową tabelą ani nową funkcją paginacji.
 
 Ta zmiana nie ogranicza `POST /api/scan` ani mapy znanych plików. Skan nadal
@@ -541,3 +540,23 @@ obejmuje cały dozwolony folder, a listy wyników skanu nadal trafiają w cało�
 do Reacta. Ograniczamy tylko widok zapisanych rekordów. Nie potrzeba migracji,
 ponieważ nie zmieniamy tabel. Stary endpoint listy pozostaje przejściowo dostępny;
 React korzysta już wyłącznie z endpointu strony.
+
+## 15. Galeria i podglądy na żądanie
+
+Oddzielamy pobranie strony opisów od pobrania obrazów. Kafelek potrzebuje
+miniatury, a większy podgląd pobieramy tylko dla wybranego ID. Nie wysyłamy
+oryginałów do wszystkich kafelków. Zamiast dopisywać wszystko do `App.tsx`,
+komponenty i typy galerii są w `frontend/src/catalog`.
+
+Backendowa funkcja jest w `catalog/preview`: krótki odczyt JPA kończy się przed
+pracą z plikiem. ID rekordu nie zastępuje walidacji źródła. `ImageReader`
+kontroluje format i wymiary, podgląd jest ponownie kodowany do PNG w pamięci.
+Nie zmieniamy skanera ani schematu bazy. Dwa dekodery i ograniczony cache
+chronią przed nieograniczoną równoległością i wzrostem pamięci przechowywanych
+podglądów. To nie oznacza, że cała JVM zużywa tylko 16 MiB.
+
+Po trafieniu w cache nadal sprawdzamy folder i plik. To cache wygody UI,
+nie dowód identyczności zawartości ani uprawnienie do późniejszego kopiowania.
+Backend domyślnie nasłuchuje tylko na loopback, nie w sieci LAN.
+Pełne uzasadnienie, wartości limitów, alternatywy i ograniczenia:
+[`galeria-i-podglady.md`](galeria-i-podglady.md).
