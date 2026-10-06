@@ -1,25 +1,36 @@
-/* Systemowe fonty: bez pobierania zasobów z internetu. */
+/* Font z repozytorium, bez zewnętrznych zapytań. Licencja: public/VT323-OFL.txt. */
+@font-face {
+    font-family: 'ScreenSort PC';
+    src: url('./assets/fonts/VT323-Regular.ttf') format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
 :root {
-    font-family: 'Segoe UI', Inter, system-ui, -apple-system, sans-serif;
-    color: #202c25;
-    background: #f5f7f2;
+    font-family: 'ScreenSort PC', 'Lucida Console', Consolas, monospace;
+    font-size: 20px;
+    color: #282e30;
+    background: #f4f2e8;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
-    --accent: #b4ed7a;
-    --accent-dark: #356a28;
-    --accent-depth: #83b751;
-    --border: #dfe6db;
-    --muted: #6e7b71;
-    --surface: #fff;
-    --text: #202c25;
+    --accent: #2548d7;
+    --border: #b8c0b8;
+    --muted: #5b6561;
+    --surface: #fbfaf4;
+    --background: #f4f2e8;
+    --selected: #e6eaff;
+    --text: #282e30;
 }
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; }
 body { margin: 0; min-width: 280px; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 a { color: inherit; }
 button, input, summary { -webkit-tap-highlight-color: transparent; }
-:focus-visible { outline: 3px solid #4d8f37; outline-offset: 4px; }
-::selection { background: #d7f6b8; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+::selection { background: #cad4ff; }
+code { font-family: Consolas, 'Lucida Console', monospace; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }

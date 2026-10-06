@@ -109,13 +109,12 @@ function App() {
             <a className="brand" href="/" aria-label="ScreenSort — strona główna">
                 <span className="brand-mark" aria-hidden="true"><Icon name="scan"/></span>ScreenSort
             </a>
-            <span className="local-badge"><Icon name="shield"/>Lokalnie. Prywatnie.</span>
+            <span className="local-badge"><Icon name="shield"/>LOCAL / READ ONLY</span>
         </header>
 
         <section className="workspace-heading" aria-labelledby="page-title">
-            <div><p className="eyebrow">Twój mały porządek w dużym chaosie</p><h1 id="page-title">Twoje obrazy<span>.</span></h1>
-                <p className="description">Wybierz folder, zeskanuj i przyjrzyj się temu, co już masz.</p></div>
-            <span className="workspace-tag"><Icon name="grid"/>Katalog obrazów</span>
+            <h1 id="page-title">Eksplorator obrazów</h1>
+            <p>Wybierz folder → skanuj → odkrywaj pliki</p>
         </section>
 
         <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
@@ -150,7 +149,7 @@ function App() {
             <div className="catalog-heading"><div><h2 id="catalog-title">{folderName(catalogFolder)}
                 {catalogPage && <span className="count-badge">{catalogPage.totalFiles}</span>}</h2>
                 <p className="catalog-folder" title={catalogFolder}>{catalogFolder}</p></div>
-                <span className="catalog-hint">Kliknij obraz, żeby zobaczyć szczegóły</span>
+                <span className="catalog-hint">Kliknij kółko → rozwiń jego gałęzie · Esc → zwiń</span>
             </div>
             {catalogLoading ? <div className="catalog-empty" role="status"><Icon name="refresh" className="spin"/>
                 <h3>Ładujemy Twój katalog</h3><p>Pobieramy opisy zapisanych plików.</p></div>
@@ -158,7 +157,7 @@ function App() {
                     <p role="alert">{catalogError}</p><button type="button" className="secondary-button" onClick={() => showCatalog(catalogFolder)}>
                         <Icon name="refresh"/>Spróbuj ponownie</button></div>
                 : !catalogPage || catalogPage.files.length === 0 ? <div className="catalog-empty"><Icon name="image"/>
-                    <h3>{catalogPage?.totalFiles === 0 ? 'Tu zaczyna się porządek' : 'Ta strona jest pusta'}</h3>
+                    <h3>{catalogPage?.totalFiles === 0 ? 'Brak zapisanych obrazów' : 'Ta strona jest pusta'}</h3>
                     <p>{catalogPage?.totalFiles === 0 ? 'Zeskanuj ten folder, a zapisane obrazy pojawią się tutaj.' : 'Wróć do poprzedniej strony katalogu.'}</p></div>
                 : <CatalogGallery key={`${catalogFolder}:${catalogPageNumber}:${catalogRefresh}`} files={catalogPage.files}/>}
             {catalogPage && catalogPage.totalFiles > 0 && <nav className="catalog-pagination" aria-label="Strony katalogu">
