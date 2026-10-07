@@ -5,7 +5,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import pl.pum.screensort.scanning.workflow.ScanWorkflow;
+import pl.pum.screensort.scanning.jobs.ScanAlreadyRunningException;
+import pl.pum.screensort.scanning.jobs.ScanJobManager;
 import pl.pum.screensort.scanning.result.ScanResult;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
@@ -16,10 +17,10 @@ import java.nio.file.Path;
 @Controller
 public class ScanController {
 
-    private final ScanWorkflow scanWorkflow;
+    private final ScanJobManager scanJobs;
 
-    public ScanController(ScanWorkflow scanWorkflow) {
-        this.scanWorkflow = scanWorkflow;
+    public ScanController(ScanJobManager scanJobs) {
+        this.scanJobs = scanJobs;
     }
 
     @GetMapping("/")
@@ -38,7 +39,7 @@ public class ScanController {
         }
 
         try {
-            ScanResult result = scanWorkflow.scanAndSave(Path.of(folderPath.trim()));
+            ScanResult result = scanJobs.scanAndSave(Path.of(folderPath.trim()));
 
 
             model.addAttribute("images", result.accepted());
@@ -46,6 +47,8 @@ public class ScanController {
         } catch (InvalidPathException exception) {
             model.addAttribute("errorMessage", "Ścieżka ma niepoprawny format.");
         } catch (InvalidScanFolderException exception) {
+            model.addAttribute("errorMessage", exception.getMessage());
+        } catch (ScanAlreadyRunningException exception) {
             model.addAttribute("errorMessage", exception.getMessage());
         } catch (IOException exception) {
             model.addAttribute(
