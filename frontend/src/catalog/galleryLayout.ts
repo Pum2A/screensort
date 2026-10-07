@@ -1,15 +1,14 @@
-// Drzewko zajmuje cały rząd, dlatego wstawiamy je dopiero po ostatniej miniaturze tego rzędu.
-export function selectedRowEnd(selectedIndex: number, columns: number, fileCount: number): number {
-    if (selectedIndex < 0 || selectedIndex >= fileCount || columns < 1) return -1
-    return Math.min((Math.floor(selectedIndex / columns) + 1) * columns, fileCount) - 1
-}
-
 export type TreeBox = {left: number, top: number, width: number, height: number}
 
+// Kliknięcie paddingu lub paska przewijania wewnątrz okna nie zamyka podglądu.
+export function isOutsideBox(point: {x: number, y: number}, box: TreeBox): boolean {
+    return point.x < box.left || point.x > box.left + box.width
+        || point.y < box.top || point.y > box.top + box.height
+}
+
 // Współrzędne są względem drzewka. Linie prowadzą przez odstępy, nie przez treść gałęzi.
-export function treeConnections(preview: TreeBox, branches: TreeBox[], anchorX: number, anchorY: number): string[] {
-    const previewCenter = preview.left + preview.width / 2
-    const paths = [`M ${anchorX} ${anchorY} V 12 H ${previewCenter} V ${preview.top}`]
+export function treeConnections(preview: TreeBox, branches: TreeBox[]): string[] {
+    const paths: string[] = []
     for (const branch of branches) {
         const targetY = branch.top + 22
         if (branch.left > preview.left + preview.width) {

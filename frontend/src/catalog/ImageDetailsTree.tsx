@@ -1,4 +1,3 @@
-import type {RefObject} from 'react'
 import {CatalogImage} from './CatalogImage'
 import {imageUrl} from './api'
 import {formatDate, formatSize} from './format'
@@ -6,20 +5,16 @@ import type {CatalogFile} from './types'
 import {Icon} from '../ui/Icon'
 import {useTreeConnections} from './useTreeConnections'
 
-type Props = {id: string, file: CatalogFile, selectedButton: RefObject<HTMLButtonElement | null>, onClose: () => void}
-
-export function ImageDetailsTree({id, file, selectedButton, onClose}: Props) {
-    const {tree, connections} = useTreeConnections(selectedButton, file.id)
+export function ImageDetailsTree({file}: {file: CatalogFile}) {
+    const {tree, connections} = useTreeConnections(file.id)
     const src = imageUrl(file, 'preview')
-    return <section id={id} className="image-details-tree" aria-label={`Szczegóły: ${file.originalName}`} ref={tree}>
+    return <section className="image-details-tree" aria-label={`Szczegóły: ${file.originalName}`} ref={tree}>
         {connections && <svg className="tree-connections" width={connections.width} height={connections.height}
             viewBox={`0 0 ${connections.width} ${connections.height}`} aria-hidden="true">
-            {connections.paths.map((path, index) => <path key={index} d={path} className={index === 0 ? 'tree-anchor' : ''}/>)}
+            {connections.paths.map((path, index) => <path key={index} d={path}/>)}
         </svg>}
         <div className="tree-preview" data-tree-preview>
-            <div className="details-heading"><span>WYBRANY OBRAZ</span>
-                <button type="button" className="icon-button" aria-label="Zamknij szczegóły" onClick={onClose}><Icon name="close"/></button>
-            </div>
+            <div className="details-heading"><span>WYBRANY OBRAZ</span></div>
             <CatalogImage key={src} src={src} name={file.originalName} preview/>
             <h3>{file.originalName}</h3>
             <p className="read-only-note"><Icon name="shield"/>Podgląd. Oryginał bez zmian.</p>

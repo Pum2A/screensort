@@ -15,16 +15,22 @@
 .tile-info strong { display: block; font-size: 20px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-info > span { display: block; color: var(--muted); font-size: 17px; margin-top: 4px; }
 .selected .tile-info strong { color: var(--accent); }
-.image-details-tree { position: relative; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px; padding: 32px 0 16px; min-width: 0; animation: tree-reveal .22s ease-out; }
+.image-details-dialog { width: min(1100px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--border); background: var(--background); color: var(--text); box-shadow: 0 16px 64px #19213838; }
+.image-details-dialog[open] { display: flex; flex-direction: column; }
+.image-details-dialog::backdrop { background: #17203366; backdrop-filter: blur(3px); }
+.preview-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.preview-dialog-title { min-width: 0; }
+.preview-dialog-title > span { color: var(--muted); font-size: 16px; }
+.preview-dialog-title h2 { margin: 3px 0 0; font-size: 25px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.preview-dialog-heading .icon-button { flex-shrink: 0; background: transparent; }
+.preview-dialog-body { overflow: auto; min-height: 0; padding: 4px 20px 16px; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.image-details-tree { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px; padding: 20px 0 4px; min-width: 0; animation: tree-reveal .22s ease-out; }
 .tree-connections { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
 .tree-connections path { fill: none; stroke: #8696a1; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.tree-connections .tree-anchor { stroke: var(--accent); stroke-width: 1.5; }
 .tree-preview, .tree-branch { position: relative; z-index: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); }
 .tree-preview { align-self: start; padding: 12px; }
-.details-heading { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin: -6px -6px 6px 0; }
+.details-heading { margin-bottom: 8px; }
 .details-heading > span { color: var(--accent); font-size: 18px; }
-.details-heading .icon-button { background: transparent; border-color: transparent; }
-.details-heading .icon-button:hover { border-color: var(--border); }
 .catalog-image-large { aspect-ratio: 4 / 3; border-radius: 0; background: #e9ebe3; }
 .catalog-image-large img { object-fit: contain; }
 .tree-preview h3 { margin: 12px 0; font-size: 21px; font-weight: 400; overflow-wrap: anywhere; }
@@ -47,5 +53,5 @@
 .text-button .icon { width: 16px; height: 16px; }
 @keyframes tree-reveal { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 1050px) { .image-details-tree { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .tree-branches { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 640px) { .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 24px 16px; } .image-details-tree { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-left: 16px; } .catalog-image-large { max-height: 320px; } .tree-preview { width: 100%; } .tree-branches { gap: 20px; } }
+@media (max-width: 640px) { .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 24px 16px; } .image-details-dialog { width: calc(100% - 16px); max-height: calc(100dvh - 16px); } .preview-dialog-heading { padding: 10px 12px; gap: 8px; } .preview-dialog-body { padding: 0 12px 12px; } .preview-dialog-title h2 { font-size: 22px; } .image-details-tree { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-left: 16px; } .catalog-image-large { max-height: 320px; } .tree-preview { width: 100%; } .tree-branches { gap: 20px; } }
 @media (max-width: 360px) { .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .tile-preview { width: 96px; } .tile-info strong { font-size: 18px; } }

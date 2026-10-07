@@ -149,7 +149,7 @@ function App() {
             <div className="catalog-heading"><div><h2 id="catalog-title">{folderName(catalogFolder)}
                 {catalogPage && <span className="count-badge">{catalogPage.totalFiles}</span>}</h2>
                 <p className="catalog-folder" title={catalogFolder}>{catalogFolder}</p></div>
-                <span className="catalog-hint">Kliknij kółko → rozwiń jego gałęzie · Esc → zwiń</span>
+                <span className="catalog-hint">Kliknij kółko → podgląd · Esc → zamknij</span>
             </div>
             {catalogLoading ? <div className="catalog-empty" role="status"><Icon name="refresh" className="spin"/>
                 <h3>Ładujemy Twój katalog</h3><p>Pobieramy opisy zapisanych plików.</p></div>
