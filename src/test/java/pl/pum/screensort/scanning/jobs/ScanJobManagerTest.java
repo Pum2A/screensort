@@ -39,6 +39,7 @@ class ScanJobManagerTest {
     ScanJob initial = jobs.start(folder);
     assertEquals(ScanStatus.PREPARING, initial.status());
     assertEquals(new ScanSummary(0, 0, 0, 0), initial.summary());
+    assertTrue(jobs.findRejections(initial.id()).isEmpty());
     verifyNoInteractions(workflow);
     ScanSummary counted = new ScanSummary(0, 0, 0, 1);
     ScanResult result = rejectedResult(folder);
@@ -59,6 +60,7 @@ class ScanJobManagerTest {
     assertEquals(ScanStatus.COMPLETED, finished.status());
     assertEquals(counted, finished.summary());
     assertNull(finished.errorMessage());
+    assertEquals(result.rejected(), jobs.findRejections(initial.id()).orElseThrow());
     assertEquals(ScanStatus.PREPARING, initial.status()); // stary record się nie zmienił
     assertEquals(new ScanSummary(0, 0, 0, 0), initial.summary());
   }
@@ -145,8 +147,27 @@ class ScanJobManagerTest {
     ScanJob newest = jobs.start(folder);
     tasks.remove().run();
     assertTrue(jobs.find(oldest.id()).isEmpty());
+    assertTrue(jobs.findRejections(oldest.id()).isEmpty());
     assertEquals(ScanStatus.COMPLETED, jobs.find(newest.id()).orElseThrow().status());
     assertTrue(jobs.find(UUID.randomUUID()).isEmpty());
+  }
+
+  @Test
+  void keepsAtMostOneHundredRejectionsWithoutChangingTheTotal() throws Exception {
+    var rejected = java.util.stream.IntStream.range(0, 125)
+        .mapToObj(index -> new RejectedFile(folder.resolve(index + ".txt"),
+            index + ".txt", RejectionReason.UNSUPPORTED_EXTENSION))
+        .toList();
+    when(workflow.scanAndSave(eq(folder), any(ScanProgressListener.class)))
+        .thenReturn(new ScanResult(new AllowedRoot(folder), List.of(), rejected,
+            new ScanSummary(0, 0, 0, 125)));
+    ScanJob initial = jobs.start(folder);
+    tasks.remove().run();
+    var sample = jobs.findRejections(initial.id()).orElseThrow();
+    assertEquals(100, sample.size());
+    assertEquals(125, jobs.find(initial.id()).orElseThrow().summary().rejectedFiles());
+    assertThrows(UnsupportedOperationException.class, () -> sample.clear());
+    assertEquals(125, rejected.size());
   }
 
   @Test

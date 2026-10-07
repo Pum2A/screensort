@@ -3,6 +3,7 @@ package pl.pum.screensort.scanning.jobs;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.result.RejectedFile;
 import pl.pum.screensort.scanning.result.ScanSummary;
 import pl.pum.screensort.scanning.workflow.ScanWorkflow;
 
@@ -22,11 +24,13 @@ import pl.pum.screensort.scanning.workflow.ScanWorkflow;
 public class ScanJobManager {
   private static final Logger log = LoggerFactory.getLogger(ScanJobManager.class);
   private static final int MAX_REMEMBERED_JOBS = 20;
+  private static final int MAX_REMEMBERED_REJECTIONS = 100;
 
   private final ScanWorkflow workflow;
   private final TaskExecutor jobRunner;
   // Dostęp do mapy i activeJobId jest zawsze w krótkich metodach synchronized.
   private final Map<UUID, ScanJob> jobs = new LinkedHashMap<>();
+  private final Map<UUID, List<RejectedFile>> rejections = new LinkedHashMap<>();
   private UUID activeJobId;
 
   public ScanJobManager(
@@ -66,6 +70,11 @@ public class ScanJobManager {
     return Optional.ofNullable(jobs.get(id));
   }
 
+  /** Próbka powodów odrzucenia jest dostępna dopiero po udanym zakończeniu. */
+  public synchronized Optional<List<RejectedFile>> findRejections(UUID id) {
+    return Optional.ofNullable(rejections.get(id));
+  }
+
   private synchronized ScanJob reserve(Path folder) {
     Objects.requireNonNull(folder);
     if (activeJobId != null) {
@@ -79,7 +88,9 @@ public class ScanJobManager {
             new ScanSummary(0, 0, 0, 0),
             null);
     if (jobs.size() == MAX_REMEMBERED_JOBS) {
-      jobs.remove(jobs.keySet().iterator().next());
+      UUID oldestId = jobs.keySet().iterator().next();
+      jobs.remove(oldestId);
+      rejections.remove(oldestId);
     }
     jobs.put(job.id(), job);
     activeJobId = job.id();
@@ -91,7 +102,7 @@ public class ScanJobManager {
       ScanResult result =
           workflow.scanAndSave(folder, (status, summary) -> update(id, status, summary));
       // Workflow wraca dopiero po zakończeniu transakcji CatalogUpdater.
-      update(id, ScanStatus.COMPLETED, result.summary());
+      complete(id, result);
       return result;
     } catch (IOException | RuntimeException exception) {
       String message =
@@ -109,6 +120,12 @@ public class ScanJobManager {
   private synchronized void update(UUID id, ScanStatus status, ScanSummary summary) {
     ScanJob previous = jobs.get(id);
     jobs.put(id, new ScanJob(id, previous.folderPath(), status, summary, null));
+  }
+
+  private synchronized void complete(UUID id, ScanResult result) {
+    // Nie zatrzymujemy pełnego ScanResult ani tysięcy ścieżek w historii zadań.
+    rejections.put(id, result.rejected().stream().limit(MAX_REMEMBERED_REJECTIONS).toList());
+    update(id, ScanStatus.COMPLETED, result.summary());
   }
 
   private synchronized void fail(UUID id, String message) {

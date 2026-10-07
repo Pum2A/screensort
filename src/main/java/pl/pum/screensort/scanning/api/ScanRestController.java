@@ -18,10 +18,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.scanning.api.dto.ScanRequest;
 import pl.pum.screensort.scanning.api.dto.ScanResultDto;
+import pl.pum.screensort.scanning.api.dto.ScanRejectionsDto;
+import pl.pum.screensort.scanning.api.dto.RejectedFileDto;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 import pl.pum.screensort.scanning.jobs.ScanAlreadyRunningException;
 import pl.pum.screensort.scanning.jobs.ScanJob;
 import pl.pum.screensort.scanning.jobs.ScanJobManager;
+import pl.pum.screensort.scanning.jobs.ScanStatus;
 import pl.pum.screensort.scanning.result.ScanResult;
 
 @RestController
@@ -51,6 +54,26 @@ public class ScanRestController {
   public ResponseEntity<ScanJob> findJob(@PathVariable UUID id) {
     return scanJobs.find(id)
         .map(job -> ResponseEntity.ok().header("Cache-Control", "no-store").body(job))
+        .orElseGet(() -> ResponseEntity.notFound().header("Cache-Control", "no-store").build());
+  }
+
+  @GetMapping("/api/scan/jobs/{id}/rejections")
+  public ResponseEntity<ScanRejectionsDto> findRejections(@PathVariable UUID id) {
+    var job = scanJobs.find(id);
+    if (job.isEmpty()) {
+      return ResponseEntity.notFound().header("Cache-Control", "no-store").build();
+    }
+    if (job.get().status() != ScanStatus.COMPLETED) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).header("Cache-Control", "no-store").build();
+    }
+    // Zadanie mogło wypaść z historii pomiędzy dwoma odczytami managera.
+    return scanJobs.findRejections(id)
+        .map(files -> {
+          int total = job.get().summary().rejectedFiles();
+          return ResponseEntity.ok().header("Cache-Control", "no-store")
+              .body(new ScanRejectionsDto(
+                  files.stream().map(RejectedFileDto::from).toList(), total, files.size() < total));
+        })
         .orElseGet(() -> ResponseEntity.notFound().header("Cache-Control", "no-store").build());
   }
 

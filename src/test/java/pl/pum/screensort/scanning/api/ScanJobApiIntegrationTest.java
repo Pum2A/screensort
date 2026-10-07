@@ -87,6 +87,7 @@ class ScanJobApiIntegrationTest {
           .andExpect(jsonPath("$.summary.newImages").value(1))
           .andExpect(jsonPath("$.summary.rejectedFiles").value(1));
       assertThat(roots.findByCanonicalPath(folder.toRealPath().toString())).isEmpty();
+      mvc.perform(get(location + "/rejections")).andExpect(status().isConflict());
       mvc.perform(
               post("/api/scan/jobs").contentType(MediaType.APPLICATION_JSON)
                   .content("{\"folderPath\":\"another-folder\"}"))
@@ -114,6 +115,11 @@ class ScanJobApiIntegrationTest {
     mvc.perform(get("/api/catalog/page").param("folderPath", folder.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalFiles").value(1));
+    mvc.perform(get(location + "/rejections"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalRejected").value(1))
+        .andExpect(jsonPath("$.files[0].reason").value("UNSUPPORTED_EXTENSION"))
+        .andExpect(jsonPath("$.truncated").value(false));
     assertThat(Files.readAllBytes(image)).isEqualTo(original);
   }
 }

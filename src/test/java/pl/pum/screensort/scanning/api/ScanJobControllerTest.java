@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.task.TaskRejectedException;
@@ -21,6 +22,8 @@ import pl.pum.screensort.scanning.jobs.ScanJob;
 import pl.pum.screensort.scanning.jobs.ScanJobManager;
 import pl.pum.screensort.scanning.jobs.ScanStatus;
 import pl.pum.screensort.scanning.result.ScanSummary;
+import pl.pum.screensort.scanning.result.RejectedFile;
+import pl.pum.screensort.scanning.result.RejectionReason;
 
 class ScanJobControllerTest {
   private final ScanJobManager jobs = mock(ScanJobManager.class);
@@ -74,6 +77,40 @@ class ScanJobControllerTest {
                 .content("{\"folderPath\":\"\\u0000\"}"))
         .andExpect(status().isBadRequest());
     verify(jobs, never()).start(any());
+  }
+
+  @Test
+  void returnsRejectionSampleOnlyForCompletedJobsWithoutStartingAnotherScan() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(jobs.find(id)).thenReturn(Optional.of(new ScanJob(id, "demo-images",
+        ScanStatus.COMPLETED, new ScanSummary(0, 0, 0, 125), null)));
+    when(jobs.findRejections(id)).thenReturn(Optional.of(List.of(new RejectedFile(
+        Path.of("demo-images/notes.txt"), "notes.txt", RejectionReason.UNSUPPORTED_EXTENSION))));
+    mvc.perform(get("/api/scan/jobs/" + id + "/rejections"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Cache-Control", "no-store"))
+        .andExpect(jsonPath("$.files[0].originalName").value("notes.txt"))
+        .andExpect(jsonPath("$.files[0].reason").value("UNSUPPORTED_EXTENSION"))
+        .andExpect(jsonPath("$.totalRejected").value(125))
+        .andExpect(jsonPath("$.truncated").value(true));
+    verify(jobs, never()).start(any());
+    verify(jobs, never()).scanAndSave(any());
+  }
+
+  @Test
+  void distinguishesMissingAndUnfinishedRejectionResults() throws Exception {
+    UUID id = UUID.randomUUID();
+    when(jobs.find(id)).thenReturn(Optional.empty());
+    mvc.perform(get("/api/scan/jobs/" + id + "/rejections")).andExpect(status().isNotFound());
+    when(jobs.find(id)).thenReturn(Optional.of(new ScanJob(id, "demo-images",
+        ScanStatus.SAVING, new ScanSummary(0, 0, 0, 1), null)));
+    mvc.perform(get("/api/scan/jobs/" + id + "/rejections")).andExpect(status().isConflict());
+    when(jobs.find(id)).thenReturn(Optional.of(new ScanJob(id, "demo-images",
+        ScanStatus.COMPLETED, new ScanSummary(0, 0, 0, 0), null)));
+    when(jobs.findRejections(id)).thenReturn(Optional.of(List.of()));
+    mvc.perform(get("/api/scan/jobs/" + id + "/rejections"))
+        .andExpect(status().isOk()).andExpect(jsonPath("$.files").isEmpty())
+        .andExpect(jsonPath("$.truncated").value(false));
   }
 
   @Test
