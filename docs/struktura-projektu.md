@@ -28,7 +28,13 @@ screenSorter/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
 │   │   ├── workflow/               kolejność kroków całego skanowania
-│   │   │   └── ScanWorkflow.java   walidacja → znane pliki → skan → zapis
+│   │   │   ├── ScanWorkflow.java   walidacja → znane pliki → skan → zapis
+│   │   │   └── ScanProgressListener.java  powiadomienie o etapie i licznikach
+│   │   ├── jobs/                   opis i obsługa uruchomienia skanu
+│   │   │   ├── ScanStatus.java     enum etapów całego zadania
+│   │   │   ├── ScanJob.java        record: ID, folder, status, liczniki, błąd
+│   │   │   ├── ScanJobManager.java start, aktualizacja i odczyt stanu
+│   │   │   └── ScanAlreadyRunningException.java  drugi skan jest blokowany
 │   │   ├── api/                    HTTP/JSON dla Reacta
 │   │   │   ├── ScanRestController.java
 │   │   │   └── dto/                dane żądania i odpowiedzi HTTP
@@ -49,7 +55,8 @@ screenSorter/
 │   │   ├── hashing/
 │   │   │   └── FileHasher.java     obliczanie SHA-256
 │   │   ├── workers/
-│   │   │   └── ScanWorkersConfiguration.java  pula wątków skanera
+│   │   │   ├── ScanWorkersConfiguration.java  pula wątków skanera
+│   │   │   └── ScanJobRunnerConfiguration.java  osobny wątek całego zadania
 │   │   └── prototype/              starszy ekran Thymeleaf, nie React
 │   └── catalog/                    funkcja: zapisz i odczytaj katalog obrazów
 │       ├── reading/                odczyt danych z katalogu
@@ -81,6 +88,7 @@ odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 | `api` | Przyjmuje żądania HTTP i oddaje JSON. | Handler żądania do backendu. |
 | `dto` | Kształt danych przekazywanych przez API; nie jest tabelą bazy. | Typ obiektu przesyłanego przez `fetch`. |
 | `workflow` | `ScanWorkflow` łączy walidację, odczyt znanych plików, skanowanie i zapis; sam nie czyta każdego pliku. | Funkcja koordynująca kilka kroków. |
+| `jobs` | Opis konkretnego uruchomienia, start w tle, bieżący status i ograniczona historia. | Stan operacji, który UI może odczytać po ID. |
 | `folder` | Sprawdza wybraną ścieżkę i zwraca `AllowedRoot`. Zawiera także błąd nieprawidłowego folderu. | Walidacja danych wejściowych, ale po stronie backendu. |
 | `image` | `ImageScanner` czyta pliki, odrzuca nieprawidłowe i tworzy `ScanResult`. | Logika przetwarzania danych. |
 | `result` | Opisy zaakceptowanych i odrzuconych plików, powody odrzucenia oraz zbiorczy wynik. | Dane zwrócone przez funkcję przetwarzającą. |
@@ -152,6 +160,7 @@ ponieważ porównanie plików nie może być ograniczone stroną oglądaną w UI
 Kliknięcie „Scan folder” w React
   → POST /api/scan
   → scanning/api/ScanRestController
+  → scanning/jobs/ScanJobManager.scanAndSave (ta sama blokada jednego skanu)
   → scanning/workflow/ScanWorkflow
        → scanning/folder/ScanFolderValidator → AllowedRoot
        → catalog/reading/KnownFilesReader → repozytoria → PostgreSQL
@@ -166,6 +175,13 @@ Kliknięcie „Scan folder” w React
   → catalog/writing/CatalogUpdater
   → catalog/database/*Repository → PostgreSQL
   → scanning/api/dto/ScanResultDto → JSON → React + ScanSummary.tsx
+
+Nowe API backendu, jeszcze niepodłączone do Reacta:
+  → POST /api/scan/jobs → ScanJobManager.start → HTTP 202 + ID
+  → osobny scanJobRunner wykonuje ten sam ScanWorkflow w tle
+  → ScanProgressListener aktualizuje ScanJob: PREPARING / SCANNING / SAVING
+  → po udanym zapisie COMPLETED; przy błędzie FAILED
+  → GET /api/scan/jobs/{id} odczytuje niemodyfikowalną migawkę, nie bazę ani dysk
 
 Wejście/odświeżenie katalogu lub kliknięcie „Następna” w React
   → GET /api/catalog/page?folderPath=...&pageNumber=N&pageSize=50
@@ -214,6 +230,7 @@ plików oraz ograniczenia bezpieczeństwa i pamięci są w
 - Nowa reguła rozpoznawania pliku: `scanning/image`.
 - Dane wyniku skanu: `scanning/result`; dane poprzednio znanego pliku: `scanning/knownfiles`.
 - Połączenie etapów skanowania: `scanning/workflow`.
+- Obsługa uruchomienia i stanu zadania: `scanning/jobs`; konfiguracja wykonawcy: `scanning/workers`.
 - Nowe pole odpowiedzi skanowania dla Reacta: `scanning/api/dto` i typ w React.
 - Nowe pole trwale zapisane w katalogu: migracja w `db/migration`, encja w
   `catalog/database`, zapis w `catalog/writing`, odczyt w `catalog/reading`
@@ -223,3 +240,7 @@ plików oraz ograniczenia bezpieczeństwa i pamięci są w
 Nie twórz pustego pakietu „na zapas”. Rozbudowuj istniejącą funkcję dopiero,
 gdy pojawi się konkretna potrzeba. Źródłowe obrazy pozostają tylko do odczytu;
 przyszłe porządkowanie ma tworzyć zatwierdzone kopie, nigdy zmieniać oryginałów.
+
+Dokładne wyjaśnienie nowych plików i zmian istniejących metod:
+[`zadania-skanowania.md`](zadania-skanowania.md). Jedno aktywne zadanie, 20 opisów
+w pamięci, osobny wykonawca workflow; React nadal korzysta ze starego API.

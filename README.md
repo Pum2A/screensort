@@ -15,6 +15,13 @@ Early safe-cataloging slice with a React frontend and persistent PostgreSQL cata
 
 The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image opens a centered modal with an uncropped preview and connected metadata branches, over a dimmed, lightly blurred gallery. Close it with the top-right X, Escape or a backdrop click; keyboard focus returns to the thumbnail. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
 
+The backend also supports background scan jobs: `POST /api/scan/jobs` returns
+HTTP 202 with an ID, and `GET /api/scan/jobs/{id}` reports the stage and counters.
+Only one scan may run at a time, including legacy requests. Up to 20 lightweight
+job snapshots are kept in memory; restarting Java loses those snapshots, not the
+persisted catalog. React still uses the synchronous endpoint; live progress UI
+is the next step. See [the Polish scan-job guide](docs/zadania-skanowania.md).
+
 ## MVP flow
 
 ```text
@@ -47,6 +54,7 @@ Select source folder
 - [Initial architecture](docs/architecture.md)
 - [Mapa obecnego projektu po polsku](docs/struktura-projektu.md)
 - [Galeria i podglądy — co zmieniliśmy i dlaczego](docs/galeria-i-podglady.md)
+- [Zadania skanowania — kod, wątki i API po polsku](docs/zadania-skanowania.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)

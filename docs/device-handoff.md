@@ -81,6 +81,12 @@ main class:   ScreenSortApplication
     React pokazuje okrągłe miniatury i centralny podgląd nad przyciemnionym,
     lekko rozmytym tłem. Gałęzie: Plik, Lokalizacja, Historia, Techniczne. Duży obraz jest
     bez przycinania; dane techniczne można rozwinąć. Font retro VT323 jest lokalny.
+15. Backend ma zadania skanu: `POST /api/scan/jobs` zwraca 202 + ID, a
+    `GET /api/scan/jobs/{id}` aktualny status i `ScanSummary`. Jeden aktywny skan
+    w całej aplikacji; drugi start zwraca 409. Historia do 20 opisów jest tylko
+    w pamięci, bez migracji. `COMPLETED` dopiero po udanym zapisie w bazie.
+    React nadal korzysta z synchronicznego `POST /api/scan`; postęp UI nie jest
+    jeszcze podłączony. Oba stare kontrolery również korzystają z blokady managera.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -93,13 +99,14 @@ d095274923ae2ae713da857aead939d4878c362d9bad9d39a6258c5c9607bd8d
 ```text
 pl.pum.screensort.scanning
 ├── workflow      # walidacja → odczyt znanych plików → skan → zapis
+├── jobs          # ScanJob, ScanStatus, manager i blokada jednego aktywnego skanu
 ├── api           # REST i DTO dla Reacta
 ├── folder        # walidator folderu, AllowedRoot i wyjątek
 ├── hashing       # obliczanie SHA-256
 ├── image         # ImageScanner: przetwarzanie plików
 ├── result        # ScanResult, ScanSummary, AcceptedImage, RejectedFile, RejectionReason
 ├── knownfiles    # KnownFile: poprzednio zapisane metadane
-├── workers       # konfiguracja puli wątków skanera
+├── workers       # dwa workery plików i osobny wykonawca całego zadania
 └── prototype     # starszy ekran Thymeleaf
 
 pl.pum.screensort.catalog
@@ -168,8 +175,13 @@ sprawdzenia jest nadal do zaprojektowania. Przyszłe bezpieczne kopiowanie musi
 ponownie potwierdzić zawartość źródła.
 
 Galeria, bezpieczny odczyt miniatury po ID oraz większy podgląd są podłączone.
-Najbliższy wspólny krok to omówienie tych zmian i wybór kolejnego etapu,
-np. postępu długiego skanu. OCR, propozycje nazw,
+Backend postępu jest zaimplementowany na wyraźną prośbę właściciela.
+Najbliższy wspólny krok to omówienie kodu i podłączenie nowego API do Reacta.
+Przeczytaj [`zadania-skanowania.md`](zadania-skanowania.md): statusy, callbacki,
+oddzielne pule, synchronizacja, limit historii i ręczna obserwacja API.
+Nowy endpoint nie przechowuje pełnych list odrzuconych plików; przed zmianą
+Reacta uzgodnij, jak nadal pokazywać ich powody. Nie wdrażaj tego samowolnie.
+OCR, propozycje nazw,
 przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
 za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
 Javy i nie ma zweryfikowanego instalatora; Docker pozostaje narzędziem developerskim.
@@ -246,6 +258,13 @@ Bez nowego skanu, zmian oryginałów i zapisu rekordów. Backend i Rust bez zmia
 pełnych testów Maven oraz natywnego okna Tauri nie powtarzano w tym etapie.
 Testy frontendu: `cd frontend`, potem `npm.cmd run test`; bez nowego frameworka.
 Lint sprawdza jawnie `src`, `tests` i `vite.config.ts`, nie biblioteki ani buildy.
+
+Weryfikacja backendu z zadaniami skanu 2026-10-07: Maven `clean verify` —
+BUILD SUCCESS, 90 testów, 88 zaliczonych i 2 wcześniejsze pominięcia.
+22 nowe testy obejmują start przed wykonaniem workflow, postęp, błędy,
+blokadę równoczesnych skanów, limit historii, API i rzeczywisty zapis.
+Testcontainers używały tymczasowego PostgreSQL-a 18.6; lokalna baza i źródła
+nie były modyfikowane. React/Rust bez zmian; UI nadal używa starego POST-a.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -344,6 +363,14 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/page.
+Backend ma też POST /api/scan/jobs (202 + ID) i GET /api/scan/jobs/{id}.
+ScanJobManager utrzymuje jeden aktywny skan i do 20 opisów w pamięci;
+ScanJob to record, ScanStatus enum. Osobny scanJobRunner wykonuje workflow;
+ScanProgressListener przenosi status i liczniki, workery nie zmieniają mapy.
+COMPLETED dopiero po udanym zapisie, FAILED zachowuje ostatnie liczniki.
+Stare API i prototyp również używają blokady managera. React nadal korzysta
+ze starego POST-a; next step to omówienie i podłączenie postępu, nie gotowe UI.
+Przeczytaj docs/zadania-skanowania.md. Restart Javy traci opisy zadań, nie katalog.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie otwiera
 centralny podgląd nad rozmytym tłem i połączone gałęzie: Plik, Lokalizacja,

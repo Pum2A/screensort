@@ -597,3 +597,26 @@ Konkurencyjne rozwiązania — font systemowy lub CDN — odpowiednio nie oddawa
 wybranego stylu albo wymagały zewnętrznego połączenia. Nie dodano zależności
 do renderowania drzewa ani testów: korzystamy z istniejącego Reacta,
 TypeScript i test runnera Node. Szczegóły: [`galeria-i-podglady.md`](galeria-i-podglady.md).
+
+## 17. Zadania skanu i obserwowanie postępu
+
+Dodaliśmy obudowę istniejącego workflow, nie drugi algorytm skanowania.
+`ScanStatus` jest enumem etapów, `ScanJob` niemodyfikowalnym opisem konkretnego
+uruchomienia, a `ScanJobManager` uruchamia pracę i podmienia opisy postępu.
+UUID zadania nie jest ID pliku ani folderu z PostgreSQL.
+
+| Decyzja | Dlaczego | Ograniczenie lub alternatywa |
+|---|---|---|
+| Osobny wykonawca całego workflow | Koordynator czeka na workery plików, więc nie powinien zabierać im własnej puli. | Jeden wątek zadania nie zwiększa liczby workerów ani szybkości dekodowania. |
+| Jedno aktywne skanowanie | Chroni przed równoczesnymi zapisami i powielaniem ciężkiej pracy po kilku kliknięciach. | Kolejne żądanie dostaje 409; nie ma kolejki folderów. |
+| Record jako migawka | UI odczytuje spójny status i liczniki, a stara odpowiedź nie zmienia się po wysłaniu. | Przy zmianie powstaje nowy record; mapa wymaga synchronizacji. |
+| Krótkie metody `synchronized` | Sprawdzenie i rezerwacja są atomowe; GET nie czyta modyfikowanej mapy. | Nie blokujemy monitorem całego workflow ani pracy z obrazami. |
+| Do 20 opisów w pamięci | Nie przechowujemy nieograniczonej historii ani drugiej kopii list zdjęć. | Restart usuwa opisy; trwałe zadania i wznawianie wymagają osobnego projektu. |
+| Liczniki po odebraniu wyników | To rzeczywisty postęp, nie liczba dopiero zleconych zadań. | Brak procentu, bo nie wykonujemy dodatkowego liczenia wpisów folderu. |
+| Nowe API obok starego | React i prototyp nadal działają podczas nauki kolejnego etapu. | React jeszcze nie korzysta z żywego postępu. |
+
+Nowe API: `POST /api/scan/jobs` przyjmuje pracę i zwraca 202 z ID;
+`GET /api/scan/jobs/{id}` odczytuje stan. Zakończenie wymaga udanego zapisu
+w PostgreSQL. Odrzucony plik sam w sobie nie powoduje `FAILED` całego zadania.
+Pełna mapa kodu, wyjaśnienie callbacków, wykonawcy i ograniczeń:
+[`zadania-skanowania.md`](zadania-skanowania.md).
