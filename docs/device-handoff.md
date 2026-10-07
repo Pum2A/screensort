@@ -85,8 +85,10 @@ main class:   ScreenSortApplication
     `GET /api/scan/jobs/{id}` aktualny status i `ScanSummary`. Jeden aktywny skan
     w całej aplikacji; drugi start zwraca 409. Historia do 20 opisów jest tylko
     w pamięci, bez migracji. `COMPLETED` dopiero po udanym zapisie w bazie.
-    React nadal korzysta z synchronicznego `POST /api/scan`; postęp UI nie jest
-    jeszcze podłączony. Oba stare kontrolery również korzystają z blokady managera.
+    React korzysta z nowego POST-a i odpytuje status około raz na sekundę.
+    Pokazuje etapy i liczniki, po COMPLETED odświeża katalog, po FAILED pokazuje błąd.
+    GET `/api/scan/jobs/{id}/rejections` zwraca do 100 przykładów, total i truncated.
+    Oba stare kontrolery również korzystają z blokady managera.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
 
@@ -165,7 +167,7 @@ zgodnie z precyzją PostgreSQL-a; `AcceptedImage` zachowuje czas odczytany z dys
 
 Worker zwraca obraz z `ImageScanType` w `FileOutcome.Accepted`. Główny wątek
 odbierający wyniki buduje `ScanSummary(newImages, rescannedImages,
-unchangedImages, rejectedFiles)`. Podsumowanie trafia przez `ScanResultDto`
+unchangedImages, rejectedFiles)`. Podsumowanie trafia przez `ScanJob`
 do Reacta i komponentu `frontend/src/scanning/ScanSummary.tsx`.
 Nie zapisujemy liczników w bazie ani nie tworzymy migracji dla tej zmiany.
 
@@ -175,12 +177,14 @@ sprawdzenia jest nadal do zaprojektowania. Przyszłe bezpieczne kopiowanie musi
 ponownie potwierdzić zawartość źródła.
 
 Galeria, bezpieczny odczyt miniatury po ID oraz większy podgląd są podłączone.
-Backend postępu jest zaimplementowany na wyraźną prośbę właściciela.
-Najbliższy wspólny krok to omówienie kodu i podłączenie nowego API do Reacta.
-Przeczytaj [`zadania-skanowania.md`](zadania-skanowania.md): statusy, callbacki,
-oddzielne pule, synchronizacja, limit historii i ręczna obserwacja API.
-Nowy endpoint nie przechowuje pełnych list odrzuconych plików; przed zmianą
-Reacta uzgodnij, jak nadal pokazywać ich powody. Nie wdrażaj tego samowolnie.
+Postęp backendu i React są połączone na wyraźną prośbę właściciela.
+Najbliższy wspólny krok to omówienie kodu i wybór kolejnej funkcji produktu.
+Przeczytaj [`scanjob-krok-po-kroku.md`](scanjob-krok-po-kroku.md): start managera,
+Objects, callbacki, Consumer, wykonawca, nagłówki HTTP oraz nowe pliki Reacta.
+Nie dodano Python/FastAPI ani zmian w Rust. Odrzucenia są ograniczoną próbką
+do 100 na zadanie, nie pełnym wynikiem w historii. GET-y statusu nie skanują.
+Po utracie połączenia UI pozwala wznowić GET tego samego ID. Restart UI traci
+śledzenie; abort zapytań nie anuluje skanu w Javie.
 OCR, propozycje nazw,
 przegląd i kopiowanie są nadal przed nami. Nie implementuj kolejnej funkcji
 za właściciela bez jego wyraźnej prośby. Tauri nie uruchamia jeszcze automatycznie
@@ -259,12 +263,20 @@ pełnych testów Maven oraz natywnego okna Tauri nie powtarzano w tym etapie.
 Testy frontendu: `cd frontend`, potem `npm.cmd run test`; bez nowego frameworka.
 Lint sprawdza jawnie `src`, `tests` i `vite.config.ts`, nie biblioteki ani buildy.
 
-Weryfikacja backendu z zadaniami skanu 2026-10-07: Maven `clean verify` —
+Poprzednia weryfikacja backendu z zadaniami skanu 2026-10-07: Maven `clean verify` —
 BUILD SUCCESS, 90 testów, 88 zaliczonych i 2 wcześniejsze pominięcia.
 22 nowe testy obejmują start przed wykonaniem workflow, postęp, błędy,
 blokadę równoczesnych skanów, limit historii, API i rzeczywisty zapis.
 Testcontainers używały tymczasowego PostgreSQL-a 18.6; lokalna baza i źródła
-nie były modyfikowane. React/Rust bez zmian; UI nadal używa starego POST-a.
+nie były modyfikowane. W tamtym etapie React/Rust były bez zmian.
+
+Weryfikacja integracji Reacta z zadaniami 2026-10-07: Maven `clean verify` —
+93 testy, 91 zaliczonych i 2 wcześniejsze pominięcia. Frontend: 20/20 testów,
+build i lint poprawne. Ręcznie sprawdzono prawdziwe API i osobny tymczasowy
+PostgreSQL scanqa: pierwszy i ponowny skan demo, powód odrzucenia oraz FAILED
+nieistniejącego folderu bez usunięcia galerii. Nie używano lokalnej bazy właściciela.
+Nowe pliki Reacta są w `frontend/src/scanning`. Rust bez zmian; natywnego
+okna Tauri nie uruchamiano. Pełna instrukcja: `docs/scanjob-krok-po-kroku.md`.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -368,9 +380,13 @@ ScanJobManager utrzymuje jeden aktywny skan i do 20 opisów w pamięci;
 ScanJob to record, ScanStatus enum. Osobny scanJobRunner wykonuje workflow;
 ScanProgressListener przenosi status i liczniki, workery nie zmieniają mapy.
 COMPLETED dopiero po udanym zapisie, FAILED zachowuje ostatnie liczniki.
-Stare API i prototyp również używają blokady managera. React nadal korzysta
-ze starego POST-a; next step to omówienie i podłączenie postępu, nie gotowe UI.
-Przeczytaj docs/zadania-skanowania.md. Restart Javy traci opisy zadań, nie katalog.
+Stare API i prototyp również używają blokady managera. React używa nowego API
+zadań: jeden POST, potem sekwencyjne GET-y tego samego ID. Pokazuje etapy
+i żywe liczniki, po COMPLETED odświeża katalog i pobiera do 100 przykładów
+odrzuconych przez GET /api/scan/jobs/{id}/rejections. FAILED pokazuje błąd.
+Przeczytaj docs/scanjob-krok-po-kroku.md i docs/zadania-skanowania.md.
+Restart Javy traci opisy zadań, nie katalog; restart UI traci bieżące śledzenie.
+Nie dodaliśmy Python/FastAPI ani zmian w Rust. Kolejna funkcja wymaga omówienia.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie otwiera
 centralny podgląd nad rozmytym tłem i połączone gałęzie: Plik, Lokalizacja,

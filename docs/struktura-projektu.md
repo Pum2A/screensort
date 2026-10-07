@@ -12,7 +12,13 @@ Ostatnia aktualizacja: 2026-10-07.
 screenSorter/
 ├── frontend/src/                 React: ekran, stan i wywołania /api
 │   ├── App.tsx                   skan, wynik i stronicowany katalog
-│   ├── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
+│   ├── scanning/                 zadanie skanu, polling, etapy i liczniki
+│   │   ├── types.ts             kształt JSON zadań i podsumowania
+│   │   ├── api.ts               POST startu oraz GET statusu/powodów
+│   │   ├── polling.ts           sekwencyjne odpytywanie tego samego ID
+│   │   ├── useScanJob.ts         stan Reacta i obsługa błędów/cleanup
+│   │   ├── ScanProgress.tsx     etapy i liczba sprawdzonych wpisów
+│   │   └── ScanSummary.tsx      cztery liczniki zadania
 │   ├── catalog/                  kółka, drzewko szczegółów, typy i API
 │   │   ├── CatalogGallery.tsx    wybór zdjęcia w siatce kółek
 │   │   ├── ImageDetailsDialog.tsx centralny podgląd, tło, X i klawiatura
@@ -23,7 +29,7 @@ screenSorter/
 │   ├── assets/fonts/             lokalny font retro VT323
 │   └── ui/Icon.tsx               wspólne ikony SVG
 ├── frontend/public/VT323-OFL.txt  licencja fontu dołączana do dystrybucji
-├── frontend/tests/               testy obliczeń układu, nie skanowania
+├── frontend/tests/               testy układu, kontraktu API i pollingu
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
@@ -140,8 +146,8 @@ listy i zwiększa liczniki. Workery nie modyfikują wspólnego podsumowania.
 pilnuje, żeby suma trzech liczników obrazów odpowiadała liście `accepted`,
 a `rejectedFiles` — liście `rejected`.
 
-`ScanResultDto` przekazuje `summary` przez JSON. React trzyma je wewnątrz
-istniejącego `result`, a komponent `scanning/ScanSummary.tsx` tylko je wyświetla.
+`ScanResultDto` nadal obsługuje stare API. React otrzymuje `summary` w `ScanJob`,
+a komponent `scanning/ScanSummary.tsx` tylko je wyświetla.
 Nie ma czterech dodatkowych stanów Reacta ani nowych kolumn w bazie.
 
 `CatalogPageDto` zawiera opisy plików jednej strony oraz jej numer, rozmiar,
@@ -157,7 +163,7 @@ ponieważ porównanie plików nie może być ograniczone stroną oglądaną w UI
 ## Jak płyną dane
 
 ```text
-Kliknięcie „Scan folder” w React
+Stare synchroniczne API (React już go nie używa):
   → POST /api/scan
   → scanning/api/ScanRestController
   → scanning/jobs/ScanJobManager.scanAndSave (ta sama blokada jednego skanu)
@@ -174,14 +180,17 @@ Kliknięcie „Scan folder” w React
        → scanning/result/ScanResult (accepted + rejected + ScanSummary)
   → catalog/writing/CatalogUpdater
   → catalog/database/*Repository → PostgreSQL
-  → scanning/api/dto/ScanResultDto → JSON → React + ScanSummary.tsx
+  → scanning/api/dto/ScanResultDto → JSON → dawny klient
 
-Nowe API backendu, jeszcze niepodłączone do Reacta:
+Aktualny start w React:
   → POST /api/scan/jobs → ScanJobManager.start → HTTP 202 + ID
   → osobny scanJobRunner wykonuje ten sam ScanWorkflow w tle
   → ScanProgressListener aktualizuje ScanJob: PREPARING / SCANNING / SAVING
   → po udanym zapisie COMPLETED; przy błędzie FAILED
   → GET /api/scan/jobs/{id} odczytuje niemodyfikowalną migawkę, nie bazę ani dysk
+  → React powtarza ten GET około raz na sekundę i pokazuje etap + liczniki
+  → COMPLETED: GET katalogu i GET /api/scan/jobs/{id}/rejections (do 100 przykładów)
+  → FAILED: błąd; nie udajemy udanego zapisu ani nie uruchamiamy kolejnego skanu
 
 Wejście/odświeżenie katalogu lub kliknięcie „Następna” w React
   → GET /api/catalog/page?folderPath=...&pageNumber=N&pageSize=50
@@ -242,5 +251,6 @@ gdy pojawi się konkretna potrzeba. Źródłowe obrazy pozostają tylko do odczy
 przyszłe porządkowanie ma tworzyć zatwierdzone kopie, nigdy zmieniać oryginałów.
 
 Dokładne wyjaśnienie nowych plików i zmian istniejących metod:
-[`zadania-skanowania.md`](zadania-skanowania.md). Jedno aktywne zadanie, 20 opisów
-w pamięci, osobny wykonawca workflow; React nadal korzysta ze starego API.
+[`scanjob-krok-po-kroku.md`](scanjob-krok-po-kroku.md). Jedno aktywne zadanie,
+20 opisów i do 100 przykładów odrzuceń na zadanie w pamięci, osobny wykonawca
+workflow; React korzysta z nowego API zadań.

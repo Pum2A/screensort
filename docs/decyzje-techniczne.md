@@ -537,7 +537,8 @@ nie nową tabelą ani nową funkcją paginacji.
 
 Ta zmiana nie ogranicza `POST /api/scan` ani mapy znanych plików. Skan nadal
 obejmuje cały dozwolony folder, a listy wyników skanu nadal trafiają w całości
-do Reacta. Ograniczamy tylko widok zapisanych rekordów. Nie potrzeba migracji,
+do starego klienta; obecny React używa migawek ScanJob i ograniczonej próbki
+odrzuceń opisanej niżej. Stronicowanie ogranicza tylko widok zapisanych rekordów. Nie potrzeba migracji,
 ponieważ nie zmieniamy tabel. Stary endpoint listy pozostaje przejściowo dostępny;
 React korzysta już wyłącznie z endpointu strony.
 
@@ -613,10 +614,15 @@ UUID zadania nie jest ID pliku ani folderu z PostgreSQL.
 | Krótkie metody `synchronized` | Sprawdzenie i rezerwacja są atomowe; GET nie czyta modyfikowanej mapy. | Nie blokujemy monitorem całego workflow ani pracy z obrazami. |
 | Do 20 opisów w pamięci | Nie przechowujemy nieograniczonej historii ani drugiej kopii list zdjęć. | Restart usuwa opisy; trwałe zadania i wznawianie wymagają osobnego projektu. |
 | Liczniki po odebraniu wyników | To rzeczywisty postęp, nie liczba dopiero zleconych zadań. | Brak procentu, bo nie wykonujemy dodatkowego liczenia wpisów folderu. |
-| Nowe API obok starego | React i prototyp nadal działają podczas nauki kolejnego etapu. | React jeszcze nie korzysta z żywego postępu. |
+| Nowe API obok starego | React używa teraz zadań, stary prototyp nadal działa synchronicznie. | Oba wejścia korzystają z tej samej blokady jednego skanu. |
+| Sekwencyjny polling około raz na sekundę | Prosty obserwowalny postęp, bez nakładających się GET-ów i infrastruktury SSE/WebSocket. | Krótki skan może zakończyć się między odczytami; status nie pokazuje każdego pośredniego licznika. |
+| Do 100 przykładów odrzuceń na zadanie | Zachowujemy wyjaśnienia w UI bez przechowywania pełnego ScanResult dla 20 zadań. | UI jawnie pokazuje skrócenie; licznik obejmuje wszystkie odrzucone. |
 
 Nowe API: `POST /api/scan/jobs` przyjmuje pracę i zwraca 202 z ID;
 `GET /api/scan/jobs/{id}` odczytuje stan. Zakończenie wymaga udanego zapisu
 w PostgreSQL. Odrzucony plik sam w sobie nie powoduje `FAILED` całego zadania.
 Pełna mapa kodu, wyjaśnienie callbacków, wykonawcy i ograniczeń:
 [`zadania-skanowania.md`](zadania-skanowania.md).
+
+Omówienie rzeczywistego kodu z rozróżnieniem poprzednich i nowych zmian:
+[`scanjob-krok-po-kroku.md`](scanjob-krok-po-kroku.md).
