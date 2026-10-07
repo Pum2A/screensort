@@ -9,8 +9,10 @@ import pl.pum.screensort.catalog.writing.CatalogUpdater;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 import pl.pum.screensort.scanning.image.ImageScanner;
+import pl.pum.screensort.scanning.jobs.ScanStatus;
 import pl.pum.screensort.scanning.knownfiles.KnownFile;
 import pl.pum.screensort.scanning.result.ScanResult;
+import pl.pum.screensort.scanning.result.ScanSummary;
 
 @Service
 public class ScanWorkflow {
@@ -64,9 +66,21 @@ public class ScanWorkflow {
   // PÓŹNIEJ: Dodaj osobne pomiary walidacji, odczytu mapy, skanowania i zapisu.
   // Właściciel usunął wcześniejsze zbiorcze printy czasu z tego workflow.
   public ScanResult scanAndSave(Path folder) throws IOException {
+    return scanAndSave(folder, ScanProgressListener.NONE);
+  }
+
+  public ScanResult scanAndSave(Path folder, ScanProgressListener progress) throws IOException {
+    ScanSummary emptySummary = new ScanSummary(0, 0, 0, 0);
+    progress.onProgress(ScanStatus.PREPARING, emptySummary);
     AllowedRoot allowedRoot = folderValidator.validate(folder);
     Map<String, KnownFile> knowFilesByPath = knownFilesReader.read(allowedRoot);
-    ScanResult result = imageScanner.scan(allowedRoot, knowFilesByPath);
+    progress.onProgress(ScanStatus.SCANNING, emptySummary);
+    ScanResult result =
+        imageScanner.scan(
+            allowedRoot,
+            knowFilesByPath,
+            summary -> progress.onProgress(ScanStatus.SCANNING, summary));
+    progress.onProgress(ScanStatus.SAVING, result.summary());
     catalogUpdater.update(result.allowedRoot(), result);
     return result;
   }

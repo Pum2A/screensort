@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,6 +41,14 @@ public class ImageScanner {
   }
 
   public ScanResult scan(AllowedRoot allowedRoot, Map<String, KnownFile> knownFilesByPath)
+      throws IOException {
+    return scan(allowedRoot, knownFilesByPath, summary -> {});
+  }
+
+  public ScanResult scan(
+      AllowedRoot allowedRoot,
+      Map<String, KnownFile> knownFilesByPath,
+      Consumer<ScanSummary> onProgress)
       throws IOException {
     long scanStartedAt = System.nanoTime();
     List<AcceptedImage> accepted = new ArrayList<>();
@@ -99,6 +108,9 @@ public class ImageScanner {
           rejected.add(file);
           System.out.println("Rejected: " + file.reason());
         }
+        // Tylko wątek odbierający gotowe wyniki publikuje postęp, nie workery plików.
+        onProgress.accept(
+            new ScanSummary(newImages, rescannedImages, unchangedImages, rejected.size()));
       }
     } catch (InterruptedException exception) {
       Thread.currentThread().interrupt();

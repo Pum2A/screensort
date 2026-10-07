@@ -15,6 +15,8 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -171,6 +173,58 @@ class ImageScannerTest {
       assertEquals(new ScanSummary(0, 0, 0, 0), result.summary());
       assertTrue(result.accepted().isEmpty());
       assertTrue(result.rejected().isEmpty());
+    }
+  }
+
+  @Test
+  void publishesCountersOnlyForCompletedEntriesOnTheCoordinatorThread(@TempDir Path folder)
+      throws Exception {
+    Path knownPath = folder.resolve("known.png");
+    writeImage(knownPath, 2);
+    writeImage(folder.resolve("new.png"), 3);
+    Files.writeString(folder.resolve("notes.txt"), "Not an image.");
+    KnownFile known =
+        new KnownFile(
+            "known.png",
+            Files.size(knownPath),
+            Files.getLastModifiedTime(knownPath).toInstant().truncatedTo(ChronoUnit.MICROS),
+            "a".repeat(64));
+    List<ScanSummary> snapshots = new ArrayList<>();
+    List<Thread> callbackThreads = new ArrayList<>();
+    Thread coordinator = Thread.currentThread();
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
+      ScanResult result =
+          scanner.scan(
+              new ScanFolderValidator().validate(folder),
+              Map.of("known.png", known),
+              summary -> {
+                snapshots.add(summary);
+                callbackThreads.add(Thread.currentThread());
+              });
+
+      assertEquals(3, snapshots.size());
+      for (int index = 0; index < snapshots.size(); index++) {
+        ScanSummary snapshot = snapshots.get(index);
+        int processed =
+            snapshot.newImages() + snapshot.rescannedImages()
+                + snapshot.unchangedImages() + snapshot.rejectedFiles();
+        assertEquals(index + 1, processed);
+        assertEquals(coordinator, callbackThreads.get(index));
+      }
+      assertEquals(new ScanSummary(1, 0, 1, 1), snapshots.getLast());
+      assertEquals(result.summary(), snapshots.getLast());
+    }
+  }
+
+  @Test
+  void emptyFolderDoesNotInventACompletedEntry(@TempDir Path folder) throws Exception {
+    List<ScanSummary> snapshots = new ArrayList<>();
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
+      ScanResult result = scanner.scan(new AllowedRoot(folder), Map.of(), snapshots::add);
+      assertTrue(snapshots.isEmpty());
+      assertEquals(new ScanSummary(0, 0, 0, 0), result.summary());
     }
   }
 
