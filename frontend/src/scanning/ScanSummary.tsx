@@ -1,15 +1,11 @@
-export type ScanSummaryData = {
-    newImages: number
-    rescannedImages: number
-    unchangedImages: number
-    rejectedFiles: number
-}
+import type {ScanSummaryData} from './types'
 
 type ScanSummaryProps = {
     summary: ScanSummaryData
+    completed?: boolean
 }
 
-export function ScanSummary({summary}: ScanSummaryProps) {
+export function ScanSummary({summary, completed = true}: ScanSummaryProps) {
     const counters = [
         {
             label: 'Nowe',
@@ -35,7 +31,7 @@ export function ScanSummary({summary}: ScanSummaryProps) {
 
     return (
         <section className="scan-summary" aria-labelledby="scan-summary-title">
-            <h2 id="scan-summary-title">Ostatni skan zakończony</h2>
+            <h2 id="scan-summary-title">{completed ? 'Ostatni skan zakończony' : 'Liczniki tego zadania'}</h2>
             <dl className="scan-summary-grid">
                 {counters.map(({label, count, description}) => (
                     <div className="scan-summary-card" key={label}>

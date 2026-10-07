@@ -24,6 +24,17 @@ h1 { font-size: 23px; font-weight: 400; margin: 0; }
 button:disabled { opacity: .48; }
 .error-message { color: #9c3525; background: #f9e7df; padding: 12px; border-left: 3px solid #9c3525; overflow-wrap: anywhere; }
 .status-message { color: var(--accent); }
+.scan-progress { margin-top: 20px; padding: 16px; border: 1px solid var(--border); background: var(--surface); }
+.scan-progress-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 20px; color: var(--accent); }
+.scan-stages { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; list-style: none; padding: 0; margin: 16px 0; }
+.scan-stages li { display: flex; align-items: center; gap: 8px; color: var(--muted); border-bottom: 2px solid var(--border); padding-bottom: 8px; font-size: 18px; }
+.scan-stages li > span { border: 1px solid currentColor; padding: 0 5px; }
+.scan-stages li[data-current="true"], .scan-stages li[data-done="true"] { color: var(--accent); border-color: var(--accent); }
+.scan-stages li[data-current="true"] > span { color: white; background: var(--accent); }
+.scan-progress p, .scan-progress details { color: var(--muted); font-size: 17px; }
+.scan-progress summary { cursor: pointer; }
+.scan-progress code { overflow-wrap: anywhere; font-size: 12px; }
+@media (max-width: 520px) { .scan-stages { grid-template-columns: repeat(2, 1fr); } }
 .scan-summary { margin-top: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px; }
 .scan-summary-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .scan-summary h2 { margin: 0; font-size: 19px; font-weight: 400; color: var(--muted); }
