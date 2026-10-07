@@ -13,7 +13,7 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image expands a larger uncropped preview and connected metadata branches below its row. Clicking again collapses the tree. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React can start a scan through `POST /api/scan`, show counters for new, rescanned, unchanged and rejected files, and display saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image opens a centered modal with an uncropped preview and connected metadata branches, over a dimmed, lightly blurred gallery. Close it with the top-right X, Escape or a backdrop click; keyboard focus returns to the thumbnail. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
 
 ## MVP flow
 

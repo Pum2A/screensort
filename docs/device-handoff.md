@@ -78,8 +78,8 @@ main class:   ScreenSortApplication
 14. Miniatury i większy podgląd są pobierane po ID rekordu przez
     `GET /api/catalog/files/{id}/thumbnail` oraz `/preview`. Źródła są tylko
     odczytywane. Kontrolujemy ścieżki i limity; PNG powstają w pamięci.
-    React pokazuje okrągłe miniatury i jedno drzewko szczegółów pod wybranym
-    rzędem. Gałęzie: Plik, Lokalizacja, Historia, Techniczne. Duży obraz jest
+    React pokazuje okrągłe miniatury i centralny podgląd nad przyciemnionym,
+    lekko rozmytym tłem. Gałęzie: Plik, Lokalizacja, Historia, Techniczne. Duży obraz jest
     bez przycinania; dane techniczne można rozwinąć. Font retro VT323 jest lokalny.
 
 Hash pliku `demo-images/xzzz1.png`, niezależnie potwierdzony przez PowerShell:
@@ -208,20 +208,21 @@ Backend domyślnie nasłuchuje na `127.0.0.1`. To lokalny etap developerski,
 nie gotowy model autoryzacji dla publicznej dystrybucji.
 
 Frontend jest rozdzielony na `catalog/types.ts`, `api.ts`, `format.ts`,
-`CatalogGallery`, `CatalogImage` oraz `ImageDetailsTree`. `selectedId` wybiera
+`CatalogGallery`, `CatalogImage`, `ImageDetailsDialog` oraz `ImageDetailsTree`. `selectedId` wybiera
 opis z bieżącej strony; nie kopiujemy całego DTO do nowego stanu. Wybranie
 folderu otwiera zapisany katalog bez skanu, a po sukcesie skanu wracamy do
 strony 0. Rust i natywny picker nie zostały zmienione. Tymczasowe serwery QA
 nie zastępują działającej aplikacji właściciela: po aktualizacji należy
 zrestartować Springa, aby nowe endpointy były zarejestrowane.
 
-Aktualny kierunek UI został wybrany przez właściciela: „Gałęzie pod miniaturą”,
-okrągłe miniatury, retro PC i cienkie połączenia, zamiast bocznego panelu.
-Ponowne kliknięcie zwija drzewko; Escape i krzyżyk przywracają fokus miniaturze.
-Native `<details>` rozdzielają metadane na cztery gałęzie. `useGalleryColumns`
-i `galleryLayout.selectedRowEnd` umieszczają drzewko po ostatniej miniaturze
-rzędu; `useTreeConnections` przez ResizeObserver dopasowuje SVG po zmianie
-rozmiaru okna albo rozwinięciu gałęzi. Nie dodano biblioteki grafów ani animacji.
+Aktualny kierunek UI: okrągłe miniatury, retro PC i cienkie połączenia.
+Na kolejną prośbę właściciela gałęzie przeniesiono spod rzędu do centralnego
+podglądu. `ImageDetailsDialog` używa natywnego dialog.showModal(), blokuje
+tło i przewijanie galerii. X, Escape i kliknięcie poza oknem przywracają fokus
+miniaturze. Tab / Shift+Tab zawijają się wewnątrz; nagłówek z X nie przewija się.
+`<details>` rozdzielają metadane na cztery gałęzie. Usunięto `useGalleryColumns`
+i `selectedRowEnd`; `useTreeConnections` przez ResizeObserver dopasowuje SVG
+do podglądu i gałęzi. Nie dodano biblioteki modali, grafów ani animacji.
 Font jest w `frontend/src/assets/fonts`; licencja w `frontend/public/VT323-OFL.txt`
 trafia także do produkcyjnego `dist`. Nie ma zapytań do zewnętrznych fontów.
 
@@ -238,11 +239,13 @@ przeglądarki bez błędów w sprawdzonym przepływie. Tymczasowe serwery QA
 zatrzymano; procesów właściciela na portach 8080 i 5173 nie zatrzymywano.
 
 Weryfikacja UI 2026-10-07: frontend build, lint i 6/6 testów układu poprawne.
-Ręcznie sprawdzono istniejące dwa obrazy demo, wybór/zamknięcie, Enter,
-Escape z fokusem, dane techniczne i szerokości 320/360/1024/1280 px.
+Ręcznie sprawdzono istniejące dwa obrazy demo, Enter, X / Escape / kliknięcie
+tła z powrotem fokusu, Tab / Shift+Tab, przeciągnięcie z obrazu na tło,
+dane techniczne, przewijanie oraz szerokości 320/360/1024/1280 px i wysokość 500 px.
 Bez nowego skanu, zmian oryginałów i zapisu rekordów. Backend i Rust bez zmian;
 pełnych testów Maven oraz natywnego okna Tauri nie powtarzano w tym etapie.
 Testy frontendu: `cd frontend`, potem `npm.cmd run test`; bez nowego frameworka.
+Lint sprawdza jawnie `src`, `tests` i `vite.config.ts`, nie biblioteki ani buildy.
 
 Wykrywanie tej samej zawartości pod różnymi ścieżkami
 na podstawie `sha256` jest nadal osobnym, przyszłym zadaniem.
@@ -342,10 +345,12 @@ zacommituj i wypchnij, ale nie dołączaj niepowiązanych lokalnych zmian.
 Aktualnie działa walidacja katalogu, accepted/rejected ScanResult, SHA-256,
 POST /api/scan, zapis/odczyt katalogu PostgreSQL i GET /api/catalog/page.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
-po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie rozwija
-większy podgląd i połączone gałęzie pod wybranym rzędem: Plik, Lokalizacja,
-Historia, Techniczne. Ponowne kliknięcie zwija drzewko; Escape i krzyżyk
-przywracają fokus. Lokalny VT323 daje styl retro PC. API liczy strony od 0.
+po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie otwiera
+centralny podgląd nad rozmytym tłem i połączone gałęzie: Plik, Lokalizacja,
+Historia, Techniczne. X, Escape i kliknięcie tła zamykają go i przywracają fokus.
+Natywny dialog blokuje tło; długie dane przewijają się wewnątrz. Lokalny VT323
+daje styl retro PC. API liczy strony od 0. ImageDetailsDialog obsługuje okno,
+ImageDetailsTree pokazuje dane. Usunięto stare pozycjonowanie pod rzędem miniatur.
 Podglądy są odczytywane po ID przez /api/catalog/files/{id}/thumbnail i /preview.
 catalog/preview sprawdza źródło i generuje ograniczone PNG w pamięci, nie zapisuje
 ich do źródła ani bazy. Backend domyślnie nasłuchuje tylko na 127.0.0.1.

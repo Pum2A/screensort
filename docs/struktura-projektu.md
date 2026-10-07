@@ -14,11 +14,11 @@ screenSorter/
 │   ├── App.tsx                   skan, wynik i stronicowany katalog
 │   ├── scanning/ScanSummary.tsx   cztery liczniki ostatniego skanu
 │   ├── catalog/                  kółka, drzewko szczegółów, typy i API
-│   │   ├── CatalogGallery.tsx    wybór zdjęcia i drzewko pod jego rzędem
+│   │   ├── CatalogGallery.tsx    wybór zdjęcia w siatce kółek
+│   │   ├── ImageDetailsDialog.tsx centralny podgląd, tło, X i klawiatura
 │   │   ├── ImageDetailsTree.tsx  podgląd + Plik / Lokalizacja / Historia / Techniczne
 │   │   ├── CatalogImage.tsx      ładowanie i błąd obrazu
-│   │   ├── galleryLayout.ts      obliczenia rzędu i linii połączeń
-│   │   ├── useGalleryColumns.ts  rzeczywista liczba kolumn CSS
+│   │   ├── galleryLayout.ts      obliczenia linii i kliknięcia poza oknem
 │   │   └── useTreeConnections.ts dopasowanie linii do wymiarów węzłów
 │   ├── assets/fonts/             lokalny font retro VT323
 │   └── ui/Icon.tsx               wspólne ikony SVG
@@ -190,11 +190,12 @@ Widoczny kafelek / wybór większego podglądu
 
 Wybór zdjęcia w CatalogGallery (bez nowego skanu)
   → selectedId + bieżąca strona DTO
-  → useGalleryColumns + selectedRowEnd
-  → jedno ImageDetailsTree po końcu wybranego rzędu
+  → ImageDetailsDialog → natywny dialog.showModal() → centralny podgląd i tło
+  → jedno ImageDetailsTree wewnątrz okna; galeria zostaje na miejscu
   → useTreeConnections mierzy podgląd i gałęzie
   → treeConnections wylicza dekoracyjne linie SVG
   → rozwinięcie gałęzi / zmiana szerokości: dopasowanie geometrii, nie zapytanie do bazy
+  → X / Escape / kliknięcie tła: zamknięcie i powrót fokusu do miniatury
 ```
 
 Ważne: `ScanResult` to **wynik bieżącego odczytu dysku**. `FileRecordEntity` to

@@ -4,21 +4,24 @@ Stan: 2026-10-07. Ten opis dotyczy działającego kodu, nie przyszłego OCR.
 
 ## Co widać w aplikacji
 
-Katalog jest siatką okrągłych miniatur z nazwą, formatem i rozmiarem. Wybrany
-przez właściciela kierunek to „Gałęzie pod miniaturą”: kliknięcie rozwija jedno
-drzewko pod całym rzędem wybranego zdjęcia. Lewa część pokazuje większy obraz,
-a połączone liniami gałęzie opisują „Plik”, „Lokalizację”, „Historię” i „Techniczne”.
-Na wąskim ekranie te same gałęzie układają się pionowo.
+Katalog jest siatką okrągłych miniatur z nazwą, formatem i rozmiarem. Zachowujemy
+wybrany styl retro i gałęzie, ale zgodnie z kolejną prośbą właściciela kliknięcie
+otwiera podgląd na środku ekranu. Galeria zostaje pod przyciemnionym i lekko
+rozmytym tłem. Lewa część okna pokazuje większy obraz, a połączone liniami
+gałęzie opisują „Plik”, „Lokalizację”, „Historię” i „Techniczne”. Na wąskim
+ekranie układają się pionowo i przewijają wewnątrz okna.
 
 Kółko przycina tylko miniaturę. Duży podgląd używa `object-fit: contain`, więc
 nie ucina brzegów zdjęcia. SHA-256, ID, dokładny rozmiar i daty UTC nadal są
 dostępne w gałęzi „Techniczne”. Żadne pole DTO nie zostało usunięte.
 
-Drugie kliknięcie tej samej miniatury zwija drzewko. Wybór innej zmienia obraz
-i dane; nie otwiera drugiego panelu. Każdą gałąź można osobno zwinąć. Enter lub
-spacja aktywują przyciski i nagłówki, a Escape i krzyżyk zamykają szczegóły
-z powrotem fokusu na miniaturę. Nie przewijamy ekranu ani nie zabieramy fokusu
-automatycznie po wyborze. To nadal pojedynczy podgląd, nie wybór plików do kopii.
+Krzyżyk w prawym górnym rogu, Escape lub kliknięcie tła zamykają podgląd.
+Kliknięcie danych albo przeciągnięcie z obrazu na tło nie zamyka go przypadkowo.
+Galeria jest nieaktywna podczas podglądu; nie można wtedy uruchomić skanu.
+Fokus zaczyna na X, Tab / Shift+Tab poruszają się po oknie, a zamknięcie oddaje
+fokus miniaturze bez dodatkowego przewijania. Nagłówek z X nie przewija się
+razem z danymi. Każdą gałąź można osobno zwinąć. To nadal pojedynczy podgląd,
+nie wybór plików do kopii.
 
 Wygląd jest inspirowany eksploratorem retro PC: kremowe tło, niebieski akcent,
 cienkie linie i lokalny font VT323. Font wraz z licencją jest w repozytorium,
@@ -46,7 +49,8 @@ ruchu wyłącza animacje. API, skaner, baza i Rust nie zmieniły się w tym etap
 3. Kliknięcie kafelka
    CatalogGallery ustawia selectedId
    → znajduje opis w już pobranej stronie
-   → ImageDetailsTree pokazuje opis pod wybranym rzędem
+   → ImageDetailsDialog otwiera natywny dialog na środku ekranu
+   → ImageDetailsTree pokazuje obraz i połączone gałęzie wewnątrz dialogu
    → CatalogImage pobiera /preview dla tego ID
    Wynik: jeden większy podgląd, bez ponownego skanu i bez zapisu do bazy.
 ```
@@ -68,11 +72,11 @@ nadal zapamiętujemy po udanym skanie, nie po samym otwarciu podglądu.
 | `frontend/src/App.tsx` | Folder, skan, pobranie strony i nawigacja | Koordynuje ekran; nie rysuje wszystkich szczegółów kafelka |
 | `frontend/src/catalog/types.ts` | Typy `CatalogFile` i `CatalogPage` | Jeden kształt danych zamiast kopii typów w komponentach |
 | `frontend/src/catalog/api.ts` | Pobranie strony i adres podglądu po ID | Żądania katalogu w jednym miejscu |
-| `frontend/src/catalog/CatalogGallery.tsx` | Siatka, `selectedId`, zwijanie i pozycja drzewka | Logika wyboru obrazu należy do galerii |
+| `frontend/src/catalog/CatalogGallery.tsx` | Siatka, `selectedId` i przycisk otwierający podgląd | Logika wyboru obrazu należy do galerii |
+| `frontend/src/catalog/ImageDetailsDialog.tsx` | Centralne okno, X, Escape, tło i fokus | Oddziela obsługę okna od metadanych i SVG |
 | `frontend/src/catalog/CatalogImage.tsx` | Ładowanie obrazu, błąd, próba ponownego odczytu dużego podglądu | Wspólna obsługa obrazów w kółku i podglądzie |
 | `frontend/src/catalog/ImageDetailsTree.tsx` | Większy obraz i cztery rozwijane gałęzie | Zastępuje dawny boczny `ImageDetailsPanel` |
-| `frontend/src/catalog/galleryLayout.ts` | Koniec wybranego rzędu i współrzędne linii | Czyste obliczenia, możliwe do testowania bez DOM |
-| `frontend/src/catalog/useGalleryColumns.ts` | Liczba kolumn wyliczonych przez CSS | Nie zgadujemy szerokości okna w kilku komponentach |
+| `frontend/src/catalog/galleryLayout.ts` | Współrzędne linii i rozpoznanie kliknięcia poza oknem | Czyste obliczenia, możliwe do testowania bez DOM |
 | `frontend/src/catalog/useTreeConnections.ts` | Pomiar węzłów i dopasowanie połączeń SVG | Geometria rysunku jest oddzielona od danych pliku |
 | `frontend/src/catalog/format.ts` | Czytelny rozmiar, data i nazwa folderu | Wspólne formatowanie, nie zmieniamy danych zapisanych w bazie |
 | `frontend/src/ui/Icon.tsx` | Małe ikony SVG | Bez nowego pakietu i bez zasobów z internetu |
@@ -101,27 +105,45 @@ adres: inny obraz zaczyna z nowym stanem ładowania, zamiast odziedziczyć błą
 poprzedniego. React opisuje to w
 [resetowaniu stanu przez key](https://react.dev/learn/preserving-and-resetting-state#resetting-state-with-a-key).
 
-## Jak drzewko znajduje swoje miejsce
+## Jak centralny podgląd otwiera się i zamyka
 
 ```text
-selectedId → indeks zdjęcia w files
-CSS grid → rzeczywista liczba kolumn
-selectedRowEnd → indeks ostatniej miniatury w wybranym rzędzie
-→ wstawienie jednego ImageDetailsTree po tej miniaturze, na pełną szerokość
+kliknięcie kółka → selectedId → opis zdjęcia z bieżącej strony
+→ montaż ImageDetailsDialog → useEffect → dialog.showModal()
+→ centralne okno + ::backdrop + nieaktywna galeria
+
+X / Escape / kliknięcie tła → selectedId = null → odmontowanie
+→ cleanup: dialog.close(), odblokowanie przewijania, powrót fokusu
 
 ResizeObserver → zmiana szerokości / rozwinięcie gałęzi
 → pomiar prostokątów podglądu i gałęzi
 → treeConnections → współrzędne SVG, bez kolejnego fetch i bez skanu
 ```
 
-Przykład: przy 4 kolumnach wybór zdjęcia o indeksie 4 rozwija drzewko po
-indeksie 7. Przy 2 kolumnach ten sam wybór rozwija je po indeksie 5. Ostatni
-niepełny rząd jest ograniczony długością listy. Komponenty miniatur mają
-stabilne klucze ID; przesunięcie szczegółów nie tworzy nowego zestawu kafelków.
+`<dialog>` to element przeglądarki, nie nowa biblioteka Reacta. `showModal()`
+umieszcza go nad stroną i blokuje interakcję z tłem. Sam atrybut `open` tego
+nie zapewnia. React przez `useEffect` otwiera okno po montażu, a cleanup zamyka
+je po odmontowaniu. Ten sam układ setup/cleanup działa w developerskim
+StrictMode. Wzorzec sprawdzono przez Context7 w
+[oficjalnym przykładzie Reacta](https://react.dev/reference/react/useEffect#controlling-a-modal-dialog)
+oraz [dokumentacji dialogu](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog).
 
-Hook to funkcja Reacta organizująca stan lub efekt komponentu. Tutaj hooki
-przechowują jedynie układ, nie drugą kopię danych z bazy. `useLayoutEffect`
-mierzy DOM przed pokazaniem klatki; używamy go tylko do małej galerii,
+`onCancel` obsługuje Escape i czyści wybór w React — nie zostawiamy zamkniętego
+dialogu przy nadal zaznaczonym ID. Kliknięcie tła rozpoznajemy po współrzędnych
+poza prostokątem dialogu i wymagamy, aby naciśnięcie też zaczęło się na zewnątrz.
+To chroni przed zamykaniem podczas przeciągania z obrazu. Krótka obsługa Tab
+zawija pierwszy i ostatni widoczny przycisk/nagłówek; normalną nawigację pomiędzy
+nimi zostawiamy przeglądarce. Nie dodajemy własnego `tabindex` do dialogu.
+
+`useGalleryColumns` i `selectedRowEnd` zostały usunięte: nie szukamy już rzędu,
+pod którym można wstawić szczegóły. Miniatury nie przesuwają się przy wyborze.
+SVG łączy tylko podgląd z czterema gałęziami, nie próbuje prowadzić linii
+do zasłoniętej miniatury. CSS centruje dialog; Java, baza i Rust nie uczestniczą
+w pozycjonowaniu okna.
+
+Hook to funkcja Reacta organizująca stan lub efekt komponentu. `useTreeConnections`
+przechowuje jedynie układ, nie drugą kopię danych z bazy. `useLayoutEffect`
+mierzy DOM; używamy go tylko do podglądu i czterech gałęzi,
 nie do pobierania danych ani kosztownego dekodowania. `ResizeObserver` informuje
 o zmianie wymiarów. Aktualizacje linii łączymy w jedną klatkę przez
 `requestAnimationFrame`, a nie odpytywanie w pętli. Cleanup odłącza obserwatory
@@ -135,6 +157,11 @@ stanów dla każdego pola ani frameworka animacji. SVG jest tylko dekoracją
 z `aria-hidden`; treść pozostaje zwykłym czytelnym HTML.
 
 ## Limity i pamięć
+
+Dialog istnieje tylko podczas podglądu jednego pliku. Duży obraz pobieramy
+dopiero po kliknięciu, nie dla całej strony. Rozmycie tła ma 3 px i nie jest
+animowane; bez obsługi rozmycia nadal działa przyciemnienie. Nie zmienialiśmy
+algorytmu skanu ani limitów backendu i nie twierdzimy, że modal przyspiesza skan.
 
 | Ustawienie | Obecna wartość | Cel |
 |---|---|---|
@@ -205,18 +232,24 @@ W bazie nadal zapisujemy dokładną liczbę bajtów.
 
 1. Uruchom backend z profilem `local` i frontend / Tauri.
 2. Otwórz już zeskanowany folder. Katalog powinien pokazać miniatury bez skanu.
-3. Kliknij kółko: pod jego rzędem pojawi się większy obraz i dane tego samego ID.
+3. Kliknij kółko: na środku ekranu pojawi się większy obraz i dane tego samego ID.
 4. Rozwiń „Techniczne”; sprawdź ID, SHA-256 i daty. Zwiń dowolną inną gałąź.
-5. Wybierz inne zdjęcie, kliknij je ponownie, użyj krzyżyka i Escape.
-6. Zmień rozmiar okna; sprawdź brak poziomego przewijania i cały duży obraz.
+5. Zamknij przez X, Escape lub tło. Sprawdź fokus miniatury i otwórz inne zdjęcie.
+6. Użyj Tab / Shift+Tab. Zmień rozmiar okna; sprawdź brak poziomego przewijania,
+   przewijanie danych wewnątrz podglądu i widoczność X.
 
 Testy samego układu uruchom w katalogu `frontend` przez `npm.cmd run test`.
-Obecne 6 testów sprawdza brak wyboru, rzędy, niepełną końcówkę strony 50 plików,
-przenoszenie po zmianie liczby kolumn oraz połączenia na desktopie i telefonie.
+Obecne 6 testów sprawdza rozpoznanie kliknięcia wewnątrz / poza oknem,
+brak niepotrzebnych linii, połączenia desktopowe i pionowe oraz zmianę geometrii.
 Używają wbudowanego test runnera Node i istniejącego TypeScript, bez nowej
 biblioteki. `tsconfig.tests.json` emituje pliki do ignorowanego `.test-output`;
 nie włącza ich do aplikacji. Konfigurację modułów sprawdzono przez Context7
 w [dokumentacji TypeScript](https://www.typescriptlang.org/docs/handbook/modules/reference.html).
+
+`npm.cmd run lint` sprawdza `src`, `tests` i `vite.config.ts`, nie biblioteki
+w `node_modules` ani wyniki budowania. To zawężenie sprawdzanych ścieżek,
+nie wyłączenie reguł. Składnię zweryfikowano przez Context7 w
+[dokumentacji Oxlint](https://oxc.rs/docs/guide/usage/linter/quickstart.html).
 
 Automatyczne testy używają tymczasowych plików, nie modyfikują źródeł
 użytkownika. Sprawdzają rzeczywiste PNG/JPEG, rozmiary wyjścia, brak zmiany
@@ -231,10 +264,12 @@ Ręcznie sprawdzono dwa rzeczywiste obrazy z bazy, wybór i przełączenie podgl
 krzyżyk i Escape, dane techniczne oraz szerokości 320, 360 i 1024 px.
 Nie uruchamiano nowego skanu ani zapisu w roboczej bazie podczas kontroli UI.
 
-Weryfikacja zmiany UI 2026-10-07: build, lint i 6/6 testów frontendu poprawne.
-Ręcznie sprawdzono dwa rzeczywiste obrazy z istniejącego katalogu, Enter,
-ponowne kliknięcie, krzyżyk, Escape z przywróceniem fokusu, przełączanie obrazu,
-rozwijanie danych technicznych i szerokości 320/360/1024/1280 px.
+Weryfikacja centralnego podglądu 2026-10-07: build, lint i 6/6 testów frontendu
+poprawne. Ręcznie sprawdzono dwa rzeczywiste obrazy z istniejącego katalogu,
+Enter, X, Escape i kliknięcie tła z przywróceniem fokusu, zawijanie Tab / Shift+Tab,
+przeciągnięcie z obrazu na tło, gałęzie techniczne i blokadę przewijania galerii.
+Sprawdzono szerokości 320/360/1024/1280 px i niskie okno 1280 × 500 px;
+dialog mieści się w ekranie, dane przewijają się wewnątrz, X zostaje widoczny.
 Nie stwierdzono poziomego przewijania ani błędów konsoli w sprawdzonym przepływie.
 Nie uruchamiano skanu i nie zmieniano rekordów ani obrazów użytkownika.
 Backend oraz natywny picker Tauri nie były modyfikowane; nie powtarzano w tym

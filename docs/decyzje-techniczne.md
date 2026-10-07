@@ -561,23 +561,35 @@ Backend domyślnie nasłuchuje tylko na loopback, nie w sieci LAN.
 Pełne uzasadnienie, wartości limitów, alternatywy i ograniczenia:
 [`galeria-i-podglady.md`](galeria-i-podglady.md).
 
-## 16. Gałęzie pod okrągłą miniaturą
+## 16. Okrągłe miniatury i centralny podgląd z gałęziami
 
-Właściciel wybrał kierunek retro PC: kółka zamiast kart i jedno drzewko
-szczegółów pod rzędem wybranego obrazu. To zmiana prezentacji już istniejących
-danych, nie nowa architektura backendu. `ImageDetailsTree` zastępuje boczny
-`ImageDetailsPanel`, zachowując wszystkie pola `CatalogFile`.
+Właściciel wybrał kierunek retro PC: kółka zamiast kart i połączone gałęzie
+szczegółów. Pierwsza wersja rozwijała je pod rzędem miniatur; kolejna prośba
+przeniosła podgląd na środek ekranu, nad przyciemnione i lekko rozmyte tło.
+To zmiana prezentacji danych, nie nowa architektura backendu. `ImageDetailsDialog`
+obsługuje okno, a `ImageDetailsTree` zachowuje wszystkie pola `CatalogFile`.
+
+Używamy natywnego `<dialog>` i `showModal()`, bo przeglądarka zapewnia najwyższą
+warstwę widoku oraz nieaktywne tło. Alternatywy — nowa biblioteka modali albo
+własny portal z ręczną blokadą całej strony — nie są potrzebne w tym zakresie.
+Efekt Reacta otwiera okno i ma cleanup zamykający je, także w StrictMode.
+X, Escape i kliknięcie tła czyszczą wybór; fokus wraca do miniatury.
+Zawijamy końce nawigacji Tab, by nie przechodzić do paska przeglądarki.
+Nagłówek pozostaje widoczny, a długa treść przewija się wewnątrz.
 
 Nie stosujemy biblioteki grafów: użytkownik nie edytuje połączeń ani nie
 przesuwa węzłów. CSS grid układa treść; niewielkie SVG rysuje dekoracyjne
-połączenia w odstępach. Dwa hooki mierzą kolumny i prostokąty, a czysta funkcja
-oblicza położenie drzewka i linie. Dzięki temu testy układu nie potrzebują
+połączenia w odstępach. Jeden hook mierzy podgląd i gałęzie, a czysta funkcja
+oblicza linie. Usunięto pomiar kolumn i pozycjonowanie pod rzędem, których modal
+już nie potrzebuje. Dzięki temu testy obliczeń układu nie potrzebują
 przeglądarki ani bazy. Obserwatory mają cleanup, a pomiar nie wywołuje API.
 
 Natywne `<details>/<summary>` zapewniają rozwijanie gałęzi i klawiaturę bez
 dodatkowego stanu dla każdego pola. Miniatura jest okrągłym kadrem, natomiast
 większy podgląd zachowuje cały obraz. `selectedId` pozostaje jedynym stanem
-wyboru. Kliknięcie ponownie zwija szczegóły; Escape i krzyżyk oddają fokus.
+wyboru. Większy obraz pobieramy tylko po wyborze. Rozmycie tła to stałe 3 px,
+bez animacji kosztownego filtra; przy braku obsługi zostaje przyciemnienie.
+Ta zmiana nie przyspiesza samego skanu ani nie zmienia pracy JVM.
 
 VT323 jest lokalnym zasobem na licencji OFL, a licencja trafia do produkcyjnego
 pakietu przez `frontend/public`. Nie pobieramy fontów z internetu przy starcie.
