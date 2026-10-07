@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint src tests vite.config.ts",
     "test": "tsc -p tsconfig.tests.json && node --test .test-output/tests/galleryLayout.test.js",
     "preview": "vite preview",
     "tauri": "tauri"
