@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-10-07
+Ostatnia aktualizacja: 2026-10-09
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -564,6 +564,9 @@ Pełne uzasadnienie, wartości limitów, alternatywy i ograniczenia:
 
 ## 16. Okrągłe miniatury i centralny podgląd z gałęziami
 
+Ten punkt opisuje etap do 2026-10-07. Obecny boczny panel, opcjonalne
+powiększenie i animowane gałęzie opisuje punkt 18.
+
 Właściciel wybrał kierunek retro PC: kółka zamiast kart i połączone gałęzie
 szczegółów. Pierwsza wersja rozwijała je pod rzędem miniatur; kolejna prośba
 przeniosła podgląd na środek ekranu, nad przyciemnione i lekko rozmyte tło.
@@ -626,3 +629,27 @@ Pełna mapa kodu, wyjaśnienie callbacków, wykonawcy i ograniczeń:
 
 Omówienie rzeczywistego kodu z rozróżnieniem poprzednich i nowych zmian:
 [`scanjob-krok-po-kroku.md`](scanjob-krok-po-kroku.md).
+
+## 18. Jasny UI, wspólne gałęzie i oddzielone demo analizy
+
+Właściciel zatwierdził jasną makietę z kółkami i panelem po prawej. Kliknięcie
+realnego pliku pokazuje wyłącznie jego metadane w `CatalogDetailsPanel`.
+Dotychczasowy modal nie zniknął: otwiera go przycisk Powiększ. Fokus wraca
+do tego przycisku, a nie do innego elementu galerii.
+
+| Decyzja | Dlaczego | Koszt lub alternatywa |
+|---|---|---|
+| CSS Modules dla nowych komponentów | Lokalny zakres klas, mniej kolizji, wbudowane wsparcie Vite. | Nie naprawiają same struktury komponentów; globalne tokeny nadal wymagają porządku. Tailwind pozostaje alternatywą, nie koniecznością. |
+| Jeden `AnimatedBranch` | Wspólna animacja, klawiatura i dostępność w detalach, demo oraz dużym podglądzie. | Treść zostaje w DOM po zwinięciu; `inert` i `aria-hidden` wyłączają interakcję. To kilka gałęzi, nie tysiące ukrytych zdjęć. |
+| CSS grid 0fr → 1fr i opacity | Otwarcie oraz zamknięcie bez zgadywania stałego max-height i timerów JS. | Zmiana wysokości przelicza lokalny układ; nie jest darmową animacją wyłącznie GPU. Reduced motion wyłącza ruch. |
+| Demo niezależne od katalogu | Fikcyjny opis osoby/tekst nie udaje wyniku analizy realnego zdjęcia. | Potrzebny jest wyraźny napis DEMO i przyszłe oddzielne API analizy. |
+| Zatwierdzenie tylko w React | Można sprawdzić interakcję bez dopisywania backendu za właściciela. | Decyzja nie jest trwała i nie jest zgodą na operację plikową. |
+| Miniatura w bocznym panelu; większy podgląd dopiero po Powiększ | Nie pobieramy pełniejszego podglądu przy każdej zmianie wyboru. | Pierwsze powiększenie może wymagać krótkiego ładowania, pokazanego spinnerem. |
+
+Nie instalowaliśmy nowych paczek stylowania/animacji ani nie zmienialiśmy
+algorytmu skanowania, JPA czy Rust. Wskazówki formularza demo nie zastępują
+przyszłego zabezpieczenia nazw, kolizji i ścieżek przy tworzeniu kopii.
+
+Historia, dokładne fragmenty kodu i rozróżnienie obecnego oraz przyszłego
+przepływu: [`od-zadan-skanowania-do-ui.md`](od-zadan-skanowania-do-ui.md).
+Wsparcie biblioteki: [Vite — CSS Modules](https://vite.dev/guide/features#css-modules).

@@ -4,7 +4,7 @@ Ten dokument opisuje kod, który **już istnieje**. To nie jest lista pakietów 
 utworzenia na przyszłość. Projekt jest jedną aplikacją Spring Boot z frontendem
 React, a nie zbiorem mikroserwisów.
 
-Ostatnia aktualizacja: 2026-10-07.
+Ostatnia aktualizacja: 2026-10-09.
 
 ## Gdzie czego szukać
 
@@ -21,15 +21,23 @@ screenSorter/
 │   │   └── ScanSummary.tsx      cztery liczniki zadania
 │   ├── catalog/                  kółka, drzewko szczegółów, typy i API
 │   │   ├── CatalogGallery.tsx    wybór zdjęcia w siatce kółek
-│   │   ├── ImageDetailsDialog.tsx centralny podgląd, tło, X i klawiatura
+│   │   ├── CatalogDetailsPanel.tsx szczegóły wybranego pliku obok galerii
+│   │   ├── ImageDetailsDialog.tsx powiększenie: centralny podgląd, tło, X i klawiatura
 │   │   ├── ImageDetailsTree.tsx  podgląd + Plik / Lokalizacja / Historia / Techniczne
 │   │   ├── CatalogImage.tsx      ładowanie i błąd obrazu
 │   │   ├── galleryLayout.ts      obliczenia linii i kliknięcia poza oknem
 │   │   └── useTreeConnections.ts dopasowanie linii do wymiarów węzłów
+│   ├── analysis/demo/            osobne fikcyjne przykłady, bez backendu analizy
+│   │   ├── AnalysisDemo.tsx      opis wizualny, tekst, kategoria, tagi
+│   │   ├── examples.ts          dane trzech przykładów, niezwiązane z katalogiem
+│   │   ├── ReviewActions.tsx    formularz i zatwierdzanie tylko w stanie Reacta
+│   │   └── reviewName.ts        wskazówki dla propozycji nazwy w demo
 │   ├── assets/fonts/             lokalny font retro VT323
-│   └── ui/Icon.tsx               wspólne ikony SVG
+│   └── ui/                      wspólne elementy widoku
+│       ├── Icon.tsx             ikony SVG
+│       └── AnimatedBranch.tsx   płynnie rozwijana i zwijana gałąź
 ├── frontend/public/VT323-OFL.txt  licencja fontu dołączana do dystrybucji
-├── frontend/tests/               testy układu, kontraktu API i pollingu
+├── frontend/tests/               testy układu, kontraktu API, pollingu i danych/formularza demo
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
 │   ├── scanning/                   funkcja: sprawdź folder i przeskanuj obrazy
@@ -215,12 +223,19 @@ Widoczny kafelek / wybór większego podglądu
 
 Wybór zdjęcia w CatalogGallery (bez nowego skanu)
   → selectedId + bieżąca strona DTO
-  → ImageDetailsDialog → natywny dialog.showModal() → centralny podgląd i tło
+  → CatalogDetailsPanel → prawdziwe metadane obok galerii
+  → AnimatedBranch → zmiana stanu i animacja CSS, nie zapytanie do bazy
+  → Powiększ → ImageDetailsDialog → natywny dialog.showModal() → podgląd i tło
   → jedno ImageDetailsTree wewnątrz okna; galeria zostaje na miejscu
   → useTreeConnections mierzy podgląd i gałęzie
   → treeConnections wylicza dekoracyjne linie SVG
   → rozwinięcie gałęzi / zmiana szerokości: dopasowanie geometrii, nie zapytanie do bazy
-  → X / Escape / kliknięcie tła: zamknięcie i powrót fokusu do miniatury
+  → X / Escape / kliknięcie tła: zamknięcie i powrót fokusu do przycisku Powiększ
+
+Analiza · DEMO (nie dotyczy wybranego zdjęcia)
+  → AnalysisDemo → examples.ts → fikcyjny opis, tekst, kategoria i tagi
+  → ReviewActions → zmiana lokalnego stanu Reacta
+  → brak analizy obrazu, żądania do API, zapisu bazy i zmiany plików
 ```
 
 Ważne: `ScanResult` to **wynik bieżącego odczytu dysku**. `FileRecordEntity` to
@@ -232,6 +247,12 @@ Galeria nie zapisuje nowego wyniku skanu. Jej szczegółowy opis, mapa nowych
 plików oraz ograniczenia bezpieczeństwa i pamięci są w
 [`galeria-i-podglady.md`](galeria-i-podglady.md). Miniatury nie trafiają do folderu
 źródłowego ani do tabeli bazy. Metadane są z ostatniego skanu, podgląd z dysku.
+
+Nowe komponenty mają style `.module.css` obok plików TSX. Globalne `index.css`
+i `App.css` przechowują font, kolory, wspólne przyciski i ramę aplikacji.
+Obraz, modal i większe drzewo mają osobne istniejące klasy w odpowiednich plikach CSS;
+nie ma już zbiorczego `CatalogGallery.css`. Pełna chronologia zmian i wyjaśnienie:
+[`od-zadan-skanowania-do-ui.md`](od-zadan-skanowania-do-ui.md).
 
 ## Gdzie dodać następną rzecz
 

@@ -4,6 +4,7 @@
 
 - [Diagramy obecnej architektury](docs/diagramy-architektury.md) i [PDF na telefon](output/pdf/screensort-architektura.pdf).
 - [Następny etap i analiza wydajności](docs/nastepny-etap-i-wydajnosc.md) i [PDF na telefon](output/pdf/screensort-plan-wydajnosc.pdf).
+- [Od obudowy skanu do obecnego UI — zmiany, kod i wyjaśnienia po polsku](docs/od-zadan-skanowania-do-ui.md).
 
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
@@ -13,7 +14,13 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React starts a background scan through `POST /api/scan/jobs`, polls its ID, shows stages and counters for new, rescanned, unchanged and rejected files, and displays saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image opens a centered modal with an uncropped preview and connected metadata branches, over a dimmed, lightly blurred gallery. Close it with the top-right X, Escape or a backdrop click; keyboard focus returns to the thumbnail. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
+The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React starts a background scan through `POST /api/scan/jobs`, polls its ID, shows stages and counters for new, rescanned, unchanged and rejected files, and displays saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image shows its catalog details beside the gallery, with animated metadata branches. A separate zoom button opens the existing centered preview over a dimmed, lightly blurred gallery. Close that modal with the top-right X, Escape or a backdrop click; keyboard focus returns to the zoom button. On smaller screens the details appear below the gallery. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
+
+The light UI also has an explicitly marked analysis demo with three fictional examples,
+visual descriptions, OCR-like text and editable name proposals. These examples are not
+results for the selected files. Approval only changes temporary React state; it does
+not call an analysis API, save to PostgreSQL, rename or copy a source file. New components
+use CSS Modules, without an additional styling or animation dependency.
 
 The backend also supports background scan jobs: `POST /api/scan/jobs` returns
 HTTP 202 with an ID, and `GET /api/scan/jobs/{id}` reports the stage and counters.
@@ -59,6 +66,7 @@ Select source folder
 - [Galeria i podglądy — co zmieniliśmy i dlaczego](docs/galeria-i-podglady.md)
 - [Zadania skanowania — kod, wątki i API po polsku](docs/zadania-skanowania.md)
 - [ScanJob krok po kroku — start, Consumer, nagłówki i React](docs/scanjob-krok-po-kroku.md)
+- [Od zadań skanowania do jasnego UI — chronologia i omówienie kodu](docs/od-zadan-skanowania-do-ui.md)
 - [Delivery roadmap](docs/roadmap.md)
 - [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
@@ -107,7 +115,7 @@ npm.cmd run build
 npm.cmd run lint
 ```
 
-Layout and scan-API/polling tests use the built-in Node.js test runner and the existing TypeScript
+Layout, scan-API/polling and analysis-demo form tests use the built-in Node.js test runner and the existing TypeScript
 compiler; generated test files stay in the ignored `.test-output` directory.
 
 Scan `demo-images` twice to check catalog persistence. Both scans should show two accepted PNG files and one rejected ZIP. From the project root, inspect the saved rows in the local PostgreSQL container:

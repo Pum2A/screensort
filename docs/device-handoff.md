@@ -1,6 +1,37 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-07
+Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-09
+
+## Bieżąca zmiana UI i zasady dalszej pracy
+
+Właściciel zatwierdził jasny układ galerii i panelu obok. Kliknięcie kółka
+pokazuje `CatalogDetailsPanel` z rzeczywistymi polami DTO, a „Powiększ” otwiera
+zachowany centralny dialog. Wspólny `ui/AnimatedBranch` animuje obie strony
+rozwijania, używa `aria-expanded`, `inert` i respektuje reduced motion.
+
+`frontend/src/analysis/demo` zawiera wyłącznie trzy jawnie fikcyjne przykłady.
+Nie przypisuj ich do rzeczywistych zdjęć. Zatwierdzanie propozycji zmienia tylko
+stan Reacta; zamknięcie demo/przeładowanie go usuwa. Nie ma OCR, analizy wizualnej,
+zapisu propozycji w PostgreSQL ani operacji na oryginałach. Backend analizy chce
+napisać właściciel — nie implementuj go bez nowej zgody.
+
+Nowe style używają CSS Modules, bez instalacji Tailwind ani biblioteki animacji.
+Stary zbiorczy CSS galerii rozdzielono na obraz, dialog i drzewo. Jawne globalne
+tokeny w `index.css`: jasna paleta, 360 ms ruchu i kółka 116 px. Rust, API
+i logika Javy nie zmieniły się w tym etapie.
+
+Najpierw przeczytaj [`od-zadan-skanowania-do-ui.md`](od-zadan-skanowania-do-ui.md):
+historia od ScanJob, fragmenty rzeczywistego kodu, objaśnienia i wykaz dzisiejszych zmian.
+To uzupełnia starsze przewodniki, w których sam klik kółka otwierał modal.
+
+Weryfikacja 2026-10-09: frontend test 28/28, build i lint poprawne. Ręczna kontrola
+na odizolowanym, fikcyjnym API: szczegóły/zoom/Escape/fokus, strony, błąd katalogu,
+trzy przykłady demo, formularz, gałęzie oraz szerokości 320/360/1024 px.
+Kontrola POST/GET zadań zakończyła się COMPLETED i odświeżeniem katalogu w tym
+testowym API. To nie powtórzenie integracyjnych testów backendu. Maven i natywnego
+Tauri w tym etapie nie uruchamiano; lokalna baza i zdjęcia właściciela bez zmian.
+
+Poniższe datowane wyniki testów pozostają zapisem wcześniejszych etapów.
 
 Ten dokument jest bieżącym skrótem projektu. Użyj go po zmianie komputera albo
 przy rozpoczęciu nowej rozmowy z agentem AI.
@@ -78,7 +109,7 @@ main class:   ScreenSortApplication
 14. Miniatury i większy podgląd są pobierane po ID rekordu przez
     `GET /api/catalog/files/{id}/thumbnail` oraz `/preview`. Źródła są tylko
     odczytywane. Kontrolujemy ścieżki i limity; PNG powstają w pamięci.
-    React pokazuje okrągłe miniatury i centralny podgląd nad przyciemnionym,
+React pokazuje okrągłe miniatury, boczne szczegóły oraz powiększony podgląd nad przyciemnionym,
     lekko rozmytym tłem. Gałęzie: Plik, Lokalizacja, Historia, Techniczne. Duży obraz jest
     bez przycinania; dane techniczne można rozwinąć. Font retro VT323 jest lokalny.
 15. Backend ma zadania skanu: `POST /api/scan/jobs` zwraca 202 + ID, a
@@ -224,14 +255,14 @@ Backend domyślnie nasłuchuje na `127.0.0.1`. To lokalny etap developerski,
 nie gotowy model autoryzacji dla publicznej dystrybucji.
 
 Frontend jest rozdzielony na `catalog/types.ts`, `api.ts`, `format.ts`,
-`CatalogGallery`, `CatalogImage`, `ImageDetailsDialog` oraz `ImageDetailsTree`. `selectedId` wybiera
+`CatalogGallery`, `CatalogDetailsPanel`, `CatalogImage`, `ImageDetailsDialog` oraz `ImageDetailsTree`. `selectedId` wybiera
 opis z bieżącej strony; nie kopiujemy całego DTO do nowego stanu. Wybranie
 folderu otwiera zapisany katalog bez skanu, a po sukcesie skanu wracamy do
 strony 0. Rust i natywny picker nie zostały zmienione. Tymczasowe serwery QA
 nie zastępują działającej aplikacji właściciela: po aktualizacji należy
 zrestartować Springa, aby nowe endpointy były zarejestrowane.
 
-Aktualny kierunek UI: okrągłe miniatury, retro PC i cienkie połączenia.
+Historia kierunku UI do 2026-10-07: okrągłe miniatury, retro PC i cienkie połączenia.
 Na kolejną prośbę właściciela gałęzie przeniesiono spod rzędu do centralnego
 podglądu. `ImageDetailsDialog` używa natywnego dialog.showModal(), blokuje
 tło i przewijanie galerii. X, Escape i kliknięcie poza oknem przywracają fokus
@@ -385,15 +416,23 @@ zadań: jeden POST, potem sekwencyjne GET-y tego samego ID. Pokazuje etapy
 i żywe liczniki, po COMPLETED odświeża katalog i pobiera do 100 przykładów
 odrzuconych przez GET /api/scan/jobs/{id}/rejections. FAILED pokazuje błąd.
 Przeczytaj docs/scanjob-krok-po-kroku.md i docs/zadania-skanowania.md.
+Przeczytaj również docs/od-zadan-skanowania-do-ui.md — chronologię od zadań
+do obecnego UI z konkretnymi fragmentami kodu i wyjaśnieniem nowej prezentacji.
 Restart Javy traci opisy zadań, nie katalog; restart UI traci bieżące śledzenie.
 Nie dodaliśmy Python/FastAPI ani zmian w Rust. Kolejna funkcja wymaga omówienia.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
-po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie otwiera
-centralny podgląd nad rozmytym tłem i połączone gałęzie: Plik, Lokalizacja,
-Historia, Techniczne. X, Escape i kliknięcie tła zamykają go i przywracają fokus.
+po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie pokazuje
+CatalogDetailsPanel obok galerii (na telefonie pod nią). Przycisk Powiększ
+otwiera centralny podgląd nad rozmytym tłem: Plik, Lokalizacja, Historia,
+Techniczne. X, Escape i kliknięcie tła zamykają go i przywracają fokus Powiększ.
 Natywny dialog blokuje tło; długie dane przewijają się wewnątrz. Lokalny VT323
 daje styl retro PC. API liczy strony od 0. ImageDetailsDialog obsługuje okno,
 ImageDetailsTree pokazuje dane. Usunięto stare pozycjonowanie pod rzędem miniatur.
+Nowy jasny UI ma wspólne AnimatedBranch z płynnym otwieraniem/zamykaniem,
+CSS Modules i reduced motion. analysis/demo zawiera osobne fikcyjne przykłady
+opisu wizualnego, tekstu OCR, kategorii/tagów i propozycji nazw; nie są wynikiem
+dla wybranego pliku. Zatwierdzenie zmienia tylko pamięć Reacta, nie API,
+PostgreSQL ani pliki. Nie implementuj OCR/backendu analizy za właściciela.
 Podglądy są odczytywane po ID przez /api/catalog/files/{id}/thumbnail i /preview.
 catalog/preview sprawdza źródło i generuje ograniczone PNG w pamięci, nie zapisuje
 ich do źródła ani bazy. Backend domyślnie nasłuchuje tylko na 127.0.0.1.

@@ -1,6 +1,14 @@
 # Galeria ScreenSort: co dodaliśmy i dlaczego
 
-Stan: 2026-10-07. Ten opis dotyczy działającego kodu, nie przyszłego OCR.
+Opis etapu galerii do 2026-10-07, nie przyszłego OCR.
+
+Aktualizacja 2026-10-09: kliknięcie kółka pokazuje teraz boczny
+`CatalogDetailsPanel`. Dotychczasowy modal otwiera przycisk Powiększ, do niego
+wraca też fokus po zamknięciu. Gałęzie używają wspólnego `AnimatedBranch`
+z animacją otwierania i zamykania; jasna paleta zastąpiła kremową. Zbiorczy
+`CatalogGallery.css` rozdzielono na style komponentów. Opis backendu podglądów
+i jego limitów poniżej pozostaje aktualny. Pełen wykaz zmian prezentacji i
+osobnego demo analizy: [`od-zadan-skanowania-do-ui.md`](od-zadan-skanowania-do-ui.md).
 
 ## Co widać w aplikacji
 
