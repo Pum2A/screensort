@@ -1,0 +1,19 @@
+.image-details-tree { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 32px; padding: 20px 0 4px; min-width: 0; }
+.tree-connections { position: absolute; top: 0; left: 0; overflow: visible; pointer-events: none; }
+.tree-connections path { fill: none; stroke: #8696a1; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.tree-preview, .tree-branch { position: relative; z-index: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.tree-preview { align-self: start; padding: 12px; }
+.details-heading { margin-bottom: 8px; }
+.details-heading > span { color: var(--accent); font-size: 18px; }
+.tree-preview h3 { margin: 12px 0; font-size: 21px; font-weight: 400; overflow-wrap: anywhere; }
+.read-only-note { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 17px; margin: 8px 0 0; }
+.read-only-note .icon { width: 14px; height: 14px; }
+.metadata-note { color: var(--muted); font-size: 16px; margin: 6px 0 0; }
+.tree-branches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 28px; min-width: 0; }
+.file-properties { margin: 0; padding: 0; }
+.file-properties > div { padding: 6px 0; }
+.file-properties dt { color: var(--muted); font-size: 17px; margin-bottom: 3px; }
+.file-properties dd { font-size: 20px; margin: 0; line-height: 1.15; overflow-wrap: anywhere; }
+.file-properties code { font-size: 11px; line-height: 1.65; }
+@media (max-width: 1050px) { .image-details-tree { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); } .tree-branches { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .image-details-tree { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-left: 16px; } .tree-preview { width: 100%; } .tree-branches { gap: 20px; } }

@@ -1,0 +1,49 @@
+.panel {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+.heading {
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+}
+.heading h3 { margin: 0 0 4px; font-size: 25px; font-weight: 400; }
+.heading span, .muted, .note { color: var(--muted); font-size: 18px; }
+.body { padding: 18px 16px; }
+.selected {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    padding-bottom: 18px;
+}
+.selected::after {
+    content: '';
+    position: absolute;
+    left: 45px;
+    bottom: 0;
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+}
+.thumbnail { width: 92px; flex-shrink: 0; padding: 5px; border: 1px solid var(--accent); border-radius: 50%; }
+.description { min-width: 0; }
+.name { margin: 0 0 7px; overflow-wrap: anywhere; }
+.muted { margin: 0; }
+.tree { border-left: 1px solid var(--border); margin-left: 45px; padding-left: 14px; }
+.tree > section { position: relative; margin-bottom: 8px; }
+.tree > section::before { content: ''; position: absolute; left: -15px; top: 22px; width: 14px; height: 1px; background: var(--border); }
+.properties { margin: 0; }
+.properties > div + div { margin-top: 11px; }
+.properties dt { font-size: 17px; color: var(--muted); }
+.properties dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.properties code { font-size: 12px; line-height: 1.6; }
+.note { display: flex; align-items: flex-start; gap: 7px; margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
+.note svg { width: 16px; height: 16px; margin-top: 2px; }
+@media (max-width: 400px) {
+    .body { padding: 14px 12px; }
+    .tree { margin-left: 18px; }
+    .selected::after { left: 18px; }
+    .thumbnail { width: 78px; }
+}

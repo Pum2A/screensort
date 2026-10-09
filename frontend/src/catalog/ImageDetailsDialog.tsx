@@ -4,6 +4,7 @@ import {ImageDetailsTree} from './ImageDetailsTree'
 import {isOutsideBox} from './galleryLayout'
 import type {CatalogFile} from './types'
 import {Icon} from '../ui/Icon'
+import './ImageDetailsDialog.css'
 
 type Props = {id: string, file: CatalogFile, trigger: RefObject<HTMLButtonElement | null>, onClose: () => void}
 
@@ -40,7 +41,7 @@ export function ImageDetailsDialog({id, file, trigger, onClose}: Props) {
             if (event.key !== 'Tab') return
             // Zawijamy końce, żeby Tab nie przechodził z podglądu do paska przeglądarki.
             const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not([disabled]), summary'))
-                .filter((control) => control.getClientRects().length > 0)
+                .filter((control) => control.getClientRects().length > 0 && !control.closest('[inert]'))
             const first = controls[0]
             const last = controls.at(-1)
             if (event.shiftKey && event.target === first && last) {

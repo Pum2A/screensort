@@ -24,6 +24,7 @@ function App() {
     const [catalogPage, setCatalogPage] = useState<CatalogPage | null>(null)
     const [catalogLoading, setCatalogLoading] = useState(true)
     const [catalogError, setCatalogError] = useState<string | null>(null)
+    const [analysisDemoOpen, setAnalysisDemoOpen] = useState(false)
     const scan = useScanJob((completed) => {
         try { localStorage.setItem(LAST_FOLDER_KEY, completed.folderPath) }
         catch { /* Katalog działa również, gdy przeglądarka blokuje zapis preferencji. */ }
@@ -32,6 +33,7 @@ function App() {
     const loading = scan.busy
 
     function showCatalog(folder: string) {
+        setAnalysisDemoOpen(false)
         setCatalogPage(null)
         setCatalogPageNumber(0)
         setCatalogLoading(true)
@@ -140,8 +142,15 @@ function App() {
             <div className="catalog-heading"><div><h2 id="catalog-title">{folderName(catalogFolder)}
                 {catalogPage && <span className="count-badge">{catalogPage.totalFiles}</span>}</h2>
                 <p className="catalog-folder" title={catalogFolder}>{catalogFolder}</p></div>
-                <span className="catalog-hint">Kliknij kółko → podgląd · Esc → zamknij</span>
+                <div className="catalog-actions"><span className="catalog-hint">Kliknij kółko → szczegóły obok</span>
+                    <button type="button" className="secondary-button" aria-pressed={analysisDemoOpen}
+                        onClick={() => setAnalysisDemoOpen(current => !current)}>
+                        <Icon name="eye"/>Analiza <span className="demo-badge">DEMO</span>
+                    </button></div>
             </div>
+            <CatalogGallery key={`${catalogFolder}:${catalogPageNumber}:${catalogRefresh}`}
+                files={catalogLoading || catalogError ? [] : catalogPage?.files ?? []}
+                demoOpen={analysisDemoOpen} onCloseDemo={() => setAnalysisDemoOpen(false)}>
             {catalogLoading ? <div className="catalog-empty" role="status"><Icon name="refresh" className="spin"/>
                 <h3>Ładujemy Twój katalog</h3><p>Pobieramy opisy zapisanych plików.</p></div>
                 : catalogError ? <div className="catalog-empty"><Icon name="folder"/><h3>Katalog jest niedostępny</h3>
@@ -150,7 +159,8 @@ function App() {
                 : !catalogPage || catalogPage.files.length === 0 ? <div className="catalog-empty"><Icon name="image"/>
                     <h3>{catalogPage?.totalFiles === 0 ? 'Brak zapisanych obrazów' : 'Ta strona jest pusta'}</h3>
                     <p>{catalogPage?.totalFiles === 0 ? 'Zeskanuj ten folder, a zapisane obrazy pojawią się tutaj.' : 'Wróć do poprzedniej strony katalogu.'}</p></div>
-                : <CatalogGallery key={`${catalogFolder}:${catalogPageNumber}:${catalogRefresh}`} files={catalogPage.files}/>}
+                : undefined}
+            </CatalogGallery>
             {catalogPage && catalogPage.totalFiles > 0 && <nav className="catalog-pagination" aria-label="Strony katalogu">
                 <span className="page-range">{rangeStart}–{rangeEnd} z {catalogPage.totalFiles} obrazów</span>
                 <div className="page-controls"><button type="button" className="icon-button" aria-label="Poprzednia strona"

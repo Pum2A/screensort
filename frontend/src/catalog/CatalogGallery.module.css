@@ -1,0 +1,38 @@
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(310px, 360px);
+    gap: 28px;
+    align-items: start;
+}
+.catalog { min-width: 0; }
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 20px 12px;
+    padding: 10px 6px;
+    align-items: start;
+}
+.tile { text-align: center; border: 0; border-radius: 10px; background: transparent; padding: 12px 6px; min-width: 0; }
+.preview {
+    width: var(--thumbnail-size);
+    max-width: calc(100% - 14px);
+    margin: auto;
+    border-radius: 50%;
+    outline: 1px solid var(--border);
+    outline-offset: 5px;
+    transition: transform var(--motion-duration) var(--motion-ease), outline-color var(--motion-duration), box-shadow var(--motion-duration);
+}
+.tile:hover .preview, .tile:focus-visible .preview { transform: translateY(-4px); outline-color: var(--accent); box-shadow: 0 8px 18px #2548d712; }
+.tile[data-selected="true"] .preview { outline: 2px solid var(--accent); box-shadow: 0 0 0 9px var(--selected); }
+.info { width: 100%; padding-top: 15px; }
+.info strong { display: block; font-size: 20px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.info > span { display: block; color: var(--muted); font-size: 17px; margin-top: 4px; }
+.tile[data-selected="true"] .info strong { color: var(--accent); }
+.sidebar { min-width: 0; scroll-margin-top: 16px; }
+.empty { border: 1px dashed var(--border); border-radius: 12px; background: var(--surface); padding: 38px 28px; color: var(--muted); }
+.empty > :global(.icon) { width: 32px; height: 32px; color: var(--accent); }
+.empty h3 { font-size: 25px; font-weight: 400; color: var(--text); margin: 18px 0 10px; }
+.empty p { font-size: 19px; line-height: 1.4; margin: 0 0 20px; }
+.empty > span { display: block; font-size: 17px; line-height: 1.4; border-top: 1px solid var(--border); padding-top: 16px; }
+@media (max-width: 900px) { .workspace { grid-template-columns: minmax(0, 1fr); gap: 20px; } }
+@media (max-width: 520px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 6px; } .info strong { font-size: 18px; } }

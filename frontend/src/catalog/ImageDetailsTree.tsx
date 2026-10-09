@@ -4,6 +4,8 @@ import {formatDate, formatSize} from './format'
 import type {CatalogFile} from './types'
 import {Icon} from '../ui/Icon'
 import {useTreeConnections} from './useTreeConnections'
+import {AnimatedBranch} from '../ui/AnimatedBranch'
+import './ImageDetailsTree.css'
 
 export function ImageDetailsTree({file}: {file: CatalogFile}) {
     const {tree, connections} = useTreeConnections(file.id)
@@ -21,26 +23,26 @@ export function ImageDetailsTree({file}: {file: CatalogFile}) {
             <p className="metadata-note">Opis z ostatniego skanu. Podgląd z dysku.</p>
         </div>
         <div className="tree-branches">
-            <details className="tree-branch" data-tree-branch open><summary>PLIK</summary>
+            <div className="tree-branch" data-tree-branch><AnimatedBranch label="Plik" defaultOpen>
                 <dl className="file-properties">
                     <div><dt>Nazwa</dt><dd>{file.originalName}</dd></div>
                     <div><dt>Format / rozmiar</dt><dd>{file.extension.toUpperCase()} · {formatSize(file.sizeBytes)}</dd></div>
                 </dl>
-            </details>
-            <details className="tree-branch" data-tree-branch open><summary>LOKALIZACJA</summary>
+            </AnimatedBranch></div>
+            <div className="tree-branch" data-tree-branch><AnimatedBranch label="Lokalizacja" defaultOpen>
                 <dl className="file-properties">
                     <div><dt>Folder źródłowy</dt><dd>{file.sourceFolder}</dd></div>
                     <div><dt>Ścieżka w folderze</dt><dd>{file.relativePath}</dd></div>
                 </dl>
-            </details>
-            <details className="tree-branch" data-tree-branch open><summary>HISTORIA</summary>
+            </AnimatedBranch></div>
+            <div className="tree-branch" data-tree-branch><AnimatedBranch label="Historia" defaultOpen>
                 <dl className="file-properties">
                     <div><dt>Zmodyfikowany</dt><dd>{formatDate(file.lastModifiedAt)}</dd></div>
                     <div><dt>Pierwsze skanowanie</dt><dd>{formatDate(file.firstDiscoveredAt)}</dd></div>
                     <div><dt>Ostatnio widziany</dt><dd>{formatDate(file.lastSeenAt)}</dd></div>
                 </dl>
-            </details>
-            <details className="tree-branch technical-details" data-tree-branch><summary>TECHNICZNE</summary>
+            </AnimatedBranch></div>
+            <div className="tree-branch" data-tree-branch><AnimatedBranch label="Techniczne">
             <dl className="file-properties">
                 <div><dt>ID pliku / folderu</dt><dd>{file.id} / {file.allowedRootId}</dd></div>
                 <div><dt>Dokładny rozmiar</dt><dd>{file.sizeBytes.toLocaleString('pl-PL')} B</dd></div>
@@ -49,7 +51,7 @@ export function ImageDetailsTree({file}: {file: CatalogFile}) {
                 <div><dt>Pierwsze skanowanie (UTC)</dt><dd><code>{file.firstDiscoveredAt}</code></dd></div>
                 <div><dt>Ostatnio widziany (UTC)</dt><dd><code>{file.lastSeenAt}</code></dd></div>
             </dl>
-            </details>
+            </AnimatedBranch></div>
         </div>
     </section>
 }

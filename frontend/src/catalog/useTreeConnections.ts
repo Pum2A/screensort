@@ -33,7 +33,7 @@ export function useTreeConnections(fileId: number) {
             cancelAnimationFrame(frame)
             frame = requestAnimationFrame(measure)
         })
-        // Rozwinięcie <details> zmienia geometrię, ale nie zmienia danych zdjęcia.
+        // Rozwinięcie gałęzi zmienia geometrię, ale nie zmienia danych zdjęcia.
         for (const node of [element, preview, ...branches]) observer.observe(node)
         return () => {
             observer.disconnect()
