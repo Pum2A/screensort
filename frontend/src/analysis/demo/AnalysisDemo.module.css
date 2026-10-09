@@ -1,0 +1,44 @@
+.panel { min-width: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 18px; border-bottom: 1px solid var(--border); }
+.heading h3 { margin: 0 0 4px; font-size: 25px; font-weight: 400; }
+.heading span { color: var(--accent); font-size: 17px; }
+.heading button { border: 0; background: transparent; }
+.body { padding: 16px; }
+.notice { margin: 0 0 14px; font-size: 18px; color: var(--muted); }
+.exampleLabel { display: block; font-size: 17px; color: var(--muted); margin-bottom: 6px; }
+.select { min-height: 44px; width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--text); font: inherit; }
+.selected { position: relative; display: flex; align-items: center; gap: 13px; padding: 17px 0 18px; }
+.selected::after { content: ''; position: absolute; bottom: 0; left: 45px; width: 1px; height: 18px; background: var(--border); }
+.description { min-width: 0; }
+.description p { margin: 0 0 7px; overflow-wrap: anywhere; }
+.pending { font-size: 18px; color: var(--accent); }
+.approved { font-size: 18px; color: var(--success); }
+.tree { margin-left: 45px; padding-left: 14px; border-left: 1px solid var(--border); }
+.tree > section { position: relative; margin-bottom: 8px; }
+.tree > section::before { content: ''; position: absolute; left: -15px; top: 22px; width: 14px; height: 1px; background: var(--border); }
+.result { margin: 0; }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin: 11px 0; }
+.tags span { padding: 2px 7px; background: var(--background); color: var(--muted); font-size: 17px; border-radius: 4px; }
+.caption { font-size: 17px; color: var(--muted); margin: 9px 0 4px; }
+.ocr { font: inherit; font-size: 18px; line-height: 1.3; margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; background: var(--background); border-left: 2px solid var(--border); padding: 9px; }
+/* Ilustracje CSS są jawnie fikcyjnymi przykładami, nie zdjęciami użytkownika. */
+.art { position: relative; width: 92px; height: 92px; flex-shrink: 0; border-radius: 50%; overflow: hidden; border: 5px solid var(--selected); }
+.art span { position: absolute; display: block; }
+.person { background: linear-gradient(#e8f0f6 0 56%, #b9c7a2 56%); }
+.person .shapeA { width: 29%; height: 77%; left: 2%; top: 24%; border-radius: 48% 48% 0 0; background: #738d65; transform: rotate(-12deg); }
+.person .shapeB { width: 34%; height: 80%; right: -5%; top: 9%; border-radius: 45%; background: #8aa478; }
+.person .head { width: 22%; height: 24%; border-radius: 45%; background: #dca778; left: 41%; top: 27%; }
+.person .head::before { content: ''; position: absolute; inset: -2px -2px 65%; background: #604938; border-radius: 50% 50% 20% 20%; }
+.person .bodyShape { width: 46%; height: 57%; border-radius: 42% 42% 0 0; background: #496eb4; left: 29%; top: 51%; }
+.terminal { background: #e3e9f7; }
+.terminal .shapeA { inset: 16% 10%; background: #27344d; border-radius: 5px; }
+.terminal .shapeB { width: 65%; height: 3%; left: 17%; top: 35%; background: #dfad9a; box-shadow: 0 11px 0 #bacce1, 0 22px 0 #bacce1, 0 33px 0 #869bb7; }
+.document { background: #e6dfcf; }
+.document .shapeA { inset: 10% 17%; background: #fffdf5; transform: rotate(-7deg); border-radius: 2px; }
+.document .shapeB { left: 27%; top: 32%; width: 47%; height: 3%; background: #4d6695; transform: rotate(-7deg); box-shadow: 0 10px 0 #b9c2ca, 0 20px 0 #b9c2ca, 0 30px 0 #b9c2ca, 0 40px 0 #b9c2ca; }
+@media (max-width: 400px) {
+    .body { padding: 14px 12px; }
+    .tree { margin-left: 18px; }
+    .selected::after { left: 18px; }
+    .art { width: 78px; height: 78px; }
+}
