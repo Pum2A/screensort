@@ -9,6 +9,11 @@ const paths = {
     right: 'm10 6 6 6-6 6',
     refresh: 'M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1',
     check: 'm5 12 4 4L19 6',
+    down: 'm6 9 6 6 6-6',
+    eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Zm13 0a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z',
+    text: 'M4 5h16M12 5v14M8 19h8',
+    history: 'M3 11a9 9 0 1 1 2.5 7M3 4v7h7M12 7v5l3 2',
+    zoom: 'M11 5v12M5 11h12m4 10-5-5M19 11a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z',
 } as const
 
 export function Icon({name, className = ''}: {name: keyof typeof paths, className?: string}) {
