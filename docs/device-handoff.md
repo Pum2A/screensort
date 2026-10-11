@@ -1,6 +1,27 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja struktury i bieżącego etapu: 2026-10-09
+Ostatnia aktualizacja bieżącego etapu: 2026-10-11 (UI: 2026-10-09)
+
+## Eksperyment wyboru języka analizy — 2026-10-11
+
+Dodano odizolowany `benchmarks/vision-bindings`, nie serwis produkcyjny.
+Porównano Python 3.14.4, Java 25 i Rust 1.95.0 na jednym modelu MobileNet v2
+oraz identycznej natywnej DLL ONNX Runtime 1.26.0. CPU, 30 procesów,
+6000 mierzonych wywołań: przy 1 wątku około 8,1–8,3 ms, przy 4 około
+3,1–3,4 ms (zbiorcze mediany, zmienność opisana w raporcie).
+Zweryfikowano zgodność ostatniego wyniku każdego procesu. Wejścia syntetyczne;
+to nie test OCR, trafności kategorii, generowania opisów ani szybkości całej apki.
+
+Wykryto AMD Radeon RX 6600; nie testowano GPU. Nie zakładać CUDA dla AMD.
+Python pozostaje rekomendowanym kandydatem do lokalnego procesu analizy ze
+względu na integrację modeli, nie udowodnionym zwycięzcą wydajności.
+Nie dodano FastAPI, OCR/modeli do aplikacji ani nowych zależności głównego
+backendu. Nie modyfikowano bazy i zdjęć. Pierwotne dokumenty architektury
+nadal opisują starszy plan; nowa technologia serwisu nie jest jeszcze przyjętym ADR.
+
+Przeczytaj [`benchmark-analiza-jezyki.md`](benchmark-analiza-jezyki.md).
+Następny proponowany krok: mały, opisany zbiór obrazów i ocena kandydatów OCR
+oraz modeli wizualnych w Pythonie. Nie implementuj backendu analizy bez zgody.
 
 ## Bieżąca zmiana UI i zasady dalszej pracy
 

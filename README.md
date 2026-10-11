@@ -5,6 +5,7 @@
 - [Diagramy obecnej architektury](docs/diagramy-architektury.md) i [PDF na telefon](output/pdf/screensort-architektura.pdf).
 - [Następny etap i analiza wydajności](docs/nastepny-etap-i-wydajnosc.md) i [PDF na telefon](output/pdf/screensort-plan-wydajnosc.pdf).
 - [Od obudowy skanu do obecnego UI — zmiany, kod i wyjaśnienia po polsku](docs/od-zadan-skanowania-do-ui.md).
+- [Benchmark analizy: Python / Java / Rust — rzeczywiste wyniki i ograniczenia](docs/benchmark-analiza-jezyki.md).
 
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
