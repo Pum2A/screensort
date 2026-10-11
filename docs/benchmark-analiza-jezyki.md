@@ -3,6 +3,10 @@
 Data: 2026-10-11. To lokalny eksperyment przed wyborem technologii, nie gotowa
 funkcja analizy i nie ostateczna decyzja o mikroserwisie.
 
+Późniejsza decyzja z tego samego dnia: [ADR-004](adr/ADR-004-local-python-analysis-service.md)
+przyjmuje wąski lokalny serwis Python. Jego szkielet health nie zmienia wyników
+tego eksperymentu i nie jest implementacją OCR ani analizy wizualnej.
+
 ## Wniosek dla ScreenSort
 
 Python jest rozsądnym kandydatem do osobnego procesu OCR i analizy wizualnej,
@@ -153,6 +157,7 @@ do istniejącego UI. Nie wdrożono tego kroku za właściciela.
 ## Co zmieniło się w repozytorium
 
 Dodano wyłącznie narzędzia eksperymentu w `benchmarks/vision-bindings` i ten raport.
-Nie zmieniono kodu produkcyjnego, zależności głównego POM, Cargo Tauri, bazy
-ani źródłowych zdjęć. Nie utworzono FastAPI ani serwisu analizy.
+W etapie benchmarku nie zmieniono kodu produkcyjnego, zależności głównego POM,
+Cargo Tauri, bazy ani źródłowych zdjęć. Nie utworzono wtedy serwisu analizy;
+późniejszy szkielet FastAPI opisuje ADR-004, nie ten eksperyment.
 Instrukcja powtórzenia: [`README benchmarku`](../benchmarks/vision-bindings/README.md).

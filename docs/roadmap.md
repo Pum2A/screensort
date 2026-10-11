@@ -3,6 +3,11 @@
 Status: Draft v0.1  
 Assumed pace: 10–15 focused hours per week
 
+Update 2026-10-11: [ADR-004](adr/ADR-004-local-python-analysis-service.md)
+brings the narrow local Python analysis service into milestone 3. Its independently
+runnable health-only scaffold exists. The original dates below are planning
+estimates, not a claim that later milestones or analysis are completed.
+
 ## Working rule
 
 Every milestone must finish with observable user behavior and relevant tests. Infrastructure or architectural layers alone do not count as a completed milestone.
@@ -72,6 +77,8 @@ Target: weeks 3–4
 ### Scope
 
 - Local Polish and English OCR.
+- Local Python analysis service with a versioned contract and Java-owned jobs;
+  health scaffold exists, actual image analysis and integration remain to implement.
 - Versioned analysis jobs and results.
 - Visual analyzer interface.
 - First local visual labeling implementation.
@@ -152,7 +159,7 @@ Target: weeks 8–10
 - Advanced local vision model.
 - Tauri desktop shell and installer.
 - Safe move with backup and restore.
-- Kafka and separate analysis worker.
+- Kafka and distributed analysis workers (not the accepted narrow local service).
 - Transactional outbox, retry and dead-letter topic.
 - Prometheus and Grafana.
 

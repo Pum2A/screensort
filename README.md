@@ -6,6 +6,7 @@
 - [Następny etap i analiza wydajności](docs/nastepny-etap-i-wydajnosc.md) i [PDF na telefon](output/pdf/screensort-plan-wydajnosc.pdf).
 - [Od obudowy skanu do obecnego UI — zmiany, kod i wyjaśnienia po polsku](docs/od-zadan-skanowania-do-ui.md).
 - [Benchmark analizy: Python / Java / Rust — rzeczywiste wyniki i ograniczenia](docs/benchmark-analiza-jezyki.md).
+- [Lokalny serwis analizy — struktura, uruchomienie i następne kroki](analysis-service/README.md).
 
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
@@ -22,6 +23,12 @@ visual descriptions, OCR-like text and editable name proposals. These examples a
 results for the selected files. Approval only changes temporary React state; it does
 not call an analysis API, save to PostgreSQL, rename or copy a source file. New components
 use CSS Modules, without an additional styling or animation dependency.
+
+An independent local Python/FastAPI service scaffold is in `analysis-service`.
+It exposes only `GET /health` with `analysis_available: false`, with its own
+package, locked dependencies and tests. It is not connected to Java or React
+yet and does not contain OCR, visual models, GPU integration or image uploads.
+The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).
 
 The backend also supports background scan jobs: `POST /api/scan/jobs` returns
 HTTP 202 with an ID, and `GET /api/scan/jobs/{id}` reports the stage and counters.
@@ -73,6 +80,7 @@ Select source folder
 - [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
 - [ADR-002: React web UI inside a thin Java desktop shell](docs/adr/ADR-002-react-desktop-ui.md)
 - [ADR-003: Tauri desktop shell instead of JavaFX](docs/adr/ADR-003-tauri-desktop-shell.md)
+- [ADR-004: Local Python analysis service](docs/adr/ADR-004-local-python-analysis-service.md)
 - [Cross-device development handoff](docs/device-handoff.md)
 
 ## Development
@@ -136,6 +144,11 @@ the file contents are identical; safe copying will require fresh verification.
 
 The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
 
+The optional analysis-service development scaffold runs independently on
+`127.0.0.1:8001` and needs Python plus uv, not PostgreSQL or Docker. See its
+[run and verification instructions](analysis-service/README.md). Starting it
+does not add analysis capabilities to the current gallery.
+
 ## Current milestone
 
 Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows a compact scan summary, thumbnail gallery and selected-image details. Manual review of suggestions, OCR and safe copying are not implemented yet.
@@ -146,4 +159,4 @@ Pagination is applied in the database query, not by slicing a full list in Java 
 
 ## Not in the first release
 
-Kafka, microservices, automatic deletion, automatic moving, cloud AI, whole-disk scanning, PDF support, mobile applications, multi-user accounts and cross-device synchronization.
+Kafka, distributed multi-service deployment, automatic deletion, automatic moving, cloud AI, whole-disk scanning, PDF support, mobile applications, multi-user accounts and cross-device synchronization. The narrow local analysis service is an explicit exception to the earlier plan of deferring all separate processes; see ADR-004.

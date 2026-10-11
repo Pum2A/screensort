@@ -2,6 +2,46 @@
 
 Ostatnia aktualizacja bieżącego etapu: 2026-10-11 (UI: 2026-10-09)
 
+## Przyjęty lokalny serwis analizy — 2026-10-11
+
+Właściciel zaakceptował osobny lokalny proces Pythona, z Javą jako rdzeniem.
+Dodano `analysis-service` w tym samym repozytorium, bez nowego `.git`:
+pakiet `screensort_analysis`, FastAPI, aplikacja-fabryka `main.create_app`,
+`api/health.py`, `api/schemas.py`, testy i własne `pyproject.toml` + `uv.lock`.
+W development nasłuchuje na `127.0.0.1:8001`, jeden proces. Nie uruchamia się
+automatycznie z Tauri. Zależności instalujemy tylko we własnym `.venv` przez uv.
+
+`GET /health` odpowiada `service: screensort-analysis`, `status: ok`,
+`analysis_available: false`. To liveness, nie gotowe modele. Endpointy `/ready`
+i `/api/v1/analyses` nie istnieją. Nie podłączono klienta Javy, Reacta, OCR,
+wizji, GPU, kolejki, autoryzacji ani zapisu wyników. Nie pobierano modeli,
+nie zmieniano źródeł i bazy. Nie myl tego z wcześniejszym benchmarkiem ONNX.
+
+Java będzie właścicielem zadań analizy, bezpieczeństwa źródła i trwałych wyników.
+Python ma analizować ograniczone bajty obrazu i zwracać częściowe rezultaty,
+hash rzeczywistego wejścia, wersje modeli i błędy. Bez wspólnej bazy, encji JPA,
+ścieżek systemowych z klienta i bez operacji na oryginałach. React rozmawia
+z Javą, nie bezpośrednio z Pythonem. NVIDIA/CUDA jest przyszłą opcją,
+nie wdrożoną funkcją i nie zamiennikiem działającego wariantu CPU.
+
+[ADR-004](adr/ADR-004-local-python-analysis-service.md) zastępuje wcześniejszy
+plan odłożenia osobnego procesu analizy do czasu po MVP. Nie zmienia ADR-001.
+Nie rozbijamy skanowania na mikroserwisy i nie tworzymy pustych warstw na zapas.
+Pierwszy wspólny krok: kontrakt jednej analizy oraz zabezpieczenia przed
+implementacją OCR. Właściciel chce nadal sam pisać istotny backend;
+nie implementuj modeli, klienta i kolejnych funkcji bez nowej zgody.
+
+Uruchomienie i objaśnienia: [`analysis-service/README.md`](../analysis-service/README.md).
+Weryfikacja 2026-10-11: Python 3.14.4, uv 0.11.25, FastAPI 0.143.0,
+Uvicorn 0.54.0, Pydantic 2.14.0. Pięć testów przeszło również z `-W error`,
+bez ostrzeżeń; lint i kontrola formatowania Ruff poprawne. Zbudowano wheel
+i sdist. Fabryka uruchomiona przez Uvicorn odpowiedziała HTTP 200 na rzeczywisty
+GET `/health` na losowym porcie loopback; tymczasowy serwer zatrzymano.
+Windows sandbox blokował launchery i izolował połączenia: kontrolę wykonano
+poza nim, bez zmiany kodu na obejścia środowiska. W aktualnej wersji Starlette
+TestClient korzysta z `httpx2`; nie ukrywano ostrzeżenia starego `httpx`.
+Maven, frontend i natywne Tauri nie były zmieniane ani ponownie testowane.
+
 ## Eksperyment wyboru języka analizy — 2026-10-11
 
 Dodano odizolowany `benchmarks/vision-bindings`, nie serwis produkcyjny.
@@ -15,9 +55,9 @@ to nie test OCR, trafności kategorii, generowania opisów ani szybkości całej
 Wykryto AMD Radeon RX 6600; nie testowano GPU. Nie zakładać CUDA dla AMD.
 Python pozostaje rekomendowanym kandydatem do lokalnego procesu analizy ze
 względu na integrację modeli, nie udowodnionym zwycięzcą wydajności.
-Nie dodano FastAPI, OCR/modeli do aplikacji ani nowych zależności głównego
-backendu. Nie modyfikowano bazy i zdjęć. Pierwotne dokumenty architektury
-nadal opisują starszy plan; nowa technologia serwisu nie jest jeszcze przyjętym ADR.
+W samym eksperymencie nie dodano FastAPI, OCR/modeli do aplikacji ani nowych
+zależności głównego backendu. Nie modyfikowano bazy i zdjęć. Późniejszy szkielet
+serwisu i przyjęcie ADR-004 opisuje aktualna sekcja powyżej.
 
 Przeczytaj [`benchmark-analiza-jezyki.md`](benchmark-analiza-jezyki.md).
 Następny proponowany krok: mały, opisany zbiór obrazów i ocena kandydatów OCR
@@ -88,6 +128,7 @@ go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git
 - PostgreSQL uruchamiany przez Docker Compose i migracje Flyway.
 - React 19, TypeScript 6 i Vite 8.
 - Tauri 2 + Rust: działa okno developerskie i natywny picker folderu.
+- Python + FastAPI: osobny szkielet health w `analysis-service`, bez modeli/integracji.
 - JUnit Jupiter.
 
 ```text
@@ -172,8 +213,9 @@ pl.pum.screensort.catalog
 └── database      # encje i repozytoria JPA
 ```
 
-Projekt pozostaje modularnym monolitem organizowanym według funkcji produktu.
-Nie tworzymy mikroserwisów ani pustych pakietów „na przyszłość”.
+Java pozostaje modularnym rdzeniem organizowanym według funkcji produktu.
+Obok jest lokalny szkielet Pythona opisany w ADR-004. Nie rozbijamy całego
+produktu na kolejne mikroserwisy ani nie tworzymy pustych pakietów na zapas.
 Pełniejszy schemat przepływu danych i mapa plików:
 [`struktura-projektu.md`](struktura-projektu.md).
 
@@ -233,7 +275,8 @@ Postęp backendu i React są połączone na wyraźną prośbę właściciela.
 Najbliższy wspólny krok to omówienie kodu i wybór kolejnej funkcji produktu.
 Przeczytaj [`scanjob-krok-po-kroku.md`](scanjob-krok-po-kroku.md): start managera,
 Objects, callbacki, Consumer, wykonawca, nagłówki HTTP oraz nowe pliki Reacta.
-Nie dodano Python/FastAPI ani zmian w Rust. Odrzucenia są ograniczoną próbką
+Etap zadań skanu nie dodawał Python/FastAPI ani zmian w Rust. Późniejszy szkielet
+Pythona opisuje sekcja na początku dokumentu. Odrzucenia są ograniczoną próbką
 do 100 na zadanie, nie pełnym wynikiem w historii. GET-y statusu nie skanują.
 Po utracie połączenia UI pozwala wznowić GET tego samego ID. Restart UI traci
 śledzenie; abort zapytań nie anuluje skanu w Javie.
@@ -370,7 +413,9 @@ Przed zmianą zachowania przeczytaj:
 - `docs/decyzje-techniczne.md`;
 - `docs/adr/ADR-001-copy-first.md`;
 - `docs/adr/ADR-002-react-desktop-ui.md`;
-- `docs/adr/ADR-003-tauri-desktop-shell.md`.
+- `docs/adr/ADR-003-tauri-desktop-shell.md`;
+- `docs/adr/ADR-004-local-python-analysis-service.md`;
+- `analysis-service/README.md`.
 
 ADR-003 zastępuje wybór JavaFX z ADR-002. ADR-002 zostaje w repozytorium jako
 historyczny zapis decyzji.
@@ -413,7 +458,8 @@ Kontynuuj pomaganie mi w budowie ScreenSort z repozytorium otwartego w workspace
 Najpierw przeczytaj README.md, docs/device-handoff.md,
 docs/struktura-projektu.md, docs/decyzje-techniczne.md,
 docs/project-brief.md, docs/architecture.md,
-docs/roadmap.md oraz trzy ADR-y. Sprawdź git status i wszystkie lokalne zmiany.
+docs/roadmap.md oraz cztery ADR-y. Przeczytaj też analysis-service/README.md.
+Sprawdź git status i wszystkie lokalne zmiany.
 Kanoniczne prywatne repozytorium to https://github.com/Pum2A/screensort, branch main.
 
 Rozmawiaj ze mną po polsku. Znam programowanie i frontend, ale uczę się Javy,
@@ -440,7 +486,12 @@ Przeczytaj docs/scanjob-krok-po-kroku.md i docs/zadania-skanowania.md.
 Przeczytaj również docs/od-zadan-skanowania-do-ui.md — chronologię od zadań
 do obecnego UI z konkretnymi fragmentami kodu i wyjaśnieniem nowej prezentacji.
 Restart Javy traci opisy zadań, nie katalog; restart UI traci bieżące śledzenie.
-Nie dodaliśmy Python/FastAPI ani zmian w Rust. Kolejna funkcja wymaga omówienia.
+Dodano lokalny szkielet Python/FastAPI w analysis-service: tylko GET /health,
+analysis_available: false, własny pakiet, uv.lock i testy. Bez OCR, wizji, GPU,
+klienta Javy, połączenia z Reactem i automatycznego startu z Tauri. Granice:
+ADR-004. Java zachowuje zadania i zapis, Python nie dostaje bazy ani dowolnych
+ścieżek. Kolejny krok: wspólny kontrakt analizy i zabezpieczenia, dopiero potem OCR.
+Nie implementuj tego za właściciela bez wyraźnej zgody.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie pokazuje
 CatalogDetailsPanel obok galerii (na telefonie pod nią). Przycisk Powiększ

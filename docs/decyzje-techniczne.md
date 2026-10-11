@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-10-09
+Ostatnia aktualizacja: 2026-10-11
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -26,11 +26,13 @@ danych.
 | Wersjonowanie bazy | Flyway | Działa | Struktura bazy jest odtwarzalna z uporządkowanych migracji SQL. |
 | ORM i repozytoria | JPA/Hibernate + Spring Data JPA | Działa | Mapowanie wierszy PostgreSQL na obiekty Java i mniej ręcznego kodu SQL dla prostych operacji. |
 | Aplikacja desktopowa | Tauri 2 + Rust | Działa w development | Natywne okno i folder picker przy zachowaniu interfejsu React. Installer i uruchamianie Javy przez powłokę są późniejszym etapem. |
+| Lokalny serwis analizy | Python + FastAPI | Działa tylko szkielet `/health` | Osobny proces i zależności modeli; jeszcze bez OCR/wizji i połączenia z Javą. |
 | OCR | Jeszcze nie wybrano | Później | Najpierw kończymy bezpieczny, trwały katalog. |
 
-ScreenSort pozostaje **modularnym monolitem**: jedna aplikacja Spring Boot i jedna
-baza. Nie wprowadzamy mikroserwisów, dopóki działające MVP nie pokaże realnej
-potrzeby niezależnego skalowania którejś części.
+Java pozostaje **modularnym rdzeniem**: jedna aplikacja Spring Boot i jedna
+baza katalogu. Właściciel przyjął osobny lokalny serwis analizy w Pythonie;
+[ADR-004](adr/ADR-004-local-python-analysis-service.md) zmienia wcześniejszy plan
+odłożenia go po MVP. Nie rozbijamy skanera i katalogu na kolejne serwisy.
 
 ## 2. Docelowy przepływ aplikacji
 
@@ -49,7 +51,9 @@ flowchart LR
 
 Tauri nie zastępuje Spring Boota. Rust odpowiada docelowo za małą warstwę
 natywną, przede wszystkim picker folderu. Walidacja ścieżki, skanowanie,
-katalogowanie, OCR i reguły biznesowe pozostają w Javie.
+katalogowanie i reguły biznesowe pozostają w Javie. Przyszłe obliczenia OCR
+i analizy wizualnej delegujemy do lokalnego Pythona; ten przepływ nie jest jeszcze
+podłączony. Python nie będzie zapisywał katalogu ani zmieniał źródłowych plików.
 
 ## 3. SHA-256 — po co i jak sprawdzamy poprawność
 
@@ -653,3 +657,31 @@ przyszłego zabezpieczenia nazw, kolizji i ścieżek przy tworzeniu kopii.
 Historia, dokładne fragmenty kodu i rozróżnienie obecnego oraz przyszłego
 przepływu: [`od-zadan-skanowania-do-ui.md`](od-zadan-skanowania-do-ui.md).
 Wsparcie biblioteki: [Vite — CSS Modules](https://vite.dev/guide/features#css-modules).
+
+## 19. Osobny serwis analizy i czytelne nazwy
+
+`analysis-service` ma własny pakiet, API HTTP, środowisko i testy. To granica
+procesu, a nie nowe pakiety Javy. Wybór Pythona wynika z pracy z modelami,
+nie z rzekomego przyspieszenia każdego obliczenia przez zmianę języka.
+
+| Nazwa | Znaczenie i dlaczego |
+|---|---|
+| `screensort-analysis` | Nazwa instalowanej dystrybucji Pythona. |
+| `screensort_analysis` | Nazwa pakietu do importowania; bez niedozwolonego myślnika. |
+| `main.py` | Składa aplikację, nie jest miejscem na całą logikę. |
+| `api` | Routing HTTP i publiczne schematy danych, nie tabele PostgreSQL. |
+| `HealthResponse` | Jawny kontrakt JSON; `analysis_available: false` nie udaje gotowych modeli. |
+| `pyproject.toml` | Zależności i konfiguracja budowania, odpowiednik roli części `pom.xml`. |
+| `uv.lock` | Dokładne wersje zależności z hashami; `.venv` to lokalna, niecommitowana instalacja. |
+
+Późniejsze `ocr/` i `vision/` będą modułami jednego serwisu, nie oddzielnymi
+mikroserwisami. Nie tworzymy pustych warstw na zapas. Java będzie właścicielem
+zadań i zapisu; Python ma oddawać obliczony wynik bez dostępu do bazy katalogu.
+Powstaje koszt nowego runtime, komunikacji i pakowania; sama struktura nie
+gwarantuje ani skalowania, ani wydajności. Pełne granice i warunki bezpieczeństwa:
+[ADR-004](adr/ADR-004-local-python-analysis-service.md).
+
+W tym etapie dodano tylko health, kontrakt i testy. Następny wspólny krok to
+wejście/wyjście jednej analizy, zabezpieczenia i pierwszy realny wynik OCR.
+Nie podłączono jeszcze GPU, modeli ani Reacta. Instrukcja i źródła bibliotek:
+[`analysis-service/README.md`](../analysis-service/README.md).

@@ -1,15 +1,23 @@
 # ScreenSort — mapa obecnego projektu
 
 Ten dokument opisuje kod, który **już istnieje**. To nie jest lista pakietów do
-utworzenia na przyszłość. Projekt jest jedną aplikacją Spring Boot z frontendem
-React, a nie zbiorem mikroserwisów.
+utworzenia na przyszłość. Rdzeń to jedna aplikacja Spring Boot z frontendem
+React/Tauri. Obok jest niezależny lokalny szkielet serwisu analizy Python;
+nie rozbijamy całego produktu na zbiór mikroserwisów.
 
-Ostatnia aktualizacja: 2026-10-09.
+Ostatnia aktualizacja: 2026-10-11.
 
 ## Gdzie czego szukać
 
 ```text
 screenSorter/
+├── analysis-service/              osobny proces Python; obecnie tylko GET /health
+│   ├── pyproject.toml             pakiet, zależności i narzędzia
+│   ├── uv.lock                    dokładne wersje zależności
+│   ├── src/screensort_analysis/
+│   │   ├── main.py                tworzy aplikację HTTP
+│   │   └── api/                   health.py i schemas.py: routing + JSON
+│   └── tests/test_health.py       testy bez modeli, obrazów i bazy
 ├── frontend/src/                 React: ekran, stan i wywołania /api
 │   ├── App.tsx                   skan, wynik i stronicowany katalog
 │   ├── scanning/                 zadanie skanu, polling, etapy i liczniki
@@ -94,6 +102,13 @@ screenSorter/
 `pl.pum.screensort` to nazwa pakietu Javy. Katalogi pod `src/main/java`
 odzwierciedlają kolejne części tej nazwy. Testy mają analogiczne pakiety pod
 `src/test/java`.
+
+Pakiet Python ma własną przestrzeń nazw `screensort_analysis`, nie kopię
+pakietów Javy. `__init__.py` oznacza pakiet/podpakiet. Obecny serwis nie jest
+wywoływany przez Springa ani Reacta; health jawnie raportuje brak analizy.
+Instrukcja, role plików i następne kroki:
+[`analysis-service/README.md`](../analysis-service/README.md).
+Granice i uzasadnienie: [ADR-004](adr/ADR-004-local-python-analysis-service.md).
 
 ## Co oznaczają te nazwy
 
