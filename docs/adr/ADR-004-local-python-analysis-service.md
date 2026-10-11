@@ -1,6 +1,7 @@
 # ADR-004: Lokalny serwis analizy w Pythonie
 
-Data: 2026-10-11  
+Data: 2026-10-11
+
 Status: Accepted — granica serwisu i szkielet; silniki OCR/wizualne nadal niewybrane
 
 Zmienia wcześniejszy plan odkładania osobnego procesu analizy do czasu po MVP
