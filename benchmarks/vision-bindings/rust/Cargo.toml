@@ -1,0 +1,8 @@
+[package]
+name = "screensort-vision-bench"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+ort = { version = "=2.0.0-rc.13", default-features = false, features = ["std", "load-dynamic", "api-24"] }
