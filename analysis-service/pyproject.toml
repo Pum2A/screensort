@@ -1,12 +1,15 @@
 [project]
 name = "screensort-analysis"
 version = "0.1.0"
-description = "Local OCR and visual analysis service for ScreenSort (health-only scaffold)."
+description = "Local OCR and image analysis components with a health-only HTTP API."
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 dependencies = [
     "fastapi>=0.115,<1.0",
+    "onnxruntime>=1.26,<2",
+    "pillow>=12.3.0",
     "pydantic>=2.10,<3.0",
+    "rapidocr==3.10.0",
     "uvicorn>=0.30,<1.0",
 ]
 
