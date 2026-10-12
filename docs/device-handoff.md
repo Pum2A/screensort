@@ -1,6 +1,44 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu: 2026-10-11 (UI: 2026-10-09)
+Ostatnia aktualizacja bieżącego etapu: 2026-10-12 (UI: 2026-10-09)
+
+## Wspólne przygotowanie obrazu i samodzielny OCR — 2026-10-12
+
+Właściciel dodał RapidOCR 3.10.0, ONNX Runtime i Pillow, opcje/wynik OCR,
+`VisualResult` i kandydata Florence w `vision/analyzer.py`. Na jego wyraźną
+prośbę wydzielono `image/preparation.py` i dodano `image/analyzer.py`.
+Odczyt PNG/JPEG, kontrola bajtów/wymiarów i RGB są wspólne. Konstruktor
+`ImageAnalyzer(ocr, vision)` otrzymuje wcześniej utworzone silniki. `analyze`
+przygotowuje raz, hashuje oryginalne bajty, następnie wywołuje kolejno OCR i wizję.
+`ImageAnalysisResult.visual` jest opcjonalne dla starszych przykładów OCR-only.
+
+`OcrRecognizer.recognize(bytes, options)` nadal działa w konsoli;
+nowe `recognize_prepared(image, options)` pożycza już przygotowany obraz.
+Właściciel obrazu zamyka go przez `contextlib.closing`; pomocnicze bufory też
+są zamykane. Błędy nie są zamieniane na udane puste wyniki. OCR duration
+nie zawiera już przygotowania; pierwszy przebieg może zawierać lazy loading.
+Nie interpretować tych czasów jako porównania całego starego/nowego pipeline.
+
+Rzeczywisty OCR sprawdzono przed i po refaktorze na syntetycznym obrazie:
+`ScreenSort OCR test` oraz `Order number 12345`, poprawny wynik obu wywołań.
+Test integracyjny jest opt-in i blokuje sieć. Jednostkowe testy koordynatora
+korzystają ze sztucznej wizji, nie są dowodem trafności Florence.
+Nie zainstalowano torch/transformers, nie pobrano modelu wizualnego, nie ma
+realnej inferencji wizji, GPU ani połączenia z Javą/Reactem. HTTP nadal tylko
+health z `analysis_available: false`; nie dodano endpointu analizy.
+
+Weryfikacja refaktoru: 40/40 testów Pythona z włączonym rzeczywistym OCR,
+Ruff lint i formatowanie poprawne, uv.lock zgodny; wheel i sdist zbudowane
+offline. Testy health i narzędzia uv wymagały uruchomienia poza ograniczonym
+sandboxem Windows. Nie zmieniano Javy, Reacta, bazy ani źródłowych obrazów.
+
+Przeczytaj [kod i wyjaśnienia](analiza-obrazu-krok-po-kroku.md) oraz
+[README serwisu](../analysis-service/README.md). Następna propozycja do omówienia:
+uzgodniona instalacja runtime wizji i lokalny cache przypiętego modelu,
+potem próba na jednym obrazie. Przed API potrzebne są limity uploadu,
+autoryzacja, readiness, ograniczona praca w toku i niezależne błędy częściowe.
+Nie dopisuj tego bez kolejnej zgody właściciela. Starsze sekcje poniżej
+pozostają datowanym zapisem wcześniejszych etapów.
 
 ## Przyjęty lokalny serwis analizy — 2026-10-11
 
@@ -128,7 +166,8 @@ go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git
 - PostgreSQL uruchamiany przez Docker Compose i migracje Flyway.
 - React 19, TypeScript 6 i Vite 8.
 - Tauri 2 + Rust: działa okno developerskie i natywny picker folderu.
-- Python + FastAPI: osobny szkielet health w `analysis-service`, bez modeli/integracji.
+- Python + FastAPI: API tylko health; samodzielny OCR CPU i przygotowanie obrazu
+  w `analysis-service`, bez integracji z Javą i bez uruchomionej wizji.
 - JUnit Jupiter.
 
 ```text
@@ -486,12 +525,16 @@ Przeczytaj docs/scanjob-krok-po-kroku.md i docs/zadania-skanowania.md.
 Przeczytaj również docs/od-zadan-skanowania-do-ui.md — chronologię od zadań
 do obecnego UI z konkretnymi fragmentami kodu i wyjaśnieniem nowej prezentacji.
 Restart Javy traci opisy zadań, nie katalog; restart UI traci bieżące śledzenie.
-Dodano lokalny szkielet Python/FastAPI w analysis-service: tylko GET /health,
-analysis_available: false, własny pakiet, uv.lock i testy. Bez OCR, wizji, GPU,
-klienta Javy, połączenia z Reactem i automatycznego startu z Tauri. Granice:
-ADR-004. Java zachowuje zadania i zapis, Python nie dostaje bazy ani dowolnych
-ścieżek. Kolejny krok: wspólny kontrakt analizy i zabezpieczenia, dopiero potem OCR.
-Nie implementuj tego za właściciela bez wyraźnej zgody.
+Dodano lokalny Python/FastAPI w analysis-service: HTTP tylko GET /health,
+analysis_available: false, własny pakiet, uv.lock i testy. Samodzielny OCR CPU
+działa. image/preparation.py przygotowuje obraz; ImageAnalyzer łączy OCR i wizję,
+ale koordynator jest na razie sprawdzony z atrapą wizji. Kandydat Florence jest
+zapisany, bez torch/transformers i pobranego modelu. Przeczytaj również
+docs/analiza-obrazu-krok-po-kroku.md. Brak wizji w runtime, GPU, klienta Javy,
+połączenia z Reactem i automatycznego startu z Tauri. Granice: ADR-004.
+Java zachowuje zadania i zapis, Python nie dostaje bazy ani dowolnych ścieżek.
+Kolejny krok: uzgodnić uruchomienie Florence; zabezpieczenia i częściowe błędy
+muszą powstać przed HTTP analizy. Nie implementuj tego bez wyraźnej zgody.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie pokazuje
 CatalogDetailsPanel obok galerii (na telefonie pod nią). Przycisk Powiększ

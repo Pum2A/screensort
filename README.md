@@ -7,6 +7,7 @@
 - [Od obudowy skanu do obecnego UI — zmiany, kod i wyjaśnienia po polsku](docs/od-zadan-skanowania-do-ui.md).
 - [Benchmark analizy: Python / Java / Rust — rzeczywiste wyniki i ograniczenia](docs/benchmark-analiza-jezyki.md).
 - [Lokalny serwis analizy — struktura, uruchomienie i następne kroki](analysis-service/README.md).
+- [Jeden obraz: przygotowanie, OCR i analiza wizualna — kod po polsku](docs/analiza-obrazu-krok-po-kroku.md).
 
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
@@ -27,7 +28,10 @@ use CSS Modules, without an additional styling or animation dependency.
 An independent local Python/FastAPI service scaffold is in `analysis-service`.
 It exposes only `GET /health` with `analysis_available: false`, with its own
 package, locked dependencies and tests. It is not connected to Java or React
-yet and does not contain OCR, visual models, GPU integration or image uploads.
+yet. Standalone RapidOCR CPU and shared image preparation now work in Python;
+the coordinator is tested with a fake vision engine. A Florence adapter candidate
+exists, but its runtime and model are not installed or verified. There is no GPU
+integration or HTTP image upload endpoint.
 The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).
 
 The backend also supports background scan jobs: `POST /api/scan/jobs` returns
@@ -151,7 +155,7 @@ does not add analysis capabilities to the current gallery.
 
 ## Current milestone
 
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows a compact scan summary, thumbnail gallery and selected-image details. Manual review of suggestions, OCR and safe copying are not implemented yet.
+Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows a compact scan summary, thumbnail gallery and selected-image details. Standalone Python OCR is verified; integration of analysis with Java/React, persistent manual review of suggestions and safe copying remain to implement.
 
 `GET /api/catalog/files/{id}/thumbnail` produces a PNG with a maximum edge of 320 px; `/preview` uses 1024 px. No source file is written. Preview input is limited to 50 MiB, 40 million pixels and 20,000 px per edge; unsupported or unavailable previews show a fallback in the UI. Up to two decoders work concurrently, and the encoded-image cache is bounded to 128 entries / 16 MiB. The API binds to `127.0.0.1` by default. See the gallery guide for security limitations and memory costs beyond the cache.
 

@@ -1,7 +1,7 @@
 # ScreenSort — decyzje techniczne wyjaśnione po polsku
 
 Status: żywy dokument edukacyjny  
-Ostatnia aktualizacja: 2026-10-11
+Ostatnia aktualizacja: 2026-10-12
 
 Ten dokument odpowiada nie tylko na pytanie **co** znajduje się w projekcie,
 ale przede wszystkim **dlaczego** podjęliśmy daną decyzję. Powinien być
@@ -26,8 +26,8 @@ danych.
 | Wersjonowanie bazy | Flyway | Działa | Struktura bazy jest odtwarzalna z uporządkowanych migracji SQL. |
 | ORM i repozytoria | JPA/Hibernate + Spring Data JPA | Działa | Mapowanie wierszy PostgreSQL na obiekty Java i mniej ręcznego kodu SQL dla prostych operacji. |
 | Aplikacja desktopowa | Tauri 2 + Rust | Działa w development | Natywne okno i folder picker przy zachowaniu interfejsu React. Installer i uruchamianie Javy przez powłokę są późniejszym etapem. |
-| Lokalny serwis analizy | Python + FastAPI | Działa tylko szkielet `/health` | Osobny proces i zależności modeli; jeszcze bez OCR/wizji i połączenia z Javą. |
-| OCR | Jeszcze nie wybrano | Później | Najpierw kończymy bezpieczny, trwały katalog. |
+| Lokalny serwis analizy | Python + FastAPI | HTTP tylko `/health`; samodzielny OCR działa | Osobny proces i zależności modeli; bez połączenia z Javą i uruchomionej wizji. |
+| OCR | RapidOCR 3.10.0 + ONNX Runtime CPU | Działa samodzielnie | Rozpoznawanie tekstu; wspólne przygotowanie RGB pozwala użyć obrazu również w wizji. |
 
 Java pozostaje **modularnym rdzeniem**: jedna aplikacja Spring Boot i jedna
 baza katalogu. Właściciel przyjął osobny lokalny serwis analizy w Pythonie;
@@ -681,7 +681,12 @@ Powstaje koszt nowego runtime, komunikacji i pakowania; sama struktura nie
 gwarantuje ani skalowania, ani wydajności. Pełne granice i warunki bezpieczeństwa:
 [ADR-004](adr/ADR-004-local-python-analysis-service.md).
 
-W tym etapie dodano tylko health, kontrakt i testy. Następny wspólny krok to
-wejście/wyjście jednej analizy, zabezpieczenia i pierwszy realny wynik OCR.
-Nie podłączono jeszcze GPU, modeli ani Reacta. Instrukcja i źródła bibliotek:
+Pierwszy etap serwisu obejmował health, kontrakt i testy. Aktualizacja 2026-10-12
+dodaje samodzielny OCR oraz wspólne przygotowanie obrazu. `ImageAnalyzer`
+składa wyniki bez HTTP; jego testy mają zastępczy silnik wizji. Florence jest
+kandydatem zapisanym w kodzie, ale jeszcze nieuruchomionym. Nie podłączono
+GPU, Javy ani Reacta. Następna propozycja: lokalna próba Florence, potem
+zabezpieczenia i niezależne błędy przed API. Wyjaśnienia refaktoru:
+[`analiza-obrazu-krok-po-kroku.md`](analiza-obrazu-krok-po-kroku.md).
+Instrukcja i źródła bibliotek:
 [`analysis-service/README.md`](../analysis-service/README.md).

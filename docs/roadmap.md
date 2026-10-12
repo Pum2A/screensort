@@ -78,7 +78,7 @@ Target: weeks 3–4
 
 - Local Polish and English OCR.
 - Local Python analysis service with a versioned contract and Java-owned jobs;
-  health scaffold exists, actual image analysis and integration remain to implement.
+  HTTP is health-only; standalone OCR works, visual inference and integration remain.
 - Versioned analysis jobs and results.
 - Visual analyzer interface.
 - First local visual labeling implementation.
