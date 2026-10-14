@@ -1,1 +1,1 @@
-"""Visual analysis candidate; its model runtime is not enabled by the service."""
+"""Local visual inference; HTTP integration is still a separate step."""

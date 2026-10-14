@@ -11,11 +11,12 @@ from screensort_analysis.image.preparation import (
     MAX_IMAGE_PIXELS,
     validate_prepared_image,
 )
+from screensort_analysis.vision.model import MODEL_ID, MODEL_REVISION
 
 
 class VisionAnalyzer:
-    MODEL_ID = "florence-community/Florence-2-base-ft"
-    MODEL_REVISION = "0b03b6f15a4a211370fb204aee4e7dd48887ea37"
+    MODEL_ID = MODEL_ID
+    MODEL_REVISION = MODEL_REVISION
 
     TASK = "<CAPTION>"
     MAX_NEW_TOKENS = 96

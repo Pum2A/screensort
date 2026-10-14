@@ -11,7 +11,7 @@ from screensort_analysis.image.preparation import prepare_image
 from screensort_analysis.ocr.recognizer import OcrRecognizer
 
 if TYPE_CHECKING:
-    # OCR-only imports must not require the not-yet-installed visual runtime.
+    # OCR-only imports must not require the optional visual runtime.
     from screensort_analysis.vision.analyzer import VisionAnalyzer
 
 
