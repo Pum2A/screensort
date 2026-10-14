@@ -2,11 +2,12 @@
 
 Data: 2026-10-11
 
-Status: Accepted — granica serwisu; OCR RapidOCR CPU, Florence kandydatem wizji
+Status: Accepted — granica serwisu; OCR RapidOCR i Florence CPU
 
 Aktualizacja 2026-10-12: OCR działa samodzielnie w kodzie Pythona. Dodano wspólne
 przygotowanie obrazu i koordynator sprawdzony z zastępczym silnikiem wizji.
-Florence nie został jeszcze uruchomiony. HTTP nadal ma tylko health, bez
+Florence jest uruchomiony offline z opcjonalnym runtime CPU i lokalnym modelem.
+Pełny workflow ma również test z prawdziwymi silnikami. HTTP nadal ma tylko health, bez
 integracji z Javą. To nie zmienia granic procesu ani reguł bezpieczeństwa.
 
 Zmienia wcześniejszy plan odkładania osobnego procesu analizy do czasu po MVP
@@ -67,7 +68,7 @@ nie jest wymagana, jeśli nie ma danych, za które samodzielnie odpowiada.
 
 - `main.py`: tworzy aplikację i łączy komponenty.
 - `api/`: transport HTTP i schematy danych.
-- `ocr/`: samodzielny RapidOCR; `vision/`: kandydat Florence, bez runtime.
+- `ocr/`: samodzielny RapidOCR; `vision/`: rzeczywisty Florence CPU i jawny downloader.
   Ich kod nie zależy od kontrolera HTTP.
 - `image/`: wspólne przygotowanie bajtów i koordynacja jednego obrazu.
 - `tests/`: testy istniejących zachowań; bez rzeczywistych prywatnych obrazów.
@@ -108,11 +109,11 @@ warunkiem korzystania z docelowej aplikacji desktopowej.
 ## Stan wdrożenia i następny krok
 
 Istnieją pakiet, uruchomienie HTTP, `/health`, schematy odpowiedzi i testy.
-Samodzielny OCR jest zweryfikowany; koordynator ma testy z zastępczym silnikiem
-wizji, a Florence pozostaje nieuruchomionym kandydatem. Health odpowiada
+Samodzielny OCR i Florence CPU są zweryfikowane; koordynator ma testy jednostkowe
+oraz pełną integrację offline. Health odpowiada
 `analysis_available: false`. Nie istnieją jeszcze klient Javy, endpoint analizy,
 autoryzacja, readiness modeli ani rzeczywisty wynik w React.
 
-Następny etap do wspólnego napisania: uruchomienie lokalnej analizy wizualnej,
-potem częściowe wyniki i zabezpieczony kontrakt HTTP. Zmiany backendu i modeli wymagają
+Następny etap do wspólnego napisania: częściowe wyniki, zabezpieczony kontrakt
+HTTP, klient Javy i zapis JPA. Zmiany backendu i modeli wymagają
 omówienia z właścicielem, który chce sam pisać istotny kod.

@@ -8,6 +8,7 @@
 - [Benchmark analizy: Python / Java / Rust — rzeczywiste wyniki i ograniczenia](docs/benchmark-analiza-jezyki.md).
 - [Lokalny serwis analizy — struktura, uruchomienie i następne kroki](analysis-service/README.md).
 - [Jeden obraz: przygotowanie, OCR i analiza wizualna — kod po polsku](docs/analiza-obrazu-krok-po-kroku.md).
+- [Florence: pierwsze uruchomienie i następny krok do Javy/JPA](docs/florence-pierwsze-uruchomienie.md).
 
 ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
 
@@ -28,10 +29,11 @@ use CSS Modules, without an additional styling or animation dependency.
 An independent local Python/FastAPI service scaffold is in `analysis-service`.
 It exposes only `GET /health` with `analysis_available: false`, with its own
 package, locked dependencies and tests. It is not connected to Java or React
-yet. Standalone RapidOCR CPU and shared image preparation now work in Python;
-the coordinator is tested with a fake vision engine. A Florence adapter candidate
-exists, but its runtime and model are not installed or verified. There is no GPU
-integration or HTTP image upload endpoint.
+yet. Standalone RapidOCR and Florence CPU work together in Python, verified
+with offline integration tests and a read-only local console. Vision dependencies
+are an optional extra, and pinned model data stays in an ignored local cache.
+There is no GPU integration or HTTP image upload endpoint. See the
+[Florence run report and next Java/JPA steps](docs/florence-pierwsze-uruchomienie.md).
 The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).
 
 The backend also supports background scan jobs: `POST /api/scan/jobs` returns

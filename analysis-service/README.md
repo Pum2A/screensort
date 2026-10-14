@@ -1,8 +1,8 @@
 # ScreenSort Analysis Service
 
-Status 2026-10-12: działający samodzielny OCR CPU i wspólne przygotowanie obrazu.
-HTTP nadal udostępnia tylko health. Florence jest kandydatem zapisanym w kodzie,
-bez zainstalowanego runtime, pobranego modelu i potwierdzonej inferencji.
+Status 2026-10-12: działający samodzielny OCR, Florence i wspólny workflow CPU.
+HTTP nadal udostępnia tylko health. Prawdziwy OCR i opis wizualny są sprawdzone
+offline w konsoli oraz w testach integracyjnych na syntetycznym obrazie.
 Nie ma jeszcze połączenia z Javą ani rzeczywistych wyników analizy w React.
 
 To osobny lokalny proces Pythona w tym samym repozytorium Git. Ma własny pakiet,
@@ -49,14 +49,17 @@ Silnik OCR to RapidOCR 3.10.0 + ONNX Runtime CPU. Lista języków `pl`/`en`
 ogranicza opcje wejściowe; nie przełącza modelu ani nie filtruje języka wyniku.
 Silnik wielojęzyczny może zwrócić także napisy w innym języku.
 
-W `vision/analyzer.py` znajduje się kandydat Florence-2-base-ft, natywna klasa
-Transformers, przypięty revision, CPU float32 i `local_files_only=True`.
-`torch` i `transformers` nie są jeszcze zależnościami projektu; model nie został
-pobrany. Nie próbuj na tym etapie uruchamiać go jako gotowej funkcji.
-Import koordynatora nie wymaga tych paczek: import typu wizji działa tylko
-dla narzędzi sprawdzających typy. Testy koordynatora mają jawnie zastępcze silniki,
-nie są testem jakości Florence. Następny krok wymaga uzgodnionej instalacji
-runtime, przygotowania lokalnego cache i próby prawdziwej inferencji.
+`vision/analyzer.py` używa Florence-2-base-ft: natywna klasa Transformers,
+przypięty revision, CPU float32 i `local_files_only=True`. Model i runtime
+zweryfikowano lokalnie. Opis jest na razie krótki i po angielsku: `<CAPTION>`.
+To propozycja opisu, nie gwarancja wykrycia wszystkich obiektów ani ich znaczenia.
+Nie wykonujemy tłumaczenia, kategoryzacji ani zmiany nazw.
+
+PyTorch/Transformers są opcjonalnym zestawem `vision`; zwykłe OCR ich nie wymaga.
+Windows/Linux korzystają z oficjalnego indeksu CPU, bez bibliotek CUDA.
+Import koordynatora bez wizji nadal działa. Testy jednostkowe koordynatora mają
+jawnie zastępcze silniki; osobny test integracyjny uruchamia oba prawdziwe modele.
+Nie traktuj tych testów jako pełnej oceny trafności opisów.
 
 Dokładne metody i wyjaśnienia po polsku:
 [Analiza obrazu krok po kroku](../docs/analiza-obrazu-krok-po-kroku.md).
@@ -93,6 +96,40 @@ Można też otworzyć `http://127.0.0.1:8001/docs` w przeglądarce. Ctrl+C zatrz
 wyłącznie ten serwis. Nie trzeba uruchamiać Springa, Reacta, Tauri ani Dockera,
 żeby sprawdzić ten szkielet. Nie wystawiaj go przez `--host 0.0.0.0`.
 
+## Florence i cały wynik w konsoli
+
+Z `analysis-service`, jednorazowo na danym urządzeniu:
+
+```powershell
+uv sync --extra vision --locked --no-python-downloads
+uv run --extra vision --locked --no-python-downloads python -m screensort_analysis.vision.download_model --model-cache models
+```
+
+Pierwsze polecenie instaluje dodatkowy runtime we własnym `.venv`, nie globalnie.
+Drugie jawnie pobiera około 469 MB danych publicznego modelu do `models/`:
+przypięty revision i wyłącznie wskazane pliki danych oraz safetensors, bez
+zdalnych plików Python. Nie wymaga konta ani tokenu Hugging Face.
+`models/`, `.venv/` i cache nie trafiają do Git; na laptopie trzeba je odtworzyć.
+Ostrzeżenie o braku symlinków Windows oznacza zwykłe kopie w cache, nie błąd
+modelu. Nie trzeba uruchamiać aplikacji jako administrator ani zmieniać Windows.
+
+Potem wybierz swój istniejący obraz zamiast przykładowej ścieżki:
+
+```powershell
+uv run --extra vision --locked --offline --no-python-downloads python -m screensort_analysis.image.console --image "C:/Pictures/example.png" --model-cache models --cpu-threads 4 --runs 2
+```
+
+Konsola odczytuje tylko wskazany plik, do 50 MiB, bez zapisu. To lokalne narzędzie
+developerskie, nie endpoint przyjmujący ścieżki od klienta. Nie skanuje folderów.
+Model pracuje offline, z wyłączoną telemetrią i niejawnym tokenem Hub w tym
+procesie. JSON zawiera runtime, osobny czas utworzenia silników i dwa wyniki:
+hash oryginalnych bajtów, tekst OCR, opis wizualny, wersje oraz czasy.
+Treść jest wypisywana na Twoją prośbę; nie zapisuj prywatnych wyników do Git.
+
+Przy uruchamianiu wizji zawsze dodawaj `--extra vision`: zwykłe `uv run` może
+zsynchronizować środowisko bez opcjonalnych paczek. CPU threads dotyczy tego
+procesu konsoli; 4 to początkowy wybór, nie udowodnione optimum.
+
 ## Sprawdzanie
 
 Z `analysis-service`:
@@ -121,6 +158,21 @@ Remove-Item Env:SCREENSORT_RUN_OCR_TESTS
 Ten test tworzy obraz z tekstem w pamięci i blokuje pobieranie przez `requests`.
 Wymaga dostępnych lokalnie modeli RapidOCR; nie pobiera modelu Florence.
 
+Pełny test OCR + Florence, po przygotowaniu modelu:
+
+```powershell
+$env:SCREENSORT_RUN_OCR_TESTS = "1"
+$env:SCREENSORT_RUN_VISION_TESTS = "1"
+uv run --extra vision --locked --offline --no-python-downloads python -m pytest
+Remove-Item Env:SCREENSORT_RUN_OCR_TESTS
+Remove-Item Env:SCREENSORT_RUN_VISION_TESTS
+```
+
+Test wizji blokuje sockety i nie pobiera modelu. Sprawdza pełne wywołanie,
+niepusty opis, rzeczywisty CPU, powiązanie hasha i JSON. Nie zakłada, że dokładne
+słowa opisu są prawidłowym opisem każdego obrazu. Obie integracje są domyślnie
+pominięte, więc zwykłe testy nie potrzebują lokalnego modelu Florence.
+
 ## Gdzie jest który kod
 
 ```text
@@ -137,19 +189,25 @@ analysis-service/
 │   ├── image/
 │   │   ├── __init__.py              oznaczenie podpakietu
 │   │   ├── preparation.py          limity, odczyt PNG/JPEG i przygotowanie RGB
-│   │   └── analyzer.py             jeden obraz → OCR + wizja → wspólny wynik
+│   │   ├── analyzer.py             jeden obraz → OCR + wizja → wspólny wynik
+│   │   └── console.py              lokalna próba jednego pliku i pomiary JSON
 │   ├── ocr/
 │   │   ├── __init__.py              oznaczenie podpakietu
 │   │   └── recognizer.py            RapidOCR CPU
 │   └── vision/
 │       ├── __init__.py              oznaczenie podpakietu
-│       └── analyzer.py              kandydat Florence; runtime nieuruchomiony
+│       ├── analyzer.py              rzeczywisty Florence CPU, lokalny model
+│       ├── model.py                 wspólna tożsamość modelu i lista danych
+│       └── download_model.py        jawne przygotowanie cache przed inferencją
 └── tests/
     ├── test_health.py               istniejący kontrakt HTTP
     ├── test_image_preparation.py    limity, format, RGB i zwalnianie zasobów
     ├── test_ocr_recognizer.py       delegowanie i zachowany interfejs OCR
     ├── test_image_analyzer.py       składanie wyników i błędy; zastępcze silniki
-    └── test_ocr_integration.py      opcjonalny rzeczywisty OCR, syntetyczny obraz
+    ├── test_ocr_integration.py      opcjonalny rzeczywisty OCR, syntetyczny obraz
+    ├── test_vision_integration.py   opcjonalny prawdziwy OCR + Florence offline
+    ├── test_vision_download.py      przypięty kontrakt pobierania, bez sieci
+    └── test_image_console.py        ograniczony odczyt testowych plików
 ```
 
 Nazwa dystrybucji to `screensort-analysis`, a importu `screensort_analysis`:
@@ -171,8 +229,8 @@ health w cache HTTP, aby przyszła kontrola procesu nie pokazywała starego wyni
    i ograniczenie współbieżności. Loopback sam w sobie nie jest autoryzacją.
 3. OCR już działa samodzielnie; rozszerzyć ocenę jakości o opisane przykłady
    polskich i angielskich zrzutów, zanim uznamy go za gotowy dla całego katalogu.
-4. Uruchomić kandydata Florence na jednym obrazie po uzgodnieniu zależności
-   i lokalnego cache. Dopiero potem składać modele przez lifespan;
+4. Florence jest uruchomiony; rozszerzyć próbę o opisany zbiór zrzutów i
+   porównać trafność krótkiego oraz szczegółowego opisu. Składać modele przez lifespan;
    `/ready` powinien odzwierciedlać rzeczywiście dostępne możliwości.
 5. Podłączyć klienta w Javie oraz osobne zadanie analizy; potem prawdziwy wynik
    w React. Nie przerabiać `ScanJob` na zadanie analizy.
@@ -185,7 +243,7 @@ Python nie dostanie repozytoriów JPA ani dostępu do bazy katalogu. Nie przyjmu
 dowolnych ścieżek, nie skanuje dysku i nie zmienia oryginalnych plików.
 
 Nie dodano jeszcze autoryzacji, limitu uploadu HTTP, kolejki, analizy przez API,
-uruchomienia Florence, kontenerowego wdrożenia ani automatycznego startu z Tauri.
+kontenerowego wdrożenia ani automatycznego startu z Tauri.
 Limity dekodera nie ograniczają całej pamięci procesu: raw bytes, RGB, bufory
 pomocnicze i modele mają własny koszt. Limit 40 mln pikseli jest początkową
 polityką, nie wynikiem pomiaru maksymalnego bezpiecznego RAM dla każdej maszyny.
@@ -198,3 +256,6 @@ automatycznie skanowania.
 - [FastAPI — testy](https://fastapi.tiangolo.com/tutorial/testing/).
 - [uv — projekty i zależności](https://docs.astral.sh/uv/guides/projects/).
 - [uv — integracja z FastAPI](https://docs.astral.sh/uv/guides/integration/fastapi/).
+- [uv — opcjonalne warianty PyTorch CPU](https://docs.astral.sh/uv/guides/integration/pytorch).
+- [Transformers — Florence-2](https://huggingface.co/docs/transformers/model_doc/florence2).
+- [Przypięte pliki modelu](https://huggingface.co/florence-community/Florence-2-base-ft/tree/0b03b6f15a4a211370fb204aee4e7dd48887ea37).

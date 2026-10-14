@@ -5,8 +5,8 @@ Status: Draft v0.1
 Update 2026-10-12: this is the initial design, not the complete current layout.
 [ADR-004](adr/ADR-004-local-python-analysis-service.md) brings forward an independent
 local Python analysis service. Its HTTP API remains health-only; standalone OCR
-and shared image preparation are verified. A visual adapter candidate exists,
-but its runtime/model and Java integration are not ready. Java remains a modular core, and the service must
+and shared image preparation are verified. Florence CPU and the combined workflow
+also run offline; Java integration is not ready. Java remains a modular core, and the service must
 not share its database or source-path API. ADR-004 supersedes the timing and
 single-process assumptions for analysis below, not the read-only/copy-first rules.
 

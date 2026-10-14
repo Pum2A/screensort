@@ -1,6 +1,40 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu: 2026-10-12 (UI: 2026-10-09)
+Ostatnia aktualizacja bieżącego etapu: 2026-10-14 (UI: 2026-10-09)
+
+## Rzeczywisty Florence CPU i JSON całej analizy — 2026-10-12
+
+Florence działa lokalnie razem z OCR. Zainstalowano opcjonalny zestaw `vision`:
+PyTorch 2.14.1+cpu z oficjalnego indeksu CPU, Transformers 5.19.0 i Hub 2.2.0,
+we własnym `.venv`. `vision/model.py` wspólnie definiuje ID i przypięty revision.
+`vision/download_model.py` jawnie pobiera wybrane dane modelu do ignorowanego
+`models/`, bez zdalnego kodu i bez konta. Nie uruchamia analizy ani nie przesyła
+zdjęć. Wagi/cache nie trafiają do Git: laptop wymaga instalacji i pobrania.
+
+`image/console.py` otrzymuje jeden wskazany plik, czyta go w ograniczeniu 50 MiB,
+ustawia tryb offline i tworzy OCR + VisionAnalyzer raz. Pokazuje JSON z hashem,
+tekstem, opisem, wersjami i czasami pierwszego/kolejnego przebiegu. Rzeczywisty
+opis jest teraz krótki, po angielsku, `<CAPTION>`. Nie ma jeszcze kategorii,
+proponowanych nazw, tłumaczenia ani oceny trafności na całym zbiorze.
+Sprawdzono odczyt wcześniej udostępnionej fotografii: hash, rozmiar i mtime
+źródła nie zmieniły się. Jej treść i prywatny OCR nie zostały zapisane w repo.
+
+Weryfikacja: 47/47 testów z włączonym realnym OCR i Florence, także pełna analiza
+syntetycznego obrazu z zablokowaną siecią. Lint i formatowanie poprawne.
+Testy integracyjne są opt-in; podstawowy zestaw nie wymaga modelu wizji.
+To nie benchmark katalogu ani pełna ocena jakości opisów.
+
+Ponowna weryfikacja 2026-10-14 przed zapisem etapu w Git: 47/47 testów,
+również prawdziwy OCR i Florence offline; lint i formatowanie nadal poprawne.
+
+Przeczytaj [raport i następne kroki](florence-pierwsze-uruchomienie.md) oraz
+[polecenia w README](../analysis-service/README.md). HTTP nadal ma tylko health
+z `analysis_available: false`: modele nie są jeszcze wpięte do serwera HTTP.
+Nie zmieniono Javy, Reacta, bazy ani źródeł. Następny etap do uzgodnienia:
+częściowe wyniki, zabezpieczony POST Pythona, klient Javy i osobna tabela/encja
+analizy JPA. Nie łączyć Pythona z bazą katalogu i nie robić z ScanJob zadania
+analizy. Kolejnego backendu nie implementować bez omówienia z właścicielem.
+Poniższe sekcje opisują wcześniejsze etapy tego samego dnia i historię.
 
 ## Wspólne przygotowanie obrazu i samodzielny OCR — 2026-10-12
 
@@ -166,8 +200,8 @@ go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git
 - PostgreSQL uruchamiany przez Docker Compose i migracje Flyway.
 - React 19, TypeScript 6 i Vite 8.
 - Tauri 2 + Rust: działa okno developerskie i natywny picker folderu.
-- Python + FastAPI: API tylko health; samodzielny OCR CPU i przygotowanie obrazu
-  w `analysis-service`, bez integracji z Javą i bez uruchomionej wizji.
+- Python + FastAPI: API tylko health; samodzielny OCR i Florence CPU
+  w `analysis-service`, bez integracji z Javą/Reactem i bez GPU.
 - JUnit Jupiter.
 
 ```text
@@ -527,14 +561,15 @@ do obecnego UI z konkretnymi fragmentami kodu i wyjaśnieniem nowej prezentacji.
 Restart Javy traci opisy zadań, nie katalog; restart UI traci bieżące śledzenie.
 Dodano lokalny Python/FastAPI w analysis-service: HTTP tylko GET /health,
 analysis_available: false, własny pakiet, uv.lock i testy. Samodzielny OCR CPU
-działa. image/preparation.py przygotowuje obraz; ImageAnalyzer łączy OCR i wizję,
-ale koordynator jest na razie sprawdzony z atrapą wizji. Kandydat Florence jest
-zapisany, bez torch/transformers i pobranego modelu. Przeczytaj również
-docs/analiza-obrazu-krok-po-kroku.md. Brak wizji w runtime, GPU, klienta Javy,
+działa. image/preparation.py przygotowuje obraz; ImageAnalyzer łączy OCR i wizję.
+Florence CPU jest sprawdzony z prawdziwym modelem offline. Runtime to opcjonalny
+zestaw vision; lokalny cache nie jest w Git. Przeczytaj również
+docs/analiza-obrazu-krok-po-kroku.md i docs/florence-pierwsze-uruchomienie.md.
+Brak GPU, klienta Javy,
 połączenia z Reactem i automatycznego startu z Tauri. Granice: ADR-004.
 Java zachowuje zadania i zapis, Python nie dostaje bazy ani dowolnych ścieżek.
-Kolejny krok: uzgodnić uruchomienie Florence; zabezpieczenia i częściowe błędy
-muszą powstać przed HTTP analizy. Nie implementuj tego bez wyraźnej zgody.
+Kolejny krok: uzgodnić częściowe błędy i zabezpieczony HTTP analizy, następnie
+klienta Javy i zapis JPA. Nie implementuj tego bez wyraźnej zgody.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie pokazuje
 CatalogDetailsPanel obok galerii (na telefonie pod nią). Przycisk Powiększ

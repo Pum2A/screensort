@@ -26,8 +26,9 @@ danych.
 | Wersjonowanie bazy | Flyway | Działa | Struktura bazy jest odtwarzalna z uporządkowanych migracji SQL. |
 | ORM i repozytoria | JPA/Hibernate + Spring Data JPA | Działa | Mapowanie wierszy PostgreSQL na obiekty Java i mniej ręcznego kodu SQL dla prostych operacji. |
 | Aplikacja desktopowa | Tauri 2 + Rust | Działa w development | Natywne okno i folder picker przy zachowaniu interfejsu React. Installer i uruchamianie Javy przez powłokę są późniejszym etapem. |
-| Lokalny serwis analizy | Python + FastAPI | HTTP tylko `/health`; samodzielny OCR działa | Osobny proces i zależności modeli; bez połączenia z Javą i uruchomionej wizji. |
+| Lokalny serwis analizy | Python + FastAPI | HTTP tylko `/health`; OCR i wizja działają samodzielnie | Osobny proces i zależności modeli; bez połączenia z Javą. |
 | OCR | RapidOCR 3.10.0 + ONNX Runtime CPU | Działa samodzielnie | Rozpoznawanie tekstu; wspólne przygotowanie RGB pozwala użyć obrazu również w wizji. |
+| Wizja | Florence-2-base-ft + PyTorch CPU/Transformers | Działa samodzielnie | Krótki opis sceny; przypięty model i opcjonalny runtime, bez chmury/GPU. |
 
 Java pozostaje **modularnym rdzeniem**: jedna aplikacja Spring Boot i jedna
 baza katalogu. Właściciel przyjął osobny lokalny serwis analizy w Pythonie;
@@ -683,10 +684,13 @@ gwarantuje ani skalowania, ani wydajności. Pełne granice i warunki bezpieczeń
 
 Pierwszy etap serwisu obejmował health, kontrakt i testy. Aktualizacja 2026-10-12
 dodaje samodzielny OCR oraz wspólne przygotowanie obrazu. `ImageAnalyzer`
-składa wyniki bez HTTP; jego testy mają zastępczy silnik wizji. Florence jest
-kandydatem zapisanym w kodzie, ale jeszcze nieuruchomionym. Nie podłączono
-GPU, Javy ani Reacta. Następna propozycja: lokalna próba Florence, potem
-zabezpieczenia i niezależne błędy przed API. Wyjaśnienia refaktoru:
+składa wyniki bez HTTP; poza testami z atrapami działa też prawdziwy OCR +
+Florence offline. Runtime wizji jest opcjonalnym zestawem, model w lokalnym cache.
+Nie podłączono GPU, Javy ani Reacta. Następna propozycja: zabezpieczenia
+i niezależne błędy przed API, potem klient Javy i JPA. Wyjaśnienia refaktoru:
 [`analiza-obrazu-krok-po-kroku.md`](analiza-obrazu-krok-po-kroku.md).
 Instrukcja i źródła bibliotek:
 [`analysis-service/README.md`](../analysis-service/README.md).
+
+Rzeczywisty wynik i opis nowego polecenia konsolowego:
+[`florence-pierwsze-uruchomienie.md`](florence-pierwsze-uruchomienie.md).

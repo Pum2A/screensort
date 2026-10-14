@@ -4,11 +4,11 @@ Aktualizacja: 2026-10-12. Dotyczy Pythona w `analysis-service`, nie skanera Javy
 
 ## Co działa, a co jest jeszcze przed nami
 
-Przygotowanie PNG/JPEG i prawdziwy OCR CPU są sprawdzone. Koordynator
-`ImageAnalyzer` istnieje; jego połączenia i obsługa błędów są testowane
-z zastępczym silnikiem wizji. Nie jest to potwierdzenie działania Florence.
-Kod kandydata `VisionAnalyzer` został zachowany, ale nie zainstalowano jeszcze
-PyTorch/Transformers ani nie pobrano jego modelu. HTTP nadal ma tylko health;
+Przygotowanie PNG/JPEG, prawdziwy OCR i Florence CPU są sprawdzone. Koordynator
+`ImageAnalyzer` ma testy jednostkowe z zastępczymi silnikami i integrację z oboma
+prawdziwymi modelami offline. Opcjonalne zależności wizji oraz przypięty model
+zostały przygotowane. [Uruchomienie Florence](florence-pierwsze-uruchomienie.md).
+HTTP nadal ma tylko health;
 nie ma klienta Javy, zapisu analizy, GPU ani wyników analizy w galerii.
 
 ## Dlaczego rozdzieliliśmy metody
@@ -24,7 +24,7 @@ obietnica braku wszystkich kopii danych ani konkretnego przyspieszenia.
 | `image/preparation.py`: `prepare_image` | Ograniczone bajty | Obraz RGB | Sprawdzenie i dekodowanie obrazu. |
 | `ocr/recognizer.py`: `recognize` | Bajty + opcje | `OcrResult` | Zgodne z dotychczasową konsolą samodzielne OCR. |
 | `ocr/recognizer.py`: `recognize_prepared` | Gotowy RGB + opcje | `OcrResult` | Rozpoznanie tekstu bez ponownego otwierania. |
-| `vision/analyzer.py`: `analyze` | Gotowy RGB | `VisualResult` | Kandydat do opisu sceny, jeszcze nieuruchomiony. |
+| `vision/analyzer.py`: `analyze` | Gotowy RGB | `VisualResult` | Rzeczywisty krótki opis sceny przez Florence CPU. |
 | `image/analyzer.py`: `analyze` | Bajty + opcje | `ImageAnalysisResult` | Połączenie kroków i powiązanie z oryginalną zawartością. |
 
 To funkcje jednego lokalnego procesu, nie trzy nowe mikroserwisy. `image/`
@@ -114,8 +114,8 @@ Przed HTTP ustalimy niezależne statusy/błędy częściowe, żeby udany tekst n
 ginął, gdy opis wizualny się nie powiedzie. `visual=None` służy teraz zachowaniu
 przykładów OCR-only, nie ukrywaniu awarii.
 
-Najbliższy krok: uzgodnić zależności wizji, pobrać przypięty model do lokalnego
-cache i uruchomić Florence na jednym obrazie. Następnie zabezpieczony endpoint:
+Florence jest już uruchomiony na jednym obrazie oraz w integracji offline.
+Najbliższy krok: częściowe wyniki i zabezpieczony endpoint:
 autoryzacja, limit uploadu przed odczytem, ograniczona praca w toku, gotowość
 modeli, błędy i timeouty. Dopiero potem Java i osobne zadania analizy.
 
