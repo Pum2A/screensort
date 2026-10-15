@@ -1,6 +1,43 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu: 2026-10-15 (UI: 2026-10-09)
+Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
+
+## Instalator Windows i analiza end-to-end — 2026-10-15
+
+To aktualny etap; wcześniejsze sekcje są datowaną historią. Właściciel jawnie
+wybrał **instalator .exe bez narzędzi developerskich**, nie tylko jeden start dev.
+Zezwolił przywrócić zaakceptowany ImageAnalyzer z niezależnymi wynikami.
+
+Dodano zabezpieczony POST Pythona z opcjami i surowymi bajtami, readiness,
+pojedynczy worker modeli i ograniczenia uploadu/czasu. Java ma moduł `analysis`
+(bezpieczny odczyt po ID, klient, osobne zadania, typowany kontrakt i zapis JPA).
+Flyway V4 tworzy `file_analysis`. React pokazuje prawdziwe wyniki wybranego pliku,
+nie tylko dotychczasowe, nadal oznaczone demo.
+
+Rust nadzoruje prywatne PostgreSQL, Javę i Pythona. Adresy są losowe na loopback,
+tokeny pozostają po stronie natywnej. Desktop używa mostu IPC z allowlistą API;
+przeglądarka dev nadal używa proxy Vite. Modele są dołączone i pracują na CPU.
+PostgreSQL desktop jest oddzielny od Dockera; nie nadpisano developerskich danych
+ani oryginałów. Nowy instalator zaczyna z własnym pustym katalogiem.
+
+Budowanie: `scripts/build-windows.ps1`; runtime lock i notices w `packaging/windows`.
+Duże pliki runtime/modeli/instalatora są ignorowane przez Git. Skrypt zachowuje
+poprzedni wygenerowany runtime w `.release/backups`. Do budowy na laptopie potrzeba
+toolchainu i pobranego modelu, do uruchomienia gotowego instalatora — nie.
+
+Dokładny opis po polsku: [instalator i przepływ danych](instalator-windows.md).
+Decyzja i alternatywy: [ADR-005](adr/ADR-005-private-windows-runtimes.md).
+Nie dodawaj teraz automatycznego kopiowania, zmiany nazw, GPU ani kolejnych
+mikroserwisów bez uzgodnienia. Następne zadanie to omówienie zmian z właścicielem
+i audyt działającego pakietu, nie kolejne tysiące linii bez pokazania mu przepływu.
+
+Weryfikacja kodu: 104 testy Pythona (także realne OCR + Florence offline),
+93 testy Javy bez Dockera, 31 testów frontendu, natywny test allowlisty.
+Lint Pythona/frontendu i kompilacja są poprawne. Testy Testcontainers nie zostały
+uruchomione: Docker Desktop był wyłączony. Osobny test pakietu używa prawdziwego,
+dołączonego PostgreSQL i modeli na generowanym obrazie; patrz aktualny raport
+w przewodniku instalatora. Nie traktuj samej kompilacji jako dowodu testu UI,
+czystej VM ani jakości opisów modelu.
 
 ## Niezależne wyniki OCR i wizji — 2026-10-15
 

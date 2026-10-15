@@ -16,7 +16,12 @@ The application scans a user-selected folder, extracts visible text with OCR, an
 
 ## Status
 
-Early safe-cataloging slice with a React frontend and persistent PostgreSQL catalog.
+Local cataloging and single-image OCR/visual analysis, with a React frontend and persistent PostgreSQL results.
+
+Windows packaging includes private Java, Python, CPU models and PostgreSQL
+runtimes: the installed application does not need a developer JDK, Python, Node
+or Docker. See [the Windows prerelease guide](docs/instalator-windows.md) for
+building, checks, limitations and the separate desktop database.
 
 The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React starts a background scan through `POST /api/scan/jobs`, polls its ID, shows stages and counters for new, rescanned, unchanged and rejected files, and displays saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image shows its catalog details beside the gallery, with animated metadata branches. A separate zoom button opens the existing centered preview over a dimmed, lightly blurred gallery. Close that modal with the top-right X, Escape or a backdrop click; keyboard focus returns to the zoom button. On smaller screens the details appear below the gallery. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
 
@@ -26,16 +31,14 @@ results for the selected files. Approval only changes temporary React state; it 
 not call an analysis API, save to PostgreSQL, rename or copy a source file. New components
 use CSS Modules, without an additional styling or animation dependency.
 
-An independent local Python/FastAPI service scaffold is in `analysis-service`.
-It exposes only `GET /health` with `analysis_available: false`, with its own
-package, locked dependencies and tests. It is not connected to Java or React
-yet. Standalone RapidOCR and Florence CPU work together in Python, verified
-with offline integration tests and a read-only local console. Vision dependencies
-are an optional extra, and pinned model data stays in an ignored local cache.
-OCR and vision now return independent COMPLETED, FAILED or SKIPPED outcomes;
-an ordinary engine failure preserves the other engine's successful result.
-There is no GPU integration or HTTP image upload endpoint. See the
-[Florence run report and next Java/JPA steps](docs/florence-pierwsze-uruchomienie.md).
+The selected-image details now also expose real OCR and visual analysis.
+Java reads a bounded source snapshot by catalog ID, sends bytes to the protected
+local Python service and saves the typed response in `file_analysis` (Flyway V4).
+React polls a separate analysis job and reloads saved results. OCR and vision
+return independent COMPLETED, FAILED or SKIPPED outcomes. Models load once;
+one analysis runs at a time. Desktop Rust owns private child processes, dynamic
+loopback addresses and per-launch credentials, not the webview. No GPU,
+automatic categories, real name proposals or copy operations are implemented yet.
 The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).
 
 The backend also supports background scan jobs: `POST /api/scan/jobs` returns

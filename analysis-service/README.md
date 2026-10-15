@@ -109,7 +109,7 @@ Z głównego katalogu repozytorium, w PowerShell:
 cd analysis-service
 uv sync --locked --extra vision --no-python-downloads
 # Zapisz ten sam losowy token w konfiguracji Javy; nie commituj go.
-$env:SCREENSORT_ANALYSIS_TOKEN = uv run python -c "import secrets; print(secrets.token_urlsafe(32))"
+$env:SCREENSORT_ANALYSIS_TOKEN = uv run --locked --extra vision python -c "import secrets; print(secrets.token_urlsafe(32))"
 uv run --locked --extra vision --no-python-downloads python -m uvicorn screensort_analysis.main:create_app --factory --host 127.0.0.1 --port 8001 --workers 1
 ```
 
