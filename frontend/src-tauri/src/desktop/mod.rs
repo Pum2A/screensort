@@ -1,5 +1,6 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
+mod paths;
 mod processes;
 mod smoke;
 
@@ -12,6 +13,7 @@ use std::sync::{
 };
 use tauri::{AppHandle, Manager, State};
 
+pub use smoke::launch_startup_check;
 pub use smoke::run_smoke;
 
 #[derive(Clone, Serialize)]
@@ -52,19 +54,43 @@ impl Default for Desktop {
     }
 }
 
+fn runtime_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    if cfg!(debug_assertions) {
+        Ok(std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("runtime"))
+    } else {
+        app.path()
+            .resource_dir()
+            .map(|path| path.join("runtime"))
+            .map_err(|_| "Nie można odnaleźć katalogu instalacji ScreenSort.".into())
+    }
+}
+
+fn startup_failed(app: &AppHandle, error: String) {
+    let desktop = app.state::<Desktop>();
+    let mut status = desktop.status.lock().expect("status lock");
+    status.backend_ready = false;
+    status.analysis_ready = false;
+    status.error = Some(error);
+}
+
 pub fn launch(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let runtime = if cfg!(debug_assertions) {
-            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("runtime")
-        } else {
-            match app.path().resource_dir() {
-                Ok(path) => path.join("runtime"),
-                Err(_) => return,
+        let runtime = match runtime_path(&app) {
+            Ok(path) => path,
+            Err(error) => {
+                startup_failed(&app, error);
+                return;
             }
         };
         let data = match app.path().app_local_data_dir() {
             Ok(path) => path,
-            Err(_) => return,
+            Err(_) => {
+                startup_failed(
+                    &app,
+                    "Nie można odnaleźć katalogu danych ScreenSort.".into(),
+                );
+                return;
+            }
         };
         let update_app = app.clone();
         let result = processes::start(&runtime, &data, move |status, backend| {
@@ -105,13 +131,7 @@ pub fn launch(app: AppHandle) {
                     }
                 }
             }
-            Err(message) => {
-                let desktop = app.state::<Desktop>();
-                let mut status = desktop.status.lock().expect("status lock");
-                status.backend_ready = false;
-                status.analysis_ready = false;
-                status.error = Some(message);
-            }
+            Err(message) => startup_failed(&app, message),
         }
     });
 }

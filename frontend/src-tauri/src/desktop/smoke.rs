@@ -175,35 +175,61 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
     )
 }
 
-pub async fn run_smoke() -> i32 {
-    let runtime = match argument("--runtime-dir") {
-        Ok(path) => path,
-        Err(e) => {
-            eprintln!("{e}");
-            return 2;
-        }
-    };
-    let data = match argument("--data-dir") {
-        Ok(path) => path,
-        Err(e) => {
-            eprintln!("{e}");
-            return 2;
-        }
-    };
-    let result = smoke(&runtime, &data).await;
-    let report = match &result {
+fn finish_report(data: &Path, result: Result<Value, String>, tauri_resolver: bool) -> i32 {
+    let mut report = match &result {
         Ok(value) => value.clone(),
         Err(error) => json!({"passed": false, "error": error}),
     };
+    report["tauriResourceResolver"] = Value::Bool(tauri_resolver);
     // The caller chooses an isolated output path; no credentials or user images appear in the report.
-    let _ = fs::write(
+    if fs::write(
         data.with_extension("report.json"),
         serde_json::to_vec_pretty(&report).unwrap(),
-    );
+    )
+    .is_err()
+    {
+        return 2;
+    }
     if result.is_ok() {
         0
     } else {
         eprintln!("{report}");
         1
     }
+}
+
+pub async fn run_smoke() -> i32 {
+    let (runtime, data) = match (argument("--runtime-dir"), argument("--data-dir")) {
+        (Ok(runtime), Ok(data)) => (runtime, data),
+        _ => return 2,
+    };
+    let result = smoke(&runtime, &data).await;
+    finish_report(&data, result, false)
+}
+
+/// Use the real Tauri PathResolver, not a CLI-supplied approximation of its result.
+/// Only the data directory is overridden, and it must be new. No webview/user data.
+pub fn launch_startup_check(app: tauri::AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let data = match argument("--data-dir") {
+            Ok(path) => path,
+            Err(_) => {
+                app.exit(2);
+                return;
+            }
+        };
+        let result = match super::runtime_path(&app) {
+            Ok(runtime) => smoke(&runtime, &data).await.map(|mut report| {
+                report["resourcePathHadVerbatimPrefix"] = Value::Bool(
+                    runtime
+                        .as_os_str()
+                        .as_encoded_bytes()
+                        .starts_with(b"\\\\?\\"),
+                );
+                report
+            }),
+            Err(error) => Err(error),
+        };
+        app.exit(finish_report(&data, result, true));
+    });
 }

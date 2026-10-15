@@ -1,5 +1,6 @@
 //! Own only our private PostgreSQL, Java and Python children; never use PATH.
 
+use super::paths::process_path;
 use super::Status;
 use serde_json::Value;
 use std::{
@@ -248,6 +249,12 @@ pub async fn start<F>(runtime: &Path, data: &Path, mut update: F) -> Result<Owne
 where
     F: FnMut(Status, Option<Backend>),
 {
+    // Tauri can return \\?\ paths. initdb's internal shell cannot execute //?/ paths.
+    // Normalize before deriving *any* executable, model, password or data path.
+    let runtime_path = process_path(runtime)?;
+    let data_path = process_path(data)?;
+    let runtime = runtime_path.as_path();
+    let data = data_path.as_path();
     for executable in [
         "java/bin/java.exe",
         "python/python.exe",
