@@ -1,0 +1,17 @@
+{
+  "capturedOn": "2026-10-15",
+  "data": "synthetic examples, isolated PostgreSQL database",
+  "interface": "real React production build in browser development mode",
+  "backend": "real Java + PostgreSQL + authenticated local Python",
+  "catalogTotal": 6,
+  "sample": "Screenshot_001.png",
+  "sampleSha256": "5fafc36420988c5e250aa80778556027a8acc893fb1f7c185665c3bccc66d8c0",
+  "analysisHashMatchesSample": true,
+  "savedAnalysisMatchesCatalog": true,
+  "ocrStatus": "COMPLETED",
+  "visualStatus": "COMPLETED",
+  "ocrEngine": "rapidocr",
+  "visualModel": "florence-community/Florence-2-base-ft",
+  "visualDescription": "A black screen with the words Local Database / Connection on it.",
+  "performanceBenchmark": false
+}

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
+  <title id="title">ScreenSort: implemented workflow and planned organization</title>
+  <desc id="desc">Tauri and React call the Java backend. Java scans a selected source folder, maintains a PostgreSQL catalog, and requests local OCR and visual analysis from Python. Results return through Java to the interface. Naming, review and verified copies are planned, not implemented.</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8" fill="none" stroke="#427368" stroke-width="1.6"/></marker></defs>
+  <rect width="1200" height="680" rx="24" fill="#f4f7f5"/>
+  <g font-family="Consolas,monospace" fill="#173e37">
+    <text x="48" y="53" font-size="28" font-weight="bold">ScreenSort / from folder to understanding</text>
+    <text x="48" y="85" font-size="16" fill="#536c66">CURRENT IMPLEMENTATION · LOCAL PROCESSING · ORIGINALS READ ONLY</text>
+    <g stroke="#b6d1c7" stroke-width="2" fill="#ffffff">
+      <rect x="48" y="143" width="284" height="166" rx="16"/>
+      <rect x="451" y="143" width="286" height="166" rx="16"/>
+      <rect x="855" y="143" width="297" height="166" rx="16"/>
+      <rect x="451" y="385" width="286" height="157" rx="16"/>
+      <rect x="855" y="385" width="297" height="157" rx="16"/>
+    </g>
+    <text x="70" y="178" font-size="15" fill="#608278">01 / DESKTOP + UI</text>
+    <text x="70" y="213" font-size="23" font-weight="bold">Tauri / React</text>
+    <text x="70" y="248" font-size="17">Choose folder · scan</text>
+    <text x="70" y="279" font-size="17">Gallery · job progress</text>
+    <text x="473" y="178" font-size="15" fill="#608278">02 / APPLICATION CORE</text>
+    <text x="473" y="213" font-size="23" font-weight="bold">Java / Spring Boot</text>
+    <text x="473" y="248" font-size="17">Validate · scan · hash</text>
+    <text x="473" y="279" font-size="17">Coordinate · persist</text>
+    <text x="877" y="178" font-size="15" fill="#608278">03 / LOCAL ANALYSIS</text>
+    <text x="877" y="213" font-size="23" font-weight="bold">Python / FastAPI</text>
+    <text x="877" y="248" font-size="17">RapidOCR: visible text</text>
+    <text x="877" y="279" font-size="17">Florence: image caption</text>
+    <text x="473" y="425" font-size="22" font-weight="bold">PostgreSQL</text>
+    <text x="473" y="463" font-size="17">Files + metadata</text>
+    <text x="473" y="494" font-size="17">Hashes + saved analysis</text>
+    <text x="877" y="425" font-size="22" font-weight="bold">Back in the UI</text>
+    <text x="877" y="463" font-size="17">OCR text + description</text>
+    <text x="877" y="494" font-size="17">Independent step status</text>
+    <g stroke="#427368" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
+      <path d="M332 226H440" marker-start="url(#arrow)"/>
+      <path d="M737 226H845" marker-start="url(#arrow)"/>
+      <path d="M594 309V374" marker-start="url(#arrow)"/>
+      <path d="M737 280H790V462H845"/>
+    </g>
+    <text x="354" y="207" font-size="14">IPC</text>
+    <text x="758" y="207" font-size="14">HTTP</text>
+    <text x="616" y="352" font-size="14">JPA</text>
+    <rect x="48" y="581" width="1104" height="66" rx="13" fill="#edf0f8" stroke="#9fa9cb" stroke-width="1.5" stroke-dasharray="7 5"/>
+    <text x="70" y="608" font-size="15" fill="#62698b">PLANNED / NOT IMPLEMENTED</text>
+    <text x="70" y="633" font-size="19" fill="#353e67">Suggested names + categories → manual review → verified copies to an output folder</text>
+  </g>
+</svg>
