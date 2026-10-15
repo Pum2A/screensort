@@ -1,173 +1,169 @@
 # ScreenSort
 
-## Mapa projektu do czytania
+### Make sense of your screenshot chaos.
 
-- [Diagramy obecnej architektury](docs/diagramy-architektury.md) i [PDF na telefon](output/pdf/screensort-architektura.pdf).
-- [Następny etap i analiza wydajności](docs/nastepny-etap-i-wydajnosc.md) i [PDF na telefon](output/pdf/screensort-plan-wydajnosc.pdf).
-- [Od obudowy skanu do obecnego UI — zmiany, kod i wyjaśnienia po polsku](docs/od-zadan-skanowania-do-ui.md).
-- [Benchmark analizy: Python / Java / Rust — rzeczywiste wyniki i ograniczenia](docs/benchmark-analiza-jezyki.md).
-- [Lokalny serwis analizy — struktura, uruchomienie i następne kroki](analysis-service/README.md).
-- [Jeden obraz: przygotowanie, OCR i analiza wizualna — kod po polsku](docs/analiza-obrazu-krok-po-kroku.md).
-- [Florence: pierwsze uruchomienie i następny krok do Javy/JPA](docs/florence-pierwsze-uruchomienie.md).
+A local-first Windows application for exploring screenshot folders and understanding
+what is inside each image. Choose a folder, build a persistent catalog, then run
+local OCR and visual analysis without uploading your images to a cloud AI API.
 
-ScreenSort is a privacy-first local application for turning unnamed screenshots into a searchable, reviewable and safely organized collection.
+**Status: working early preview · Windows x64 · CPU analysis**
 
-The application scans a user-selected folder, extracts visible text with OCR, analyzes visual content, proposes a new file name and category, and presents every suggestion for manual review. Approved files are copied to a separate output directory. Original files are never modified in the MVP.
+ScreenSort is an ongoing personal project, not a finished automatic organizer.
+The current version catalogs images and saves real analysis results. Suggested
+names, categories and verified copy operations are the next product steps.
 
-## Status
+[Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
+[Architecture](#architecture) · [Development](docs/development.md) ·
+[Opis na LinkedIn po polsku](docs/linkedin-projekt.md)
 
-Local cataloging and single-image OCR/visual analysis, with a React frontend and persistent PostgreSQL results.
+## See it in action
 
-Windows packaging includes private Java, Python, CPU models and PostgreSQL
-runtimes: the installed application does not need a developer JDK, Python, Node
-or Docker. See [the Windows prerelease guide](docs/instalator-windows.md) for
-building, checks, limitations and the separate desktop database.
+![ScreenSort catalog with circular thumbnails, scan counters and six synthetic example images](docs/media/catalog.jpg)
 
-The Spring Boot application scans PNG, JPG and JPEG files without modifying the source directory. React starts a background scan through `POST /api/scan/jobs`, polls its ID, shows stages and counters for new, rescanned, unchanged and rejected files, and displays saved files from PostgreSQL through `GET /api/catalog/page`. The saved catalog loads up to 50 records per page as a circular-thumbnail grid. Selecting an image shows its catalog details beside the gallery, with animated metadata branches. A separate zoom button opens the existing centered preview over a dimmed, lightly blurred gallery. Close that modal with the top-right X, Escape or a backdrop click; keyboard focus returns to the zoom button. On smaller screens the details appear below the gallery. The retro PC font is bundled locally, with no external font requests. Images are read by catalog record ID with path checks and bounded in-memory PNG caching. The older Thymeleaf screen remains available at `/` as a prototype.
+Actual React interface connected to Java, PostgreSQL and the local Python service.
+The media uses generated demonstration images and an isolated database, not private
+photographs. Captured in browser development mode; the Windows application wraps
+the same UI in Tauri and adds the native folder picker.
 
-The light UI also has an explicitly marked analysis demo with three fictional examples,
-visual descriptions, OCR-like text and editable name proposals. These examples are not
-results for the selected files. Approval only changes temporary React state; it does
-not call an analysis API, save to PostgreSQL, rename or copy a source file. New components
-use CSS Modules, without an additional styling or animation dependency.
+[![Short ScreenSort presentation assembled from real application captures](docs/media/screensort-preview.gif)](docs/media/screensort-preview.mp4)
 
-The selected-image details now also expose real OCR and visual analysis.
-Java reads a bounded source snapshot by catalog ID, sends bytes to the protected
-local Python service and saves the typed response in `file_analysis` (Flyway V4).
-React polls a separate analysis job and reloads saved results. OCR and vision
-return independent COMPLETED, FAILED or SKIPPED outcomes. Models load once;
-one analysis runs at a time. Desktop Rust owns private child processes, dynamic
-loopback addresses and per-launch credentials, not the webview. No GPU,
-automatic categories, real name proposals or copy operations are implemented yet.
-The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).
+[Watch or download the MP4](docs/media/screensort-preview.mp4) ·
+[Screenshots, provenance and recording notes](docs/presentation/README.md)
 
-The backend also supports background scan jobs: `POST /api/scan/jobs` returns
-HTTP 202 with an ID, and `GET /api/scan/jobs/{id}` reports the stage and counters.
-Only one scan may run at a time, including legacy requests. Up to 20 lightweight
-job snapshots are kept in memory; restarting Java loses those snapshots, not the
-persisted catalog. React polls sequentially about once per second and refreshes
-the gallery after COMPLETED. A separate rejection endpoint keeps up to 100 examples
-per job, with the full count and a truncation flag. Lost connections can resume
-status checks without starting another scan; reloading the UI loses current tracking.
-See [the step-by-step Polish explanation](docs/scanjob-krok-po-kroku.md).
+The clip is an edited sequence of real UI captures, not a continuous recording or
+a performance benchmark. The OCR and visual responses shown are actual model results.
 
-## MVP flow
+<details>
+<summary>Image preview and real OCR / visual results</summary>
+
+![Centered, read-only image preview with metadata branches; full source location collapsed](docs/media/preview.jpg)
+
+[Generated input](docs/media/sample-input.png) → [actual saved analysis panel](docs/media/analysis-result-detail.jpg)
+
+Florence described the example as “A black screen with the words Local Database /
+Connection on it.” RapidOCR extracted:
 
 ```text
-Select source folder
-        -> discover image files
-        -> calculate metadata and checksum
-        -> extract text with OCR
-        -> analyze visible content
-        -> propose name, category and tags
-        -> manually review suggestions
-        -> search by extracted content
-        -> approve selected files
-        -> create verified copies in the output folder
+LOCAL DATABASE
+CONNECTION
+ERROR: Connection refused
+Host: 127.0.0.1:5432
+Check if PostgreSQL is running.
+No production data in this example.
+SCREENSORT / SYNTHETIC DEMO DATA
 ```
 
-## Non-negotiable principles
+This is one example, not an accuracy claim. Captions may be incomplete or incorrect.
 
-- Local-first processing.
-- The source directory is read-only.
-- No deletion or moving in the MVP.
-- Every suggestion requires review before a copy is created.
-- Existing destination files are never overwritten.
-- A completed copy must have the same SHA-256 checksum as its source.
-- Repeating a scan or operation must not produce uncontrolled duplicates.
-- When safety cannot be verified, the application stops without modifying user data.
+</details>
 
-## Documentation
+## What works today
 
-- [Product brief](docs/project-brief.md)
-- [Initial architecture](docs/architecture.md)
-- [Mapa obecnego projektu po polsku](docs/struktura-projektu.md)
-- [Galeria i podglądy — co zmieniliśmy i dlaczego](docs/galeria-i-podglady.md)
-- [Zadania skanowania — kod, wątki i API po polsku](docs/zadania-skanowania.md)
-- [ScanJob krok po kroku — start, Consumer, nagłówki i React](docs/scanjob-krok-po-kroku.md)
-- [Od zadań skanowania do jasnego UI — chronologia i omówienie kodu](docs/od-zadan-skanowania-do-ui.md)
-- [Delivery roadmap](docs/roadmap.md)
-- [Decyzje techniczne wyjaśnione po polsku](docs/decyzje-techniczne.md)
-- [ADR-001: Read-only source and copy-first organization](docs/adr/ADR-001-copy-first.md)
-- [ADR-002: React web UI inside a thin Java desktop shell](docs/adr/ADR-002-react-desktop-ui.md)
-- [ADR-003: Tauri desktop shell instead of JavaFX](docs/adr/ADR-003-tauri-desktop-shell.md)
-- [ADR-004: Local Python analysis service](docs/adr/ADR-004-local-python-analysis-service.md)
-- [Cross-device development handoff](docs/device-handoff.md)
+| Area | Implemented |
+| --- | --- |
+| Folder selection | Native Windows folder picker in Tauri; explicit path in browser development mode |
+| Scanning | PNG/JPG/JPEG validation, metadata, streaming SHA-256, bounded workers and background jobs |
+| Incremental scans | Known-file lookup by relative path; unchanged size/time can reuse previous processing results |
+| Persistent catalog | PostgreSQL records survive restarts; rescans update existing paths instead of inserting another row |
+| Image explorer | Database pagination, circular thumbnails, selected-image details and a centered larger preview |
+| Local analysis | RapidOCR text extraction and Florence-2 image description for a selected image |
+| Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
+| Windows packaging | Prerelease installer with private Java, PostgreSQL, Python and CPU models; no developer tools required to run it |
 
-## Development
+Matching size and modification time is a performance shortcut, not proof that
+file bytes are unchanged. Reusing a catalog row is not the same as grouping all
+content-identical files. Whole-folder AI analysis and content-based duplicate
+management are not implemented.
 
-Requirements:
+## How it works
 
-- Java 25;
-- Node.js 20.19+ or 22.12+ for frontend development;
-- Docker Desktop using Linux containers;
-- Docker Compose.
+1. Choose a source folder. Java validates it before scanning its direct entries.
+2. A background scan checks files, compares known metadata and performs expensive
+   image decoding and hashing only where needed. React shows stages and counters.
+3. Java writes the catalog to PostgreSQL. React reads a database-paginated page,
+   not every image at once. Previews are requested by catalog ID.
+4. Select an image and request OCR, visual analysis or both. Java validates and
+   reads the original, then sends image bytes to the protected local Python API.
+5. Python returns structured results. Java checks and saves them; React displays
+   the OCR text, image description and individual step status.
 
-Run the current tests with:
+The scan and analysis jobs have different IDs and lifecycles. Catalog records and
+analysis results persist; the current scan job snapshots are held in memory.
 
-```powershell
-.\mvnw.cmd clean verify
+## Architecture
+
+![Implemented ScreenSort architecture and separately marked planned organization workflow](docs/media/workflow.svg)
+
+The application core remains in Java. A separate local Python analysis service
+provides a narrow boundary around the model ecosystem. This is not a distributed
+cloud microservice platform: Rust supervises local processes on one computer.
+
+| Component | Responsibility | Technology |
+| --- | --- | --- |
+| Desktop shell | Window, folder picker, owned process lifecycle and restricted native bridge | Tauri 2, Rust |
+| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, CSS Modules |
+| Application backend | Scanning, validation, catalog, analysis coordination and REST APIs | Java 25, Spring Boot 4.1.1 |
+| Persistence | Catalog and analysis storage; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, Flyway |
+| Analysis service | OCR and visual description, loaded local models | Python, FastAPI, RapidOCR, Florence-2-base-ft |
+| Development and checks | Reproducible dependencies, database integration and test suites | Maven Wrapper, Docker Compose, Testcontainers, Git |
+
+Desktop credentials and dynamically selected loopback ports stay in Rust, outside
+the webview. Java controls source-file access; Python receives image bytes rather
+than arbitrary filesystem paths. Models currently run on CPU.
+
+## Safety before organization
+
+Source images are read-only. The application does not rename, move or delete them.
+File previews are accessed through catalog IDs with path checks and bounded caching.
+The desktop database is separate from the Docker development database.
+
+Local-first does not mean risk-free. Model output needs review; filesystem races,
+untrusted inputs and local API access still need safeguards. The prerelease is not
+a completed security audit or a production-readiness claim.
+
+## Where this is going
+
+The intended product flow is:
+
+```text
+Choose folder → catalog images → OCR + visual description
+              → propose names, categories and tags       [planned]
+              → review and edit suggestions              [planned]
+              → create verified copies in an output folder [planned]
 ```
 
-Run the application with the `local` profile. Spring Boot will start the PostgreSQL service from `compose.yaml` and supply its connection details to the application:
+The original folder should remain untouched. Future copy operations must avoid
+overwriting destination files and verify the copied content before finalization.
 
-```powershell
-.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
-```
+Near-term work also includes a smaller base installer with optional analysis
+downloads. This is a proposed distribution change, not part of version 0.1.1.
+Search by extracted content, batch analysis, GPU acceleration and cross-device
+synchronization are not available yet.
 
-Open <http://localhost:8080/> and use `demo-images` for the first scan. The test fixture contains two valid PNG files and one ZIP file that should be rejected.
+## Running and building
 
-To run the new frontend development server:
+- [Development setup, commands and manual checks](docs/development.md)
+- [Windows prerelease: packaging, runtime layout and limitations](docs/instalator-windows.md)
+- [0.1.1 Windows startup fix and actual verification](docs/naprawa-startu-windows.md)
+- [Python analysis service setup](analysis-service/README.md)
 
-```powershell
-cd frontend
-npm.cmd install
-npm.cmd run dev
-```
+The Windows installer runs without a separately installed JDK, Python, Node or
+Docker. Building it still requires developer tools. The current offline installer
+is large and unsigned; it has not been verified on a clean Windows VM. Binary
+runtimes, model weights, local databases and installers are not committed to Git.
 
-Open <http://127.0.0.1:5173/>. During development, Vite forwards `/api` requests to Spring Boot at `127.0.0.1:8080`.
+## Project notes
 
-Frontend verification (from `frontend`):
+- [Product brief](docs/project-brief.md) and [roadmap](docs/roadmap.md): intended scope, not a list of completed features.
+- [Current code structure, explained in Polish](docs/struktura-projektu.md).
+- [Architecture diagrams](docs/diagramy-architektury.md) and [phone-friendly PDF](output/pdf/screensort-architektura.pdf).
+- [Scan jobs, threads and API walkthrough](docs/scanjob-krok-po-kroku.md).
+- [Image analysis walkthrough](docs/analiza-obrazu-krok-po-kroku.md).
+- [Technical decisions](docs/decyzje-techniczne.md) and [architecture decision records](docs/adr).
+- [Gallery and preview implementation](docs/galeria-i-podglady.md).
+- [Measured language-binding experiment and its limits](docs/benchmark-analiza-jezyki.md).
+- [Cross-device development handoff](docs/device-handoff.md).
 
-```powershell
-npm.cmd run test
-npm.cmd run build
-npm.cmd run lint
-```
-
-Layout, scan-API/polling and analysis-demo form tests use the built-in Node.js test runner and the existing TypeScript
-compiler; generated test files stay in the ignored `.test-output` directory.
-
-Scan `demo-images` twice to check catalog persistence. Both scans should show two accepted PNG files and one rejected ZIP. From the project root, inspect the saved rows in the local PostgreSQL container:
-
-```powershell
-docker compose exec postgres psql -U screensort -d screensort -c "SELECT ar.canonical_path, fr.relative_path, fr.id, fr.last_seen_at FROM file_record fr JOIN allowed_root ar ON ar.id = fr.allowed_root_id ORDER BY ar.canonical_path, fr.relative_path;"
-```
-
-The second scan should keep the same file IDs while refreshing `last_seen_at`. Scanning never modifies the source images.
-
-For a folder not previously cataloged, the summary reports two new images and
-one rejected file. On an unchanged rescan it reports two unchanged images and
-one rejected file: the stored SHA-256 values are reused without decoding or
-hashing those images again. A different size or modification time triggers a
-full rescan of that image. Matching metadata is an optimization, not proof that
-the file contents are identical; safe copying will require fresh verification.
-
-The credentials in `compose.yaml` are development-only and must not be reused outside the local environment.
-
-The optional analysis-service development scaffold runs independently on
-`127.0.0.1:8001` and needs Python plus uv, not PostgreSQL or Docker. See its
-[run and verification instructions](analysis-service/README.md). Starting it
-does not add analysis capabilities to the current gallery.
-
-## Current milestone
-
-Source-folder safety validation, accepted/rejected scan results, SHA-256 calculation, and the React scan client are connected to a persistent PostgreSQL catalog. Rescanning the same folder updates existing file rows instead of inserting duplicates. Incremental scanning compares saved size and modification time before expensive processing. React shows a compact scan summary, thumbnail gallery and selected-image details. Standalone Python OCR is verified; integration of analysis with Java/React, persistent manual review of suggestions and safe copying remain to implement.
-
-`GET /api/catalog/files/{id}/thumbnail` produces a PNG with a maximum edge of 320 px; `/preview` uses 1024 px. No source file is written. Preview input is limited to 50 MiB, 40 million pixels and 20,000 px per edge; unsupported or unavailable previews show a fallback in the UI. Up to two decoders work concurrently, and the encoded-image cache is bounded to 128 entries / 16 MiB. The API binds to `127.0.0.1` by default. See the gallery guide for security limitations and memory costs beyond the cache.
-
-Pagination is applied in the database query, not by slicing a full list in Java or React. The page API accepts `folderPath`, zero-based `pageNumber`, and `pageSize` from 1 to 50. After a successful scan, React reloads page 0 for that folder. The legacy `GET /api/catalog/files` endpoint remains available, but React no longer uses it. Scan results and the known-file map used by incremental scanning are not paginated by this change.
-
-## Not in the first release
-
-Kafka, distributed multi-service deployment, automatic deletion, automatic moving, cloud AI, whole-disk scanning, PDF support, mobile applications, multi-user accounts and cross-device synchronization. The narrow local analysis service is an explicit exception to the earlier plan of deferring all separate processes; see ADR-004.
+Historical guides describe the project at their stated date and may include
+superseded stages. This README describes the current preview; it does not turn
+planned features or the separate UI analysis demo into implemented functionality.

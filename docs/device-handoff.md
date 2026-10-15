@@ -2,6 +2,23 @@
 
 Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
 
+## Prezentacja portfolio i LinkedIn — 2026-10-15
+
+Przebudowano główny README jako prezentację istniejącej wersji przedpremierowej.
+Instrukcje developerskie są w `docs/development.md`, gotowe teksty po polsku
+w `docs/linkedin-projekt.md`, a opis pochodzenia mediów w `docs/presentation/README.md`.
+`docs/media` zawiera rzeczywiste zrzuty interfejsu, diagram SVG, GIF i krótki MP4.
+
+Media powstały w przeglądarkowej sesji React z prawdziwą Javą, osobną bazą PostgreSQL
+i lokalnym Pythonem. Dane wejściowe były syntetyczne, bez prywatnych zdjęć.
+Skan: 6 nowych + 1 odrzucenie, reskan: 6 niezmienionych + 1 odrzucenie.
+OCR i Florence zwróciły prawdziwe wyniki zapisane przez Javę. Film to opisany
+montaż ujęć i plansz, nie ciągłe nagranie ani benchmark. Nie zmieniano backendu.
+
+Repo pozostaje prywatne. Nie opublikowano LinkedIn ani instalatora jako publicznego
+wydania. Nazwy, kategorie, kopiowanie i pobieranie pakietu AI na żądanie są nadal
+planami, nie wdrożonymi funkcjami. Nie dopisuj ich do listy gotowych możliwości.
+
 ## Poprawka instalatora 0.1.1 — rzeczywisty start Tauri
 
 Właściciel zgłosił błąd inicjalizacji PostgreSQL po normalnym starcie 0.1.0
