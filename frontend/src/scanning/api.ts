@@ -1,4 +1,5 @@
 import type {ScanJob, ScanRejections} from './types.js'
+import {backendFetch} from '../desktop/transport.js'
 
 export class ScanApiError extends Error {
     readonly status: number
@@ -9,7 +10,9 @@ export class ScanApiError extends Error {
     }
 }
 
-async function request<T>(url: string, options: RequestInit, fetcher: typeof fetch): Promise<T> {
+type Fetcher = (url: string, options?: RequestInit) => Promise<Response>
+
+async function request<T>(url: string, options: RequestInit, fetcher: Fetcher): Promise<T> {
     const response = await fetcher(url, {...options, cache: 'no-store'})
     if (!response.ok) {
         const messages: Record<number, string> = {
@@ -23,17 +26,17 @@ async function request<T>(url: string, options: RequestInit, fetcher: typeof fet
     return await response.json() as T
 }
 
-export function startScan(folderPath: string, signal: AbortSignal, fetcher = fetch): Promise<ScanJob> {
+export function startScan(folderPath: string, signal: AbortSignal, fetcher = backendFetch): Promise<ScanJob> {
     return request('/api/scan/jobs', {
         method: 'POST', headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({folderPath}), signal,
     }, fetcher)
 }
 
-export function fetchScanJob(id: string, signal: AbortSignal, fetcher = fetch): Promise<ScanJob> {
+export function fetchScanJob(id: string, signal: AbortSignal, fetcher = backendFetch): Promise<ScanJob> {
     return request(`/api/scan/jobs/${encodeURIComponent(id)}`, {signal}, fetcher)
 }
 
-export function fetchRejections(id: string, signal: AbortSignal, fetcher = fetch): Promise<ScanRejections> {
+export function fetchRejections(id: string, signal: AbortSignal, fetcher = backendFetch): Promise<ScanRejections> {
     return request(`/api/scan/jobs/${encodeURIComponent(id)}/rejections`, {signal}, fetcher)
 }

@@ -16,13 +16,13 @@ const CATALOG_PAGE_SIZE = 50
 
 function App() {
     const desktop = isTauri()
-    const [folderPath, setFolderPath] = useState(() => localStorage.getItem(LAST_FOLDER_KEY) ?? 'demo-images')
+    const [folderPath, setFolderPath] = useState(() => localStorage.getItem(LAST_FOLDER_KEY) ?? (desktop ? '' : 'demo-images'))
     const [error, setError] = useState<string | null>(null)
     const [catalogFolder, setCatalogFolder] = useState(folderPath)
     const [catalogRefresh, setCatalogRefresh] = useState(0)
     const [catalogPageNumber, setCatalogPageNumber] = useState(0)
     const [catalogPage, setCatalogPage] = useState<CatalogPage | null>(null)
-    const [catalogLoading, setCatalogLoading] = useState(true)
+    const [catalogLoading, setCatalogLoading] = useState(Boolean(folderPath.trim()))
     const [catalogError, setCatalogError] = useState<string | null>(null)
     const [analysisDemoOpen, setAnalysisDemoOpen] = useState(false)
     const scan = useScanJob((completed) => {
@@ -58,6 +58,9 @@ function App() {
 
     useEffect(() => {
         let ignore = false
+        if (!catalogFolder.trim()) {
+            return
+        }
         fetchCatalog(catalogFolder, catalogPageNumber, CATALOG_PAGE_SIZE)
             .then((page) => { if (!ignore) setCatalogPage(page) })
             .catch(() => {
@@ -112,7 +115,7 @@ function App() {
                     scan.clear()
                     showCatalog(folderPath)
                 }} disabled={loading || catalogLoading}><Icon name="folder"/>Otwórz katalog</button>}
-                <button type="button" className="primary-button" onClick={handleScan} disabled={loading}>
+                <button type="button" className="primary-button" onClick={handleScan} disabled={loading || !folderPath.trim()}>
                     <Icon name={loading ? 'refresh' : 'scan'} className={loading ? 'spin' : ''}/>
                     {loading ? 'Skanowanie…' : 'Skanuj folder'}
                 </button>

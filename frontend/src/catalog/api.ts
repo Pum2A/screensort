@@ -1,8 +1,9 @@
 import type {CatalogFile, CatalogPage} from './types'
+import {backendFetch} from '../desktop/transport'
 
 export async function fetchCatalog(folderPath: string, pageNumber: number, pageSize: number): Promise<CatalogPage> {
     const query = new URLSearchParams({folderPath, pageNumber: pageNumber.toString(), pageSize: pageSize.toString()})
-    const response = await fetch(`/api/catalog/page?${query}`)
+    const response = await backendFetch(`/api/catalog/page?${query}`)
     if (!response.ok) throw new Error(`Catalog request failed (HTTP ${response.status})`)
     return await response.json() as CatalogPage
 }

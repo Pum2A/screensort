@@ -1,0 +1,6 @@
+.desktop-startup { min-height: 85vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 32px; gap: 12px; }
+.desktop-startup > .icon { width: 48px; height: 48px; color: var(--accent); }
+.desktop-startup h1 { font-size: 48px; margin: 0; }
+.desktop-startup h2 { font-size: 27px; font-weight: 400; margin: 0; }
+.desktop-startup p { max-width: 620px; color: var(--muted); }
+.desktop-notice { display: flex; justify-content: center; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }

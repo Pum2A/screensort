@@ -5,6 +5,7 @@ import type {CatalogFile} from './types'
 import {AnimatedBranch} from '../ui/AnimatedBranch'
 import {Icon} from '../ui/Icon'
 import styles from './CatalogDetailsPanel.module.css'
+import {AnalysisPanel} from '../analysis/AnalysisPanel'
 
 export function CatalogDetailsPanel({file, onPreview}: {file: CatalogFile, onPreview: (trigger: HTMLButtonElement) => void}) {
     const src = imageUrl(file, 'thumbnail')
@@ -19,6 +20,9 @@ export function CatalogDetailsPanel({file, onPreview}: {file: CatalogFile, onPre
                 </div>
             </div>
             <div className={styles.tree}>
+                <AnimatedBranch label="Analiza obrazu" icon={<Icon name="eye"/>} defaultOpen>
+                    <AnalysisPanel key={file.id} fileId={file.id}/>
+                </AnimatedBranch>
                 <AnimatedBranch label="Plik" icon={<Icon name="image"/>} defaultOpen>
                     <dl className={styles.properties}><div><dt>Oryginalna nazwa</dt><dd>{file.originalName}</dd></div>
                         <div><dt>Format / rozmiar</dt><dd>{file.extension.toUpperCase()} · {formatSize(file.sizeBytes)}</dd></div></dl>

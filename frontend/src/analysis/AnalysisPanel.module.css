@@ -1,0 +1,12 @@
+.panel { min-width: 0; }
+.hint { color: var(--muted); font-size: 17px; line-height: 1.4; }
+.options { display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0; }
+.options label { display: flex; gap: 8px; align-items: center; }
+.results { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 10px; }
+.results h4 { font-size: 23px; margin: 20px 0 10px; font-weight: 400; }
+.results p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.results pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
+.results small { color: var(--muted); overflow-wrap: anywhere; }
+.results details { margin-top: 16px; }
+.results code { display: block; overflow-wrap: anywhere; font-size: 12px; padding: 10px 0; }
+.error, .warning { border-left: 3px solid #cc6a35; padding: 8px 12px; margin-top: 12px; }
