@@ -49,3 +49,7 @@ application-local.yaml
 data/
 work/
 *.partial
+
+### Reproducible desktop staging and large third-party runtime data ###
+.release/
+frontend/src-tauri/runtime/

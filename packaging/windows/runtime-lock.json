@@ -1,0 +1,16 @@
+{
+  "python": {
+    "version": "3.14.8",
+    "url": "https://www.python.org/ftp/python/3.14.8/python-3.14.8-embed-amd64.zip",
+    "sha256": "a93abe456ab01bd96d7a085b3cdb6566b3063f4241360d114142fbdb07f0a310"
+  },
+  "postgres": {
+    "version": "18.6-5",
+    "url": "https://get.enterprisedb.com/postgresql/postgresql-18.6-5-windows-x64-binaries.zip",
+    "sha256": "e2246ba91d22345bc3d017586c09ede52d9df180b1eeb480f050445f1cad84e2"
+  },
+  "model": {
+    "id": "florence-community/Florence-2-base-ft",
+    "revision": "0b03b6f15a4a211370fb204aee4e7dd48887ea37"
+  }
+}
