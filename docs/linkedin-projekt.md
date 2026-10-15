@@ -1,74 +1,51 @@
-# ScreenSort: materiały do LinkedIn
+# ScreenSort
 
-Stan: 15 października 2026. Teksty opisują istniejącą wersję przedpremierową,
-nie gotowy organizer. Nie zostały opublikowane na profilu.
+## Nazwa projektu na LinkedIn
 
-## Sekcja „Projekty”
+ScreenSort | Zrozum zawartość. Nie zgaduj po nazwie.
 
-Nazwa projektu:
+## Opis projektu do wklejenia
 
-ScreenSort | Ogarnij chaos w screenshotach
+Screenshot_20261015_182304.png. Nazwa niewiele mówi. Zawartość już tak.
 
-Opis do wklejenia:
+ScreenSort przywraca kontekst obrazom zapisanym pod przypadkowymi nazwami. Wybierasz folder, przeglądasz galerię i uruchamiasz lokalne rozpoznawanie tekstu oraz analizę wizualną. Wynik trafia do trwałego katalogu, nie znika po zamknięciu aplikacji. Oryginały pozostają nietknięte.
 
-Tworzę ScreenSort, lokalną aplikację desktopową, która ma pomóc odnaleźć sens w setkach screenshotów zapisanych pod losowymi nazwami. Zamiast otwierać każdy plik osobno, użytkownik wybiera folder, przegląda galerię i może odczytać tekst oraz opis zawartości wybranego obrazu.
+Za prostą interakcją stoi konkretny przepływ: walidacja plików, skanowanie przyrostowe, SHA-256, zadania w tle i zapis w PostgreSQL. Java 25 i Spring Boot koordynują proces. React z TypeScriptem prezentuje wyniki. Tauri i Rust łączą interfejs z desktopem, a osobny serwis Python/FastAPI uruchamia RapidOCR i Florence-2. Analiza odbywa się lokalnie, bez przesyłania obrazów do chmurowego API AI.
 
-Obecna wersja skanuje foldery w tle, pokazuje postęp i zapisuje katalog w PostgreSQL. Ponowny skan rozpoznaje pliki o niezmienionych metadanych i pomija ich ponowne dekodowanie oraz haszowanie. Galeria ma stronicowanie, miniatury, podgląd i szczegóły plików. Lokalne modele wykonują OCR oraz analizę wizualną, a wyniki są zapisywane i dostępne także po restarcie aplikacji. Oryginały pozostają bez zmian.
+Kolejny etap: od rozpoznanej treści do propozycji nazw i kategorii, ręcznej akceptacji i zweryfikowanych kopii w osobnym folderze.
 
-Główna logika działa w Javie i Spring Boot. React z TypeScriptem odpowiada za interfejs, a Tauri i Rust za okno desktopowe, natywny wybór folderu oraz uruchamianie lokalnych procesów. Osobny serwis Python/FastAPI udostępnia RapidOCR i Florence-2. Dane przechowuję przez JPA/Hibernate, a schemat bazy rozwijam migracjami Flyway. Docker i Testcontainers służą do developmentu i testów; użytkownik instalatora Windows nie potrzebuje Dockera ani narzędzi developerskich.
+ScreenSort jest działającą wersją przedpremierową, rozwijaną w kierunku bezpiecznego organizera screenshotów.
 
-Kolejny etap to propozycje nazw i kategorii, ich ręczne zatwierdzanie oraz tworzenie uporządkowanych, zweryfikowanych kopii w osobnym folderze. Obecnie nie są to jeszcze działające funkcje. Równolegle rozwijam lżejszą dystrybucję aplikacji: pobieranie pakietu analizy na żądanie jest zaplanowane, ale nie zostało wdrożone.
+## Krótki opis
 
-Projekt rozwijam iteracyjnie, z naciskiem na zrozumiały przepływ danych, testy, pomiary wydajności i bezpieczną pracę z lokalnymi plikami.
+ScreenSort przywraca kontekst screenshotom o przypadkowych nazwach. Łączy przyrostowe skanowanie folderów, trwały katalog PostgreSQL, galerię oraz lokalny OCR i analizę wizualną. Java/Spring Boot odpowiada za logikę, React/TypeScript za interfejs, Tauri/Rust za desktop, a Python/FastAPI za modele. Oryginały pozostają nietknięte. Następny etap to propozycje nazw, kategorii i zweryfikowane kopie po akceptacji użytkownika.
 
-## Krótszy opis
+## Post z krótkim demo
 
-ScreenSort to rozwijana przeze mnie aplikacja desktopowa do pracy z chaosem w screenshotach. Łączy lokalne skanowanie folderów, trwały katalog PostgreSQL, galerię obrazów oraz OCR i analizę wizualną. Java/Spring Boot odpowiada za logikę, React/TypeScript za UI, Tauri/Rust za desktop, a Python/FastAPI za lokalne modele. Kolejny etap obejmuje propozycje nazw i kategorii, ręczne zatwierdzanie oraz bezpieczne kopiowanie. Oryginały pozostają bez zmian. Projekt jest na etapie działającej wersji przedpremierowej.
+Pamiętasz, co było na screenshocie. Nie pamiętasz, jak nazywa się plik.
 
-## Wpis pokazujący postęp
+Właśnie ten problem rozwiązuję w ScreenSort.
 
-Ile masz screenshotów, których nazwy nic Ci już nie mówią?
+Wybierasz folder. Otwierasz obraz. Odczytujesz tekst i opis zawartości. Bez wysyłania zdjęć do chmurowego AI i bez zmieniania oryginałów.
 
-Od tego problemu zacząłem ScreenSort. Buduję aplikację, w której wybierasz folder, widzisz swoje obrazy w galerii i możesz sprawdzić, jaki tekst oraz zawartość rozpoznają lokalne modele.
+Pod spodem pracują Java 25 i Spring Boot, przyrostowy skaner z kontrolowaną współbieżnością, strumieniowe SHA-256 oraz PostgreSQL. React i TypeScript tworzą interfejs, Tauri/Rust zapewnia warstwę desktopową, a Python/FastAPI udostępnia lokalne modele RapidOCR i Florence-2.
 
-Mam już działający przepływ: skan folderu, zapis katalogu, podgląd obrazu, OCR, analiza wizualna i zapis wyniku w bazie. Wszystko lokalnie, bez wysyłania zdjęć do chmurowego API analizy. Ponowne skanowanie wykorzystuje poprzednie metadane, zamiast zawsze wykonywać całą ciężką pracę od początku.
+Katalog i wyniki analizy zostają w bazie. Ponowny skan wykorzystuje znane metadane, zamiast za każdym razem dekodować i haszować wszystkie obrazy od początku.
 
-Technicznie jest to połączenie Javy i Spring Boot, PostgreSQL, Reacta z TypeScriptem, Tauri/Rusta oraz osobnego serwisu Python/FastAPI z RapidOCR i Florence-2.
+Na krótkich ujęciach pokazuję aktualne interakcje z działającej aplikacji. Dalej rozwijam to, co najważniejsze dla organizowania plików: propozycje nazw i kategorii, ich zatwierdzanie oraz bezpieczne tworzenie uporządkowanych kopii.
 
-To jeszcze nie jest gotowy organizer. Następny krok to zamienić rozpoznaną treść na sensowne propozycje nazw i kategorii, oddać decyzję użytkownikowi i dopiero po akceptacji tworzyć uporządkowane kopie. Nie chcę, żeby aplikacja samodzielnie ruszała oryginały.
+Najpierw zrozumieć zawartość. Potem zrobić z nią porządek.
 
-Na materiale pokazuję aktualny interfejs na wygenerowanych danych demonstracyjnych. Skanowanie i odpowiedzi modeli są rzeczywiste. Projekt nadal rozwijam, więc chętnie poznam opinie o takim sposobie pracy ze screenshotami.
+#Java #SpringBoot #LocalAI #BuildInPublic
 
-#Java #SpringBoot #React #Python #PostgreSQL #Tauri #BuildInPublic
-
-## Nagłówek / dopisek przy nazwisku
+## Nagłówek po angielsku
 
 Creator of ScreenSort | Making sense of screenshot chaos
 
-Alternatywa bardziej techniczna:
+## Krótki podpis do animacji
 
-Building ScreenSort | Java, Spring Boot & local AI
+Jeden folder. Więcej kontekstu.
 
-## Umiejętności do podpięcia do projektu
+Wariant techniczny:
 
-Wybierz te, o których potrafisz już opowiedzieć na przykładzie własnego kodu:
-Java, Spring Boot, PostgreSQL, SQL, JPA, Hibernate, REST APIs, TypeScript,
-React, Python, FastAPI, Git. Tauri, Rust i Docker możesz dodać jako kolejne,
-zależnie od tego, które fragmenty rzeczywiście znasz.
-
-## Materiały i widoczność
-
-Repozytorium: https://github.com/Pum2A/screensort
-
-Repozytorium pozostaje prywatne. Osoba bez dostępu nie zobaczy README ani plików
-po kliknięciu tego linku. Do publicznego LinkedIn dołącz bezpośrednio film lub
-zrzuty z `docs/media`, a link do prywatnego kodu podawaj tylko z tą informacją.
-Nie zmieniono widoczności repo ani nie opublikowano wpisu na LinkedIn.
-
-Gotowe ujęcia i film opisuje [przewodnik prezentacji](presentation/README.md).
-Nie dodawaj do publicznego posta pełnego instalatora 0.1.1 jako stabilnej wersji:
-to duża, niepodpisana dystrybucja przedpremierowa, bez testu na czystej VM.
-
-Nie deklarujemy jeszcze gotowych kategorii, propozycji nazw, wyszukiwania po treści,
-bezpiecznego kopiowania, synchronizacji między komputerami, GPU ani konkretnych
-procentów przyspieszenia. Metadane rozmiaru i czasu nie dowodzą zgodności bajtów.
+Local-first screenshot explorer. Java at the core. AI on your device.
