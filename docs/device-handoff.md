@@ -4,6 +4,13 @@ Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
 
 ## Prezentacja portfolio i LinkedIn — 2026-10-15
 
+Po uwadze właściciela zastąpiono główny pokaz slajdów w README dwiema pętlami
+`feature-explore` i `feature-preview`, po 2,5 s, w GIF i MP4. To serie rzeczywistych
+klatek z montażowym kursorem, kadrowaniem i przejściami, nie nowe funkcje UI.
+Stary 49-sekundowy materiał zachowano jako dodatkowy. Opisy LinkedIn przepisano
+na krótką, produktową narrację techniczną; instrukcje redakcyjne nie są częścią
+tekstu do wklejenia. Niczego nie opublikowano na LinkedIn, repo jest nadal prywatne.
+
 Przebudowano główny README jako prezentację istniejącej wersji przedpremierowej.
 Instrukcje developerskie są w `docs/development.md`, gotowe teksty po polsku
 w `docs/linkedin-projekt.md`, a opis pochodzenia mediów w `docs/presentation/README.md`.

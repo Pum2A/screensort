@@ -18,6 +18,17 @@ names, categories and verified copy operations are the next product steps.
 
 ## See it in action
 
+| Explore an image | Open a larger preview |
+| --- | --- |
+| [![Select an image and reveal its details in a short product loop](docs/media/feature-explore.gif)](docs/media/feature-explore.mp4) | [![Open the read-only preview in a short product loop](docs/media/feature-preview.gif)](docs/media/feature-preview.mp4) |
+
+Two 2.5-second loops, focused on one interaction each. Captured from the real
+interface on synthetic data; cursor emphasis, framing and transitions are edited
+for presentation. They are not performance measurements or new UI features.
+
+<details>
+<summary>Full gallery and longer project overview</summary>
+
 ![ScreenSort catalog with circular thumbnails, scan counters and six synthetic example images](docs/media/catalog.jpg)
 
 Actual React interface connected to Java, PostgreSQL and the local Python service.
@@ -32,6 +43,8 @@ the same UI in Tauri and adds the native folder picker.
 
 The clip is an edited sequence of real UI captures, not a continuous recording or
 a performance benchmark. The OCR and visual responses shown are actual model results.
+
+</details>
 
 <details>
 <summary>Image preview and real OCR / visual results</summary>

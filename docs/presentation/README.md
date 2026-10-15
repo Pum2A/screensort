@@ -5,10 +5,16 @@ krótszego opisu i wpisu są w [linkedin-projekt.md](../linkedin-projekt.md).
 
 ## Co można dołączyć
 
+Do README polecane są teraz krótkie demonstracje jednej funkcji, nie poprzedni
+49-sekundowy montaż plansz. Każda pętla ma 2,5 sekundy, kliknięcie, ruch kursora
+i krótki powrót do początku. Wariant MP4 nadaje się także do montażu wpisu na LinkedIn.
+
 | Plik | Zastosowanie |
 | --- | --- |
-| [screensort-preview.mp4](../media/screensort-preview.mp4) | Krótki film do LinkedIn lub lokalnego pokazania projektu |
-| [screensort-preview.gif](../media/screensort-preview.gif) | Animowany skrót osadzony w README |
+| [feature-explore.gif](../media/feature-explore.gif) / [MP4](../media/feature-explore.mp4) | Wybór obrazu i panel szczegółów, pętla 2,5 s |
+| [feature-preview.gif](../media/feature-preview.gif) / [MP4](../media/feature-preview.mp4) | Otwarcie podglądu, pętla 2,5 s |
+| [screensort-preview.mp4](../media/screensort-preview.mp4) | Starszy, dłuższy przegląd projektu, materiał dodatkowy |
+| [screensort-preview.gif](../media/screensort-preview.gif) | Starszy montaż plansz, teraz schowany w rozwijanej sekcji README |
 | [catalog.jpg](../media/catalog.jpg) | Skan zakończony, sześć obrazów w galerii i jeden odrzucony plik |
 | [preview.jpg](../media/preview.jpg) | Powiększony podgląd i szczegóły pliku; pełna lokalizacja zwinięta |
 | [analysis.jpg](../media/analysis.jpg) | Pełny widok strony z zapisaną analizą |
@@ -27,6 +33,13 @@ nagraniem ekranu. Długość ujęcia nie odpowiada czasowi operacji. Nie służy
 porównywania wydajności. Nie ma lektora, muzyki ani materiałów osób trzecich.
 
 ## Pochodzenie i zakres demonstracji
+
+Krótkie pętle powstały z serii rzeczywistych klatek interfejsu w osobnej sesji
+`.release/portfolio-motion-20261015`. Nie podmieniano API ani stanów aplikacji.
+Kursor, impuls kliknięcia, stabilizacja kadru, delikatny ruch kamery i przejścia
+są elementami montażu, nie deklaracją wdrożenia takich animacji w aplikacji.
+W podglądzie rozmyto pełną ścieżkę źródłową. Pętle pokazują przeglądanie i podgląd,
+nie wykonanie OCR w 2,5 sekundy. Nie zmieniano kodu frontendu ani backendu.
 
 Wszystkie nowe zrzuty przedstawiają aktualny, zbudowany interfejs React.
 Przeglądarkowa sesja działała z prawdziwą Javą, osobnym PostgreSQL i lokalnym
