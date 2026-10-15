@@ -1,5 +1,10 @@
 # Weryfikacja pakietu Windows — 2026-10-15
 
+> Aktualizacja: wersja 0.1.0 ma potwierdzony błąd normalnego startu Windows.
+> Nie używaj jej instalatora. Poniższe testy używały ręcznej ścieżki runtime'u,
+> więc nie dowodziły poprawności uruchomienia przez okno Tauri.
+> [Opis poprawki 0.1.1 i rozszerzonej weryfikacji](naprawa-startu-windows.md).
+
 Zbudowano niepodpisany instalator NSIS Windows x64:
 `ScreenSort_0.1.0_x64-setup.exe`.
 

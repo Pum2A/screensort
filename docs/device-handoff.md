@@ -2,6 +2,24 @@
 
 Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
 
+## Poprawka instalatora 0.1.1 — rzeczywisty start Tauri
+
+Właściciel zgłosił błąd inicjalizacji PostgreSQL po normalnym starcie 0.1.0
+i polecił go naprawić. `initdb` nie obsługiwał ścieżki `//?/C:/...`, powstałej
+z prefiksu `\\?\` zwracanego przez resolver Tauri. Pliki serwera były kompletne.
+Odtworzono błąd na osobnych danych; nie zmieniano bazy właściciela.
+
+Dodano bezpieczną normalizację runtime/data na granicy procesów (dunce 1.0.5),
+sześć testów natywnych i `--startup-check`, który używa rzeczywistego kontekstu
+Tauri zamiast ręcznego `--runtime-dir`. Nie tworzy okna/WebView, nie używa bazy
+użytkownika. Skrypt budowania wymaga jego sukcesu przed utworzeniem NSIS.
+Pełny test przeszedł: rzeczywisty resolver zwrócił prefiks, a baza, skan,
+OCR/wizja, miniatura i odczyt wyniku po restarcie zadziałały. Nowy program
+przeszedł również test z wymuszonym prefiksem i runtime'em starej instalacji.
+Nie przeprowadzano jeszcze aktualizacji w profilu właściciela ani testu klików UI.
+Wersja 0.1.1 zachowuje identyfikator i dane aplikacji. Nie zalecać kasowania
+hasła, katalogu danych ani starego repo. Patrz [opis poprawki](naprawa-startu-windows.md).
+
 ## Instalator Windows i analiza end-to-end — 2026-10-15
 
 To aktualny etap; wcześniejsze sekcje są datowaną historią. Właściciel jawnie

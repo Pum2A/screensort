@@ -146,7 +146,17 @@ try {
     Write-Host "Runtime ready: $destination"
     if (-not $StageOnly) {
         Push-Location (Join-Path $repo 'frontend')
-        try { Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--bundles', 'nsis') }
+        try {
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--no-bundle')
+            # Never ship solely on the basis of the manual --runtime-dir smoke path.
+            $checkData = Join-Path $release "startup-check-$stamp"
+            $checkExe = Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe'
+            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList @('--startup-check', '--data-dir', ('"' + $checkData + '"')) -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
+            if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check failed. See $checkData.report.json and session logs; no installer was generated." }
+            $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
+            if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--bundles', 'nsis')
+        }
         finally { Pop-Location }
     }
 } finally { Pop-Location }

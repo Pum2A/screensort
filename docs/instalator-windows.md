@@ -6,6 +6,9 @@ nie podpisana ani jeszcze w pełni audytowana dystrybucja produkcyjna.
 
 [Raport wykonanej weryfikacji i ograniczenia](weryfikacja-instalatora.md).
 
+Wersja 0.1.0 została zastąpiona poprawką 0.1.1 błędu ścieżek Windows.
+[Przyczyna i test rzeczywistego startu przez Tauri](naprawa-startu-windows.md).
+
 ## Co uruchamia się po kliknięciu
 
 1. Windows uruchamia natywny program Tauri/Rust. React jest wbudowanym interfejsem,
@@ -124,11 +127,11 @@ z kompresją zlib (szybsza budowa, większy plik niż przy LZMA),
 bez tworzenia usługi bazy systemowej. Pliki runtime, modele i `.release` są ignorowane
 przez Git; na GitHub trafia kod, lockfile, dokumentacja i skrypt budowania.
 
-Test kontrolny uruchamia ten sam launcher i dołączone runtime'y, bez okna:
+Test kontrolny uruchamia kontekst Tauri i jego rzeczywisty resolver zasobów,
+bez WebView. Nie zastępuje ścieżki runtime'u ręcznym argumentem:
 
 ```powershell
-.\frontend\src-tauri\target\release\screensort-desktop.exe --smoke-test `
-  --runtime-dir "$PWD\frontend\src-tauri\runtime" `
+.\frontend\src-tauri\target\release\screensort-desktop.exe --startup-check `
   --data-dir "$PWD\.release\smoke-NOWY-UNIKALNY-KATALOG"
 ```
 
@@ -136,3 +139,6 @@ Katalog danych testu musi być nowy. Test generuje własny PNG, sprawdza skan,
 OCR, wizję, miniaturę, zapis i odczyt po restarcie oraz nienaruszone bajty/mtime.
 Wynik trafia obok danych do `*.report.json`. Nie czyta zdjęć użytkownika.
 To test integracji pakietu, nie test klikania UI, jakości modelu ani pełny audyt.
+Skrypt budowania wykonuje go automatycznie przed pakowaniem NSIS. Starszy tryb
+`--smoke-test --runtime-dir ... --data-dir ...` pozostaje do osobnej diagnostyki,
+ale sam nie potwierdza poprawności normalnego startu aplikacji.
