@@ -1,6 +1,38 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu: 2026-10-14 (UI: 2026-10-09)
+Ostatnia aktualizacja bieżącego etapu: 2026-10-15 (UI: 2026-10-09)
+
+## Niezależne wyniki OCR i wizji — 2026-10-15
+
+Właściciel obejrzał i zaakceptował kod tego kroku. `ImageAnalyzer.analyze`
+przygotowuje obraz raz i zachowuje niezależne wyniki OCR/wizji. Każda część
+ma `status`, `result`, `error`: `COMPLETED` zawiera dane, `FAILED` bezpieczny
+kod/komunikat, `SKIPPED` oznacza niezamówiony krok. Domyślnie działają oba.
+Flagi `run_ocr` i `run_visual` muszą być podane po nazwie; obie wyłączone
+przerywają wywołanie przed przygotowaniem. Nie zmieniono konstrukcji silników.
+
+Zwykły wyjątek jednego modelu nie kasuje udanej części i nie blokuje drugiej.
+Pusty tekst OCR to sukces. Błędy obrazu, MemoryError i KeyboardInterrupt
+nadal przerywają pracę; obraz jest zamykany. Nie logujemy treści wyjątków
+ani prywatnych danych. To nie mechanizm odzyskiwania po awarii procesu.
+
+Jawna zmiana JSON: `ocr.result.text`, `visual.result.description`,
+`ocr.result.duration_ms` i `visual.result.duration_ms`. Obie części wyniku
+są wymagane, zamiast dawnego `visual=None`. Typowane warianty Pydantic
+odrzucają sprzeczne kombinacje. Minimalne Pydantic to 2.11 dla składni
+generycznej Pythona 3.12+; lock zachował dotychczasowe wersje pakietów/modeli.
+
+Weryfikacja 2026-10-15: 88/88 testów, w tym prawdziwy OCR i Florence offline
+na syntetycznym obrazie; Ruff lint/format i kontrola lockfile poprawne.
+Testy nie czytają prywatnych zdjęć. Nie zmieniono Javy, Reacta, bazy ani
+oryginałów; nie dodano HTTP analizy. `/health` nadal ma analysis_available=false.
+
+Przeczytaj [kod krok po kroku](analiza-obrazu-krok-po-kroku.md) i
+[README serwisu](../analysis-service/README.md). Najbliższy krok do omówienia:
+zabezpieczony POST z ograniczonymi bajtami, opcjami, tokenem, limitem uploadu
+przed parsowaniem, readiness i ograniczeniem pracy w toku; dopiero potem
+klient Javy i zapis JPA. Nie implementuj następnego etapu bez nowej zgody.
+Poniżej pozostaje datowana historia wcześniejszego zachowania.
 
 ## Rzeczywisty Florence CPU i JSON całej analizy — 2026-10-12
 
@@ -568,8 +600,11 @@ docs/analiza-obrazu-krok-po-kroku.md i docs/florence-pierwsze-uruchomienie.md.
 Brak GPU, klienta Javy,
 połączenia z Reactem i automatycznego startu z Tauri. Granice: ADR-004.
 Java zachowuje zadania i zapis, Python nie dostaje bazy ani dowolnych ścieżek.
-Kolejny krok: uzgodnić częściowe błędy i zabezpieczony HTTP analizy, następnie
-klienta Javy i zapis JPA. Nie implementuj tego bez wyraźnej zgody.
+OCR/wizja mają już niezależne COMPLETED/FAILED/SKIPPED; dane w ocr.result
+i visual.result. Zwykły błąd jednego silnika nie usuwa udanej części.
+Pełne testy 2026-10-15: 88/88, w tym rzeczywisty OCR i Florence offline.
+Kolejny krok: uzgodnić zabezpieczony HTTP analizy, następnie klienta Javy
+i zapis JPA. Nie implementuj tego bez wyraźnej zgody.
 React pokazuje wynik skanu, cztery liczniki ScanSummary i zapisane pliki
 po 50 na stronę jako siatkę prawdziwych okrągłych miniatur. Kliknięcie pokazuje
 CatalogDetailsPanel obok galerii (na telefonie pod nią). Przycisk Powiększ

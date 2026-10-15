@@ -1,6 +1,6 @@
 # ScreenSort Analysis Service
 
-Status 2026-10-12: działający samodzielny OCR, Florence i wspólny workflow CPU.
+Status 2026-10-15: samodzielny OCR, Florence i niezależne wyniki obu kroków.
 HTTP nadal udostępnia tylko health. Prawdziwy OCR i opis wizualny są sprawdzone
 offline w konsoli oraz w testach integracyjnych na syntetycznym obrazie.
 Nie ma jeszcze połączenia z Javą ani rzeczywistych wyników analizy w React.
@@ -40,10 +40,31 @@ wyników. `/docs` pokazuje dokumentację bieżącego API; `/openapi.json` jego k
 - `ImageAnalyzer(ocr, vision).analyze(bytes, options)` przygotowuje jeden obraz,
   oblicza SHA-256 oryginalnych bajtów, wywołuje kolejno OCR i wizję i składa
   `ImageAnalysisResult`. Oba silniki otrzymuje w konstruktorze, nie tworzy ich
-  na nowo przy każdym obrazie. Błędy propaguje; częściowe wyniki dopiero
-  ustalimy przed API analizy.
-- `ImageAnalysisResult.visual` jest opcjonalne dla zgodności z przykładami
-  OCR-only. Pełny koordynator wypełnia oba wyniki, jeśli oba silniki się powiodą.
+  na nowo przy każdym obrazie. Zwykły błąd jednego silnika nie usuwa wyniku
+  drugiego. Błąd wejścia, brak pamięci i przerwanie procesu nadal przerywają pracę.
+- `ImageAnalysisResult.ocr` i `.visual` mają osobno `status`, `result` i `error`.
+  `COMPLETED` zawiera poprawny wynik, `FAILED` bezpieczny kod/komunikat błędu,
+  a `SKIPPED` oznacza krok niezamówiony. Pozostałe pola mają wartość `null`.
+  Pusty tekst OCR jest poprawnym wynikiem, nie błędem. Nie zwracamy treści
+  wyjątków modeli ani nie logujemy prywatnych danych w obsłudze tych błędów.
+
+Wywołanie obu kroków pozostaje takie samo. Można jawnie wyłączyć jeden krok:
+
+```python
+result = analyzer.analyze(image_bytes, OcrOptions(), run_visual=False)
+print(result.model_dump_json(indent=2))
+
+if result.ocr.status == "COMPLETED":
+    print(result.ocr.result.text)
+```
+
+To zmiana formatu JSON: tekst jest teraz w `ocr.result.text`, opis w
+`visual.result.description`, a czasy w odpowiednich `result.duration_ms`.
+`visual: null` zastępuje jawne `visual.status: SKIPPED`. Jednoczesne wyłączenie
+obu kroków w `analyze` jest błędem. Flagi nie zmieniają konstruktora ani
+ładowania silników; nie dodano jeszcze opcji wyboru do CLI lub HTTP.
+Typowane warianty Pydantic odrzucają np. `COMPLETED` bez wyniku albo `FAILED`
+z wynikiem i błędem naraz. Wymagamy Pydantic >= 2.11 dla składni `Class[T]`.
 
 Silnik OCR to RapidOCR 3.10.0 + ONNX Runtime CPU. Lista języków `pl`/`en`
 ogranicza opcje wejściowe; nie przełącza modelu ani nie filtruje języka wyniku.
@@ -204,6 +225,7 @@ analysis-service/
     ├── test_image_preparation.py    limity, format, RGB i zwalnianie zasobów
     ├── test_ocr_recognizer.py       delegowanie i zachowany interfejs OCR
     ├── test_image_analyzer.py       składanie wyników i błędy; zastępcze silniki
+    ├── test_analysis_schemas.py     statusy, spójność wariantów i JSON
     ├── test_ocr_integration.py      opcjonalny rzeczywisty OCR, syntetyczny obraz
     ├── test_vision_integration.py   opcjonalny prawdziwy OCR + Florence offline
     ├── test_vision_download.py      przypięty kontrakt pobierania, bez sieci
@@ -223,8 +245,8 @@ health w cache HTTP, aby przyszła kontrola procesu nie pokazywała starego wyni
 
 ## Kolejne małe kroki — do wspólnego napisania
 
-1. Ustalić kontrakt jednej analizy: ograniczone bajty obrazu i opcje → częściowe
-   wyniki OCR/wizualne, SHA-256 wejścia, wersje modeli, tryb CPU/GPU i błędy.
+1. Przenieść istniejący wynik częściowy do uzgodnionego kontraktu HTTP:
+   ograniczone bajty i opcje → status/wynik/błąd OCR i wizji, hash i wersje.
 2. Dodać kontrolę dostępu dla Javy, limity wejścia, bezpieczny odczyt obrazu
    i ograniczenie współbieżności. Loopback sam w sobie nie jest autoryzacją.
 3. OCR już działa samodzielnie; rozszerzyć ocenę jakości o opisane przykłady

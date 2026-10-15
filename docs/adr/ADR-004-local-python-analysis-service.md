@@ -10,6 +10,11 @@ Florence jest uruchomiony offline z opcjonalnym runtime CPU i lokalnym modelem.
 Pełny workflow ma również test z prawdziwymi silnikami. HTTP nadal ma tylko health, bez
 integracji z Javą. To nie zmienia granic procesu ani reguł bezpieczeństwa.
 
+Aktualizacja 2026-10-15: wspólny wynik ma niezależne statusy COMPLETED, FAILED
+i SKIPPED dla OCR oraz wizji. Zwykły błąd silnika nie usuwa udanego wyniku
+drugiego; błędy wejścia i brak pamięci przerywają analizę. To nadal wywołanie
+lokalnego kodu, nie endpoint analizy HTTP.
+
 Zmienia wcześniejszy plan odkładania osobnego procesu analizy do czasu po MVP
 w `architecture.md`, `roadmap.md` i `decyzje-techniczne.md`.
 Nie zmienia zasad bezpieczeństwa ADR-001 ani wyboru Tauri z ADR-003.
@@ -114,6 +119,6 @@ oraz pełną integrację offline. Health odpowiada
 `analysis_available: false`. Nie istnieją jeszcze klient Javy, endpoint analizy,
 autoryzacja, readiness modeli ani rzeczywisty wynik w React.
 
-Następny etap do wspólnego napisania: częściowe wyniki, zabezpieczony kontrakt
-HTTP, klient Javy i zapis JPA. Zmiany backendu i modeli wymagają
+Następny etap do wspólnego napisania: zabezpieczony kontrakt HTTP wykorzystujący
+istniejące częściowe wyniki, klient Javy i zapis JPA. Zmiany backendu i modeli wymagają
 omówienia z właścicielem, który chce sam pisać istotny kod.

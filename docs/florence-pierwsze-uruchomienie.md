@@ -2,6 +2,13 @@
 
 Data: 2026-10-12. Etap developerski w lokalnym Pythonie, bez zmian Javy i bazy.
 
+Aktualizacja kontraktu 2026-10-15: OCR i wizja mają niezależne statusy
+`COMPLETED`, `FAILED`, `SKIPPED`, z danymi w `result` i błędem w `error`.
+Sukces jednego kroku jest zachowany przy zwykłym błędzie drugiego.
+Opis poniższych historycznych pomiarów pozostaje bez zmian; nie zmierzono
+tu nowej wydajności ani nie dodano endpointu HTTP. Kod i aktualny przepływ:
+[analiza krok po kroku](analiza-obrazu-krok-po-kroku.md).
+
 ## Co uruchomiliśmy
 
 - Python 3.14.4, RapidOCR 3.10.0, ONNX Runtime 1.31.0.
@@ -39,8 +46,8 @@ developerską, nie wzorcem logowania treści w przyszłym API.
 |---|---|
 | `initialization_ms` | Konstrukcja silników, w tym ładowanie Florence; bez wcześniejszych importów Pythona i bez pobierania plików. |
 | `runs[].total_ms` | Przygotowanie, hash, OCR, wizja i składanie wyniku jednej analizy. |
-| `ocr.duration_ms` | OCR bez wspólnego przygotowania; pierwsze wywołanie może zawierać lazy loading. |
-| `visual.duration_ms` | Przetworzenie wejścia przez processor, generowanie i odczyt opisu. |
+| `ocr.result.duration_ms` | Udany OCR bez wspólnego przygotowania; pierwsze wywołanie może zawierać lazy loading. |
+| `visual.result.duration_ms` | Udana wizja: przetworzenie wejścia przez processor, generowanie i odczyt opisu. |
 | `runtime.cpu_threads` | Ustawiona liczba wątków PyTorch, nie łączna liczba wątków procesu. |
 | `runtime.cuda_build` | W sprawdzonym wariancie null: zainstalowany runtime CPU. |
 
@@ -78,7 +85,8 @@ tożsamość `file_record.id`, bezpieczeństwo źródła i zapis wyniku.
 
 Proponowana kolejność do wspólnego uzgodnienia:
 
-1. Kontrakt częściowych wyników OCR/wizji, bez zamieniania awarii w pusty sukces.
+1. Gotowe 2026-10-15: kontrakt częściowych wyników OCR/wizji bez zamieniania
+   awarii w pusty sukces. Zaktualizowane testy i lokalny JSON; bez HTTP.
 2. Zabezpieczony lokalny POST Pythona: ograniczone bajty, opcje, token
    komunikacji, limit uploadu przed wczytaniem, gotowość modeli i ograniczona
    liczba analiz. Timeout żądania nie gwarantuje zatrzymania inferencji.

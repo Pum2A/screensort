@@ -32,6 +32,8 @@ package, locked dependencies and tests. It is not connected to Java or React
 yet. Standalone RapidOCR and Florence CPU work together in Python, verified
 with offline integration tests and a read-only local console. Vision dependencies
 are an optional extra, and pinned model data stays in an ignored local cache.
+OCR and vision now return independent COMPLETED, FAILED or SKIPPED outcomes;
+an ordinary engine failure preserves the other engine's successful result.
 There is no GPU integration or HTTP image upload endpoint. See the
 [Florence run report and next Java/JPA steps](docs/florence-pierwsze-uruchomienie.md).
 The accepted service boundary is documented in [ADR-004](docs/adr/ADR-004-local-python-analysis-service.md).

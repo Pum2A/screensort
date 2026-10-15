@@ -1,6 +1,6 @@
 # Jeden obraz: przygotowanie, OCR i analiza wizualna
 
-Aktualizacja: 2026-10-12. Dotyczy Pythona w `analysis-service`, nie skanera Javy.
+Aktualizacja: 2026-10-15. Dotyczy Pythona w `analysis-service`, nie skanera Javy.
 
 ## Co działa, a co jest jeszcze przed nami
 
@@ -38,17 +38,55 @@ def analyze(
     self,
     image_bytes: bytes,
     options: OcrOptions,
+    *,
+    run_ocr: bool = True,
+    run_visual: bool = True,
 ) -> ImageAnalysisResult:
+    if not run_ocr and not run_visual:
+        raise ValueError("Select OCR or visual analysis.")
+
+    ocr: OcrAnalysis = SkippedAnalysis()
+    visual: VisualAnalysis = SkippedAnalysis()
+
     with closing(prepare_image(image_bytes)) as image:
         source_sha256 = sha256(image_bytes).hexdigest()
 
-        ocr_result = self._ocr.recognize_prepared(image, options)
-        visual_result = self._vision.analyze(image)
+        if run_ocr:
+            try:
+                ocr_result = self._ocr.recognize_prepared(image, options)
+            except MemoryError:
+                raise
+            except Exception as exc:
+                logger.error("OCR_FAILED [%s]", type(exc).__name__)
+                ocr = FailedAnalysis(
+                    error=AnalysisError(
+                        code="OCR_FAILED",
+                        message="Text recognition failed.",
+                    )
+                )
+            else:
+                ocr = CompletedAnalysis[OcrResult](result=ocr_result)
+
+        if run_visual:
+            try:
+                visual_result = self._vision.analyze(image)
+            except MemoryError:
+                raise
+            except Exception as exc:
+                logger.error("VISUAL_FAILED [%s]", type(exc).__name__)
+                visual = FailedAnalysis(
+                    error=AnalysisError(
+                        code="VISUAL_FAILED",
+                        message="Visual analysis failed.",
+                    )
+                )
+            else:
+                visual = CompletedAnalysis[VisualResult](result=visual_result)
 
     return ImageAnalysisResult(
         source_sha256=source_sha256,
-        ocr=ocr_result,
-        visual=visual_result,
+        ocr=ocr,
+        visual=visual,
     )
 ```
 
@@ -68,6 +106,48 @@ def analyze(
 8. Po zamknięciu obrazu pozostają opisy wyników, nie jego piksele.
 9. Pydantic potrafi zamienić wynik na JSON przez `result.model_dump_json()`.
    Samo utworzenie obiektu jeszcze nie wysyła HTTP ani nie zapisuje go w bazie.
+
+## Co zmienia obsługa niezależnych wyników
+
+Wcześniej wyjątek OCR przerywał metodę przed wizją. Wyjątek wizji uniemożliwiał
+oddanie wcześniej rozpoznanego tekstu. Teraz każdy krok ma osobny wynik:
+
+| Status | `result` | `error` | Znaczenie |
+|---|---|---|---|
+| `COMPLETED` | `OcrResult` albo `VisualResult` | `null` | Silnik zwrócił poprawny wynik; nie jest to ocena trafności. |
+| `FAILED` | `null` | Kod i bezpieczny komunikat | Silnik zgłosił zwykły wyjątek. |
+| `SKIPPED` | `null` | `null` | Wywołujący wyłączył ten krok. |
+
+`CompletedAnalysis[T]` jest opakowaniem na jeden typ danych. `T` zastępujemy
+przez `OcrResult` albo `VisualResult`, podobnie jak typ w javowym `List<Path>`.
+`OcrAnalysis` i `VisualAnalysis` dopuszczają tylko trzy warianty. Pydantic
+wybiera wariant według `status`, przez `Field(discriminator="status")`.
+Nie przyjmie np. statusu `FAILED` bez błędu lub z udanym wynikiem.
+`extra="forbid"` odrzuca nieznane pola; `frozen=True` blokuje przypisywanie
+do pól opakowania. Nie jest to głęboka niezmienność wszystkich zagnieżdżonych danych.
+
+`*` wymusza podawanie flag po nazwie: `run_visual=False`. Ustawienie obu
+flag na `False` jest błędem jeszcze przed przygotowaniem obrazu. Flagi
+wybierają wykonanie kroku, nie zmieniają ładowania modeli w konstruktorze.
+Wartość początkowa `SkippedAnalysis()` pozostaje tylko dla niezamówionego kroku.
+
+Każdy `try` obejmuje tylko wywołanie silnika. `else` uruchamia się po udanym
+wywołaniu i tworzy typowany wynik. Jeśli silnik zwróci nieprawidłowy obiekt,
+walidacja tego opakowania przerwie metodę: to błąd kontraktu kodu, nie sukces
+ani ukryta porażka inferencji. Nie łapiemy błędów przygotowania obrazu jako
+błędów OCR/wizji. Nie przechwytujemy też przerwania `KeyboardInterrupt`;
+`MemoryError` rzucamy dalej, aby nie uruchamiać drugiego ciężkiego silnika.
+
+W logu zapisujemy tylko kod i nazwę typu wyjątku, nie jego treść, traceback,
+napisy OCR, bajty czy ścieżkę pliku. Publiczny `error.message` jest stały.
+Nie oznacza to ochrony przed awarią całego procesu lub dowolnymi logami bibliotek.
+
+Zmiana formatu jest jawna: zamiast `result.ocr.text` używamy
+`result.ocr.result.text` po sprawdzeniu `result.ocr.status == "COMPLETED"`.
+Zamiast `visual=None` zwracamy obiekt `SKIPPED`. Wywołanie obu kroków
+`analyzer.analyze(image_bytes, OcrOptions())` nie zmieniło się.
+Pydantic >= 2.11 obsługuje używaną składnię generyczną Pythona 3.12+;
+minimum zapisano w `pyproject.toml` i `uv.lock`, bez aktualizacji wersji modeli.
 
 ## Zachowane wywołanie OCR w konsoli
 
@@ -100,22 +180,22 @@ Nieprzezroczysty RGB nie wymaga budowania kanału alfa i białego tła. PNG
 z przezroczystością nadal wymaga poprawnego złożenia na białym tle, także
 gdy przezroczysty kolor zapisano w metadanych RGB, a nie jako kanał RGBA.
 
-`ocr.duration_ms` po refaktorze nie zawiera wspólnego przygotowania obrazu.
+`ocr.result.duration_ms` nie zawiera wspólnego przygotowania obrazu.
 Pierwszy OCR może nadal zawierać koszt lazy loading. Z tego powodu nie porównuj
 starego i nowego czasu tego pola jako benchmarku całego workflow.
-Przed oceną wydajności dodamy jawny pomiar całej analizy oraz przygotowania.
+Konsola mierzy całość w `runs[].total_ms`; osobnego czasu przygotowania
+nie dodaliśmy. Nieudane lub pominięte kroki nie mają udawanego `duration_ms`.
 
 ## Błędy i kolejne etapy
 
 Pusty tekst OCR może być poprawnym wynikiem: nie rozpoznano napisów. Wyjątek
 silnika to inna sytuacja i nie jest zamieniany na pusty, udany wynik.
-Aktualny koordynator przerywa na błędzie OCR lub wizji i zwalnia obraz.
-Przed HTTP ustalimy niezależne statusy/błędy częściowe, żeby udany tekst nie
-ginął, gdy opis wizualny się nie powiedzie. `visual=None` służy teraz zachowaniu
-przykładów OCR-only, nie ukrywaniu awarii.
+Zwykłe wyjątki silników dają niezależne `FAILED`, bez utraty udanej części.
+Obraz jest zamykany także przy porażce obu silników, braku pamięci i przerwaniu.
+Wynik nie oznacza, że proces umie odzyskać pracę po awarii kodu natywnego.
 
 Florence jest już uruchomiony na jednym obrazie oraz w integracji offline.
-Najbliższy krok: częściowe wyniki i zabezpieczony endpoint:
+Najbliższy krok do wspólnego uzgodnienia: zabezpieczony endpoint:
 autoryzacja, limit uploadu przed odczytem, ograniczona praca w toku, gotowość
 modeli, błędy i timeouty. Dopiero potem Java i osobne zadania analizy.
 
@@ -124,6 +204,10 @@ modeli, błędy i timeouty. Dopiero potem Java i osobne zadania analizy.
 Testy jednostkowe używają obrazów utworzonych w pamięci i jawnych atrap silników.
 Sprawdzają formaty, limity przed dekodowaniem, piksele przezroczyste, własność
 obrazów, jeden krok przygotowania, kolejność OCR/wizji, hash bajtów i JSON.
+Testy koordynatora sprawdzają też błędy pojedyncze/podwójne, pominięcie kroku,
+pusty tekst jako sukces, bezpieczne komunikaty i przerwanie przy braku pamięci.
+`test_analysis_schemas.py` sprawdza kombinacje statusów, sprzeczne dane,
+rozróżnienie typów wyniku, JSON Schema, serializację i zamrożone opakowania.
 Test integracyjny OCR jest opt-in; generuje czytelne napisy i blokuje sieć.
 Nie przechowujemy prywatnych obrazów jako fixture i nie zmieniamy ich na dysku.
 
@@ -132,6 +216,12 @@ lint i formatowanie Ruff poprawne, lockfile zgodny, wheel i sdist zbudowane
 offline. Wynik rzeczywistego OCR jest taki sam jak przed refaktorem:
 `ScreenSort OCR test` i `Order number 12345`. To sprawdzenie poprawności
 na jednym syntetycznym przykładzie, nie benchmark ani pełna ocena jakości.
+
+Weryfikacja 2026-10-15 po dodaniu niezależnych wyników: 88/88 testów,
+w tym rzeczywisty OCR i Florence offline na syntetycznym obrazie. Ruff lint,
+formatowanie i `uv lock --check --offline --no-python-downloads` poprawne.
+Lockfile zmienił tylko minimalną wersję Pydantic; nie aktualizowano modeli.
+Nie zmieniono Javy, Reacta, bazy ani źródeł, nie dodano endpointu analizy.
 
 Instrukcja poleceń: [README serwisu](../analysis-service/README.md).
 Zasady zasobów: [Pillow — lifecycle](https://pillow.readthedocs.io/en/stable/reference/open_files.html).
