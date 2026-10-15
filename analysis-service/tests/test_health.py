@@ -5,10 +5,24 @@ from fastapi.testclient import TestClient
 
 from screensort_analysis.main import create_app
 
+TOKEN = "test-only-token-" + "a" * 32
+
+
+class NoModelsRuntime:
+    is_ready = False
+
+    async def start(self):
+        pass
+
+    async def close(self):
+        pass
+
 
 @pytest.fixture
 def client():
-    with TestClient(create_app()) as test_client:
+    with TestClient(
+        create_app(runtime_factory=NoModelsRuntime, token=TOKEN)
+    ) as test_client:
         yield test_client
 
 
@@ -31,7 +45,7 @@ def test_health_does_not_accept_write_requests(client):
 def test_openapi_exposes_the_health_response_contract(client):
     specification = client.get("/openapi.json").json()
 
-    assert set(specification["paths"]) == {"/health"}
+    assert set(specification["paths"]) == {"/health", "/ready", "/api/v1/analyses"}
     response_schema = specification["paths"]["/health"]["get"]["responses"]["200"]
     assert response_schema["content"]["application/json"]["schema"] == {
         "$ref": "#/components/schemas/HealthResponse"
@@ -46,9 +60,9 @@ def test_openapi_exposes_the_health_response_contract(client):
     }
 
 
-def test_analysis_is_not_a_fake_success_endpoint(client):
-    assert client.post("/api/v1/analyses").status_code == 404
+def test_analysis_is_not_an_unauthenticated_success_endpoint(client):
+    assert client.post("/api/v1/analyses").status_code == 401
 
 
 def test_application_factory_creates_separate_instances():
-    assert create_app() is not create_app()
+    assert create_app(token=TOKEN) is not create_app(token=TOKEN)

@@ -1,9 +1,9 @@
 # ScreenSort Analysis Service
 
-Status 2026-10-15: samodzielny OCR, Florence i niezależne wyniki obu kroków.
-HTTP nadal udostępnia tylko health. Prawdziwy OCR i opis wizualny są sprawdzone
-offline w konsoli oraz w testach integracyjnych na syntetycznym obrazie.
-Nie ma jeszcze połączenia z Javą ani rzeczywistych wyników analizy w React.
+Status 2026-10-15: OCR i Florence działają także przez zabezpieczone HTTP.
+Java zleca analizę po ID pliku, przekazuje bajty, sprawdza hash i zapisuje wynik.
+React pokazuje rzeczywisty wynik, niezależnie od osobno oznaczonego demo.
+Pakiet desktop zawiera modele i prywatny runtime; nie wymaga Pythona użytkownika.
 
 To osobny lokalny proces Pythona w tym samym repozytorium Git. Ma własny pakiet,
 zależności, testy i polecenie uruchomienia. Nie jest kolejnym katalogiem wewnątrz
@@ -18,13 +18,22 @@ Springa. Granice odpowiedzialności opisuje
 {
   "service": "screensort-analysis",
   "status": "ok",
-  "analysis_available": false
+  "analysis_available": true
 }
 ```
 
-To potwierdza wyłącznie, że proces odpowiada. Nie oznacza, że potrafi analizować
-obrazy przez HTTP. `/ready` i `/api/v1/analyses` nie istnieją jeszcze. Nie zwracamy fikcyjnych
-wyników. `/docs` pokazuje dokumentację bieżącego API; `/openapi.json` jego kontrakt.
+`analysis_available` odzwierciedla stan runtime, a nie stałą. Lifespan ładuje i
+rozgrzewa modele przed przyjmowaniem żądań. Chroniony `GET /ready` potwierdza
+gotowość. Chroniony `POST /api/v1/analyses?ocr=true&visual=true` przyjmuje surowe
+bajty PNG/JPEG (nie JSON ze ścieżką). Zwraca typowany `ImageAnalysisResult`.
+Nagłówek: `Authorization: Bearer <losowy-token>`; aplikacja wymaga tokenu z
+`SCREENSORT_ANALYSIS_TOKEN`, nie ma hasła domyślnego.
+
+Limit wejścia to 50 MiB i 15 s na upload, limit oczekiwania na wynik 120 s.
+Zajęty pojedynczy worker zwraca 429; brak gotowości 503. Anulowane żądanie
+nie udaje anulowania natywnego modelu: slot zwalnia dopiero kończąca się praca.
+Kontrole obrazu i limit pikseli nadal obowiązują. Zwykły błąd jednego silnika
+pozostawia wynik drugiego. `/docs` i `/openapi.json` opisują kontrakt, bez sekretów.
 
 ## Analiza jednego obrazu w kodzie Pythona
 
@@ -62,7 +71,7 @@ To zmiana formatu JSON: tekst jest teraz w `ocr.result.text`, opis w
 `visual.result.description`, a czasy w odpowiednich `result.duration_ms`.
 `visual: null` zastępuje jawne `visual.status: SKIPPED`. Jednoczesne wyłączenie
 obu kroków w `analyze` jest błędem. Flagi nie zmieniają konstruktora ani
-ładowania silników; nie dodano jeszcze opcji wyboru do CLI lub HTTP.
+ładowania silników. HTTP przyjmuje flagi `ocr`/`visual`; CLI zachowuje oba kroki.
 Typowane warianty Pydantic odrzucają np. `COMPLETED` bez wyniku albo `FAILED`
 z wynikiem i błędem naraz. Wymagamy Pydantic >= 2.11 dla składni `Class[T]`.
 
@@ -98,8 +107,10 @@ Z głównego katalogu repozytorium, w PowerShell:
 
 ```powershell
 cd analysis-service
-uv sync --locked --no-python-downloads
-uv run --locked --no-python-downloads python -m uvicorn screensort_analysis.main:create_app --factory --host 127.0.0.1 --port 8001 --workers 1
+uv sync --locked --extra vision --no-python-downloads
+# Zapisz ten sam losowy token w konfiguracji Javy; nie commituj go.
+$env:SCREENSORT_ANALYSIS_TOKEN = uv run python -c "import secrets; print(secrets.token_urlsafe(32))"
+uv run --locked --extra vision --no-python-downloads python -m uvicorn screensort_analysis.main:create_app --factory --host 127.0.0.1 --port 8001 --workers 1
 ```
 
 Pierwsza instalacja pobiera zależności z PyPI. `--locked` sprawdza zgodność
@@ -115,7 +126,8 @@ Invoke-RestMethod http://127.0.0.1:8001/health
 
 Można też otworzyć `http://127.0.0.1:8001/docs` w przeglądarce. Ctrl+C zatrzymuje
 wyłącznie ten serwis. Nie trzeba uruchamiać Springa, Reacta, Tauri ani Dockera,
-żeby sprawdzić ten szkielet. Nie wystawiaj go przez `--host 0.0.0.0`.
+żeby sprawdzić sam serwis. Wymagany jest lokalny cache modelu opisany poniżej.
+Nie wystawiaj go przez `--host 0.0.0.0`. W instalatorze całym startem zarządza Rust.
 
 ## Florence i cały wynik w konsoli
 

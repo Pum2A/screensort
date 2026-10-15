@@ -10,7 +10,23 @@ class HealthResponse(BaseModel):
 
     service: Literal["screensort-analysis"]
     status: Literal["ok"]
-    analysis_available: Literal[False]
+    analysis_available: bool
+
+
+class AnalysisOptions(BaseModel):
+    """Only known, bounded options are accepted over HTTP."""
+
+    model_config = ConfigDict(extra="forbid")
+    ocr: bool = True
+    visual: bool = True
+    languages: list[Literal["pl", "en"]] = Field(
+        default_factory=lambda: ["pl", "en"], min_length=1, max_length=2
+    )
+
+
+class ReadyResponse(BaseModel):
+    status: Literal["ready"] = "ready"
+    analysis_available: Literal[True] = True
 
 
 class OcrOptions(BaseModel):

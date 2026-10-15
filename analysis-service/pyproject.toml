@@ -1,7 +1,7 @@
 [project]
 name = "screensort-analysis"
 version = "0.1.0"
-description = "Local OCR and image analysis components with a health-only HTTP API."
+description = "Local authenticated OCR and visual analysis with bounded model execution."
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 dependencies = [
