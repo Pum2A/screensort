@@ -53,11 +53,14 @@ def test_real_ocr_and_florence_return_a_serializable_result_offline(monkeypatch)
         torch.set_num_threads(previous_threads)
 
     assert result.source_sha256 == sha256(data).hexdigest()
-    assert result.ocr.text == "ScreenSort OCR test\nOrder number 12345"
-    assert result.visual is not None
-    assert result.visual.description.strip()
-    assert result.visual.model == MODEL_ID
-    assert result.visual.model_revision == MODEL_REVISION
-    assert result.visual.device == "cpu"
-    assert result.visual.task == "caption"
+    assert result.ocr.status == "COMPLETED"
+    assert result.ocr.result.text == "ScreenSort OCR test\nOrder number 12345"
+    assert result.ocr.error is None
+    assert result.visual.status == "COMPLETED"
+    assert result.visual.result.description.strip()
+    assert result.visual.result.model == MODEL_ID
+    assert result.visual.result.model_revision == MODEL_REVISION
+    assert result.visual.result.device == "cpu"
+    assert result.visual.result.task == "caption"
+    assert result.visual.error is None
     assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result

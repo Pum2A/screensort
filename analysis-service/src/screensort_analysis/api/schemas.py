@@ -1,8 +1,8 @@
 """Public HTTP data shapes, independent of Java persistence entities."""
 
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthResponse(BaseModel):
@@ -42,9 +42,59 @@ class VisualResult(BaseModel):
     duration_ms: float = Field(ge=0, allow_inf_nan=False)
 
 
+class AnalysisError(BaseModel):
+    """Safe public failure details, without raw engine exceptions."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    code: Literal["OCR_FAILED", "VISUAL_FAILED"]
+    message: str
+
+
+class CompletedAnalysis[T](BaseModel):
+    """A successful step must contain its correctly typed result."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["COMPLETED"] = "COMPLETED"
+    result: T
+    error: None = None
+
+
+class FailedAnalysis(BaseModel):
+    """An attempted step failed; it cannot also contain a successful result."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["FAILED"] = "FAILED"
+    result: None = None
+    error: AnalysisError
+
+
+class SkippedAnalysis(BaseModel):
+    """An unrequested step is neither a success nor a failure."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    status: Literal["SKIPPED"] = "SKIPPED"
+    result: None = None
+    error: None = None
+
+
+OcrAnalysis = Annotated[
+    CompletedAnalysis[OcrResult] | FailedAnalysis | SkippedAnalysis,
+    Field(discriminator="status"),
+]
+
+VisualAnalysis = Annotated[
+    CompletedAnalysis[VisualResult] | FailedAnalysis | SkippedAnalysis,
+    Field(discriminator="status"),
+]
+
+
 class ImageAnalysisResult(BaseModel):
-    """Analysis result linked to the exact input content."""
+    """Independent outcomes linked to the exact input content."""
 
     source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    ocr: OcrResult
-    visual: VisualResult | None = None
+    ocr: OcrAnalysis
+    visual: VisualAnalysis

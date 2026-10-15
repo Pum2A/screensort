@@ -1062,7 +1062,7 @@ requires-dist = [
     { name = "huggingface-hub", marker = "extra == 'vision'", specifier = "==2.2.0" },
     { name = "onnxruntime", specifier = ">=1.26,<2" },
     { name = "pillow", specifier = ">=12.3.0" },
-    { name = "pydantic", specifier = ">=2.10,<3.0" },
+    { name = "pydantic", specifier = ">=2.11,<3.0" },
     { name = "rapidocr", specifier = "==3.10.0" },
     { name = "torch", marker = "(sys_platform == 'linux' and extra == 'vision') or (sys_platform == 'win32' and extra == 'vision')", specifier = "==2.14.1", index = "https://download.pytorch.org/whl/cpu", conflict = { package = "screensort-analysis", extra = "vision" } },
     { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32' and extra == 'vision'", specifier = "==2.14.1" },

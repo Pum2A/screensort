@@ -8,6 +8,7 @@ from unittest.mock import Mock
 
 import pytest
 from PIL import Image
+from pydantic import ValidationError
 
 from screensort_analysis.api.schemas import (
     ImageAnalysisResult,
@@ -70,8 +71,12 @@ def test_prepares_once_and_passes_the_same_image_and_options_to_both_engines(
     vision.analyze.assert_called_once_with(image)
     assert [call[0] for call in calls.mock_calls] == ["ocr", "vision"]
     assert result.source_sha256 == sha256(data).hexdigest()
-    assert result.ocr == ocr.recognize_prepared.return_value
-    assert result.visual == vision.analyze.return_value
+    assert result.ocr.status == "COMPLETED"
+    assert result.ocr.result == ocr.recognize_prepared.return_value
+    assert result.ocr.error is None
+    assert result.visual.status == "COMPLETED"
+    assert result.visual.result == vision.analyze.return_value
+    assert result.visual.error is None
     assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result
     with pytest.raises(ValueError, match="closed"):
         image.getpixel((0, 0))
@@ -88,14 +93,125 @@ def test_bad_input_stops_before_either_engine(engines):
 
 
 @pytest.mark.parametrize("failed_engine", ["ocr", "vision"])
-def test_engine_failure_is_not_hidden_and_the_shared_image_is_closed(
-    data, engines, failed_engine
+def test_engine_failure_preserves_the_other_result_and_closes_the_shared_image(
+    data, engines, failed_engine, caplog
 ):
     ocr, vision = engines
     failing_call = ocr.recognize_prepared if failed_engine == "ocr" else vision.analyze
-    failing_call.side_effect = RuntimeError("Analysis failed")
+    failing_call.side_effect = RuntimeError("Private engine details must stay private")
 
-    with pytest.raises(RuntimeError, match="Analysis failed"):
+    result = ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
+
+    failed = result.ocr if failed_engine == "ocr" else result.visual
+    completed = result.visual if failed_engine == "ocr" else result.ocr
+    expected_code = "OCR_FAILED" if failed_engine == "ocr" else "VISUAL_FAILED"
+    expected_result = (
+        vision.analyze.return_value
+        if failed_engine == "ocr"
+        else ocr.recognize_prepared.return_value
+    )
+    assert failed.status == "FAILED"
+    assert failed.result is None
+    assert failed.error.code == expected_code
+    assert completed.status == "COMPLETED"
+    assert completed.result == expected_result
+    assert result.source_sha256 == sha256(data).hexdigest()
+    assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result
+    assert "Private engine details" not in result.model_dump_json()
+    assert "Private engine details" not in caplog.text
+    assert f"{expected_code} [RuntimeError]" in caplog.text
+    image = ocr.recognize_prepared.call_args.args[0]
+    vision.analyze.assert_called_once_with(image)
+    with pytest.raises(ValueError, match="closed"):
+        image.getpixel((0, 0))
+
+
+def test_both_engine_failures_are_reported_without_a_fabricated_result(data, engines):
+    ocr, vision = engines
+    ocr.recognize_prepared.side_effect = RuntimeError("OCR unavailable")
+    vision.analyze.side_effect = RuntimeError("Vision unavailable")
+
+    result = ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
+
+    assert result.ocr.status == "FAILED"
+    assert result.ocr.error.code == "OCR_FAILED"
+    assert result.ocr.result is None
+    assert result.visual.status == "FAILED"
+    assert result.visual.error.code == "VISUAL_FAILED"
+    assert result.visual.result is None
+    assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result
+
+
+@pytest.mark.parametrize("skipped_engine", ["ocr", "vision"])
+def test_unrequested_engine_is_not_called(data, engines, skipped_engine):
+    ocr, vision = engines
+
+    result = ImageAnalyzer(ocr, vision).analyze(
+        data,
+        OcrOptions(),
+        run_ocr=skipped_engine != "ocr",
+        run_visual=skipped_engine != "vision",
+    )
+
+    skipped = result.ocr if skipped_engine == "ocr" else result.visual
+    completed = result.visual if skipped_engine == "ocr" else result.ocr
+    skipped_call = ocr.recognize_prepared if skipped_engine == "ocr" else vision.analyze
+    completed_call = (
+        vision.analyze if skipped_engine == "ocr" else ocr.recognize_prepared
+    )
+    assert skipped.status == "SKIPPED"
+    assert skipped.result is None
+    assert skipped.error is None
+    skipped_call.assert_not_called()
+    assert completed.status == "COMPLETED"
+    assert completed.result == completed_call.return_value
+    completed_call.assert_called_once()
+    assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result
+    image = completed_call.call_args.args[0]
+    with pytest.raises(ValueError, match="closed"):
+        image.getpixel((0, 0))
+
+
+def test_selecting_neither_engine_stops_before_preparing_image(
+    monkeypatch, data, engines
+):
+    prepare = Mock()
+    monkeypatch.setattr(analyzer_module, "prepare_image", prepare)
+    ocr, vision = engines
+
+    with pytest.raises(ValueError, match="Select OCR or visual analysis"):
+        ImageAnalyzer(ocr, vision).analyze(
+            data, OcrOptions(), run_ocr=False, run_visual=False
+        )
+
+    prepare.assert_not_called()
+    ocr.recognize_prepared.assert_not_called()
+    vision.analyze.assert_not_called()
+
+
+def test_empty_ocr_text_is_a_completed_result(data, engines):
+    ocr, vision = engines
+    ocr.recognize_prepared.return_value = OcrResult(
+        text="", engine="test-only", engine_version="0", duration_ms=1
+    )
+
+    result = ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
+
+    assert result.ocr.status == "COMPLETED"
+    assert result.ocr.result.text == ""
+    assert result.ocr.error is None
+
+
+@pytest.mark.parametrize("failed_engine", ["ocr", "vision"])
+@pytest.mark.parametrize("failure_type", [MemoryError, KeyboardInterrupt])
+def test_fatal_failure_propagates_and_closes_the_shared_image(
+    data, engines, failed_engine, failure_type
+):
+    ocr, vision = engines
+    failing_call = ocr.recognize_prepared if failed_engine == "ocr" else vision.analyze
+    failing_call.side_effect = failure_type("Stop processing")
+
+    with pytest.raises(failure_type, match="Stop processing"):
         ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
 
     image = ocr.recognize_prepared.call_args.args[0]
@@ -105,11 +221,17 @@ def test_engine_failure_is_not_hidden_and_the_shared_image_is_closed(
         vision.analyze.assert_not_called()
 
 
-def test_existing_ocr_only_result_still_serializes_without_visual_analysis(engines):
-    ocr, _ = engines
-    result = ImageAnalysisResult(
-        source_sha256="0" * 64, ocr=ocr.recognize_prepared.return_value
-    )
+@pytest.mark.parametrize("invalid_engine", ["ocr", "vision"])
+def test_invalid_result_is_a_contract_error_not_an_engine_failure(
+    data, engines, invalid_engine
+):
+    ocr, vision = engines
+    invalid_call = ocr.recognize_prepared if invalid_engine == "ocr" else vision.analyze
+    invalid_call.return_value = None
 
-    assert result.visual is None
-    assert result.model_dump(mode="json")["visual"] is None
+    with pytest.raises(ValidationError):
+        ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
+
+    image = ocr.recognize_prepared.call_args.args[0]
+    with pytest.raises(ValueError, match="closed"):
+        image.getpixel((0, 0))
