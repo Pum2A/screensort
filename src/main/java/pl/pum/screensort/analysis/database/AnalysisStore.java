@@ -1,0 +1,43 @@
+package pl.pum.screensort.analysis.database;
+
+import java.time.Instant;
+import java.util.Optional;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pl.pum.screensort.analysis.AnalysisException;
+import pl.pum.screensort.analysis.result.AnalysisResult;
+import pl.pum.screensort.analysis.result.SavedAnalysis;
+import pl.pum.screensort.catalog.database.FileRecordRepository;
+import tools.jackson.databind.json.JsonMapper;
+
+@Service
+public class AnalysisStore {
+  private final FileAnalysisRepository analyses;
+  private final FileRecordRepository files;
+  private final JsonMapper json;
+
+  public AnalysisStore(FileAnalysisRepository analyses, FileRecordRepository files, JsonMapper json) {
+    this.analyses = analyses; this.files = files; this.json = json;
+  }
+
+  @Transactional
+  public SavedAnalysis save(long fileId, boolean ocr, boolean visual, AnalysisResult result) {
+    var file = files.findById(fileId).orElseThrow(() -> new AnalysisException(404, "Plik nie istnieje w katalogu."));
+    var entity = analyses.findByFile_IdAndOcrEnabledAndVisualEnabled(fileId, ocr, visual)
+        .orElseGet(() -> new FileAnalysisEntity(file, ocr, visual));
+    entity.update(result.sourceSha256(), json.writeValueAsString(result), Instant.now());
+    return dto(analyses.saveAndFlush(entity));
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<SavedAnalysis> latest(long fileId) {
+    return analyses.findFirstByFile_IdOrderByAnalyzedAtDesc(fileId).map(this::dto);
+  }
+
+  private SavedAnalysis dto(FileAnalysisEntity entity) {
+    var file = entity.getFile();
+    return new SavedAnalysis(entity.getId(), file.getId(), entity.getAnalyzedAt(),
+        entity.getSourceSha256().equals(file.getSha256()),
+        json.readValue(entity.getResultJson(), AnalysisResult.class));
+  }
+}
