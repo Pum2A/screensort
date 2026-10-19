@@ -5,6 +5,7 @@ import {Icon} from '../ui/Icon'
 import {isDesktop} from './transport'
 import {AnalysisReadiness} from './readiness'
 import './DesktopStartup.css'
+import {AiPackagePanel} from './packages/AiPackagePanel'
 
 type Status = {phase: string, backendReady: boolean, analysisReady: boolean, analysisStarting: boolean, error: string | null}
 
@@ -38,10 +39,8 @@ export function DesktopStartup({children}: {children: ReactNode}) {
     return <AnalysisReadiness.Provider value={status.analysisReady}>{!status.analysisReady && <div className="desktop-notice" role="status">
         <Icon name={status.error ? 'shield' : 'image'} className={status.analysisStarting ? 'spin' : ''}/>
         {status.error ?? status.phase}
-        <button type="button" className="secondary-button" disabled={status.analysisStarting}
-            onClick={() => void invoke('start_analysis_runtime').catch(() => setStatus({...status,
-                error: 'Nie udało się zlecić uruchomienia AI. Spróbuj ponownie.'}))}>
-            {status.analysisStarting ? 'Przygotowywanie AI…' : 'Uruchom pakiet AI'}
-        </button>
-    </div>}{children}</AnalysisReadiness.Provider>
+    </div>}{!status.analysisReady && <AiPackagePanel starting={status.analysisStarting}
+        onStart={() => void invoke('start_analysis_runtime').catch(cause => setStatus({...status,
+            error: typeof cause === 'string' ? cause : 'Nie udało się zlecić uruchomienia AI.'}))}/>
+    }{children}</AnalysisReadiness.Provider>
 }
