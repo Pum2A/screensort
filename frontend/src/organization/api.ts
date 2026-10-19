@@ -3,7 +3,11 @@ import {backendFetch} from '../desktop/transport.js'
 export type Batch = {id: string, folderPath: string, status: 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'CANCELLED',
     total: number, completed: number, failed: number, processing: number, ocr: boolean, visual: boolean, createdAt: string}
 export type BatchItem = {fileId: number, originalName: string, status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED',
-    category: string | null, proposedName: string | null, message: string | null}
+    category: string | null, proposedName: string | null, message: string | null,
+    analysisId: number | null, sourceSha256: string, analysisMatchesCatalog: boolean,
+    namingRevision: number, approvedName: string | null, review: OrganizationDecision | null}
+export type OrganizationDecision = {decision: 'APPROVED' | 'SKIPPED', category: string | null,
+    reviewedAt: string, revision: number, matchesCatalog: boolean}
 export type BatchPage = {items: BatchItem[], hasNext: boolean}
 
 async function checked<T>(response: Response): Promise<T> {
