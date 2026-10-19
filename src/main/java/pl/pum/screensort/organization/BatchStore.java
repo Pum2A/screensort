@@ -1,7 +1,5 @@
 package pl.pum.screensort.organization;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -12,23 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
+import pl.pum.screensort.organization.review.ReviewStore;
 
 /** Short SQL transactions only. Model inference never holds a connection or a row lock. */
 @Service
 public class BatchStore {
   public record Job(UUID id, String folderPath, String status, boolean ocr, boolean visual,
       long total, long completed, long failed, long processing, Instant createdAt) {}
-  public record Item(long fileId, String originalName, String status, String category,
-      String proposedName, String message) {}
   public record Pending(long fileId, String originalName, String sourceSha256) {}
-  public record ItemPage(List<Item> items, boolean hasNext) {}
 
   private final JdbcTemplate jdbc;
   private final CategorySuggester categories;
   private final NameSuggestionGenerator names;
+  private final ReviewStore reviews;
 
-  public BatchStore(JdbcTemplate jdbc, CategorySuggester categories, NameSuggestionGenerator names) {
-    this.jdbc = jdbc; this.categories = categories; this.names = names;
+  public BatchStore(JdbcTemplate jdbc, CategorySuggester categories, NameSuggestionGenerator names, ReviewStore reviews) {
+    this.jdbc = jdbc; this.categories = categories; this.names = names; this.reviews = reviews;
   }
 
   @Transactional
@@ -136,15 +133,7 @@ public class BatchStore {
   }
 
   @Transactional(readOnly = true)
-  public ItemPage items(UUID id, int page) {
-    List<Item> rows = jdbc.query("""
-        select file_id, original_name, status, category, proposed_name, message
-        from analysis_batch_item where batch_id = ? order by file_id limit 51 offset ?
-        """, this::item, id, Math.multiplyExact((long) page, 50));
-    return new ItemPage(List.copyOf(rows.subList(0, Math.min(50, rows.size()))), rows.size() > 50);
-  }
-
-  private Item item(ResultSet row, int n) throws SQLException {
-    return new Item(row.getLong(1), row.getString(2), row.getString(3), row.getString(4), row.getString(5), row.getString(6));
+  public ReviewStore.Page items(UUID id, int page) {
+    return reviews.page(id, page);
   }
 }

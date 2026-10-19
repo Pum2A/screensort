@@ -6,6 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.pum.screensort.analysis.AnalysisException;
+import pl.pum.screensort.organization.review.ReviewStore;
 
 @RestController
 @RequestMapping("/api/organization/batches")
@@ -43,7 +44,7 @@ public class BatchController {
   }
 
   @GetMapping("/{id}/items")
-  public BatchStore.ItemPage items(@PathVariable UUID id, @RequestParam(defaultValue = "0") int page) {
+  public ReviewStore.Page items(@PathVariable UUID id, @RequestParam(defaultValue = "0") int page) {
     if (page < 0 || page > 1_000_000) throw new AnalysisException(400, "Nieprawidłowa strona.");
     find(id);
     return store.items(id, page);
