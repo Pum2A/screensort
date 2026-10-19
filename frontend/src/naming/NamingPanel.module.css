@@ -1,0 +1,14 @@
+.panel { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--border); min-width: 0; }
+.panel h4 { font-size: 23px; font-weight: 400; margin: 8px 0; }
+.hint { color: var(--muted); font-size: 16px; line-height: 1.4; }
+.original { overflow-wrap: anywhere; }
+.original span { color: var(--muted); }
+.panel label { display: block; margin: 14px 0 8px; }
+.panel input { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: inherit; }
+.panel input[aria-invalid="true"] { border-color: var(--danger); }
+.panel input:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
+.actions button { min-height: 44px; }
+.error { color: var(--danger); font-size: 16px; }
+.warning { border-left: 3px solid #cc6a35; padding: 8px 12px; margin-top: 12px; overflow-wrap: anywhere; }
+.saved { border-left: 3px solid var(--text); padding-left: 12px; font-size: 16px; overflow-wrap: anywhere; }

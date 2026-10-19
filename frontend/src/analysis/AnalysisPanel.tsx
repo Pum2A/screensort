@@ -5,6 +5,7 @@ import {Icon} from '../ui/Icon'
 import {formatDate} from '../catalog/format'
 import styles from './AnalysisPanel.module.css'
 import {useAnalysisReady} from '../desktop/readiness'
+import {NamingPanel} from '../naming/NamingPanel'
 
 const labels = {PREPARING: 'Sprawdzamy oryginał…', ANALYZING: 'OCR i analiza wizualna…',
     SAVING: 'Zapisujemy wynik…', COMPLETED: 'Wynik zapisany', FAILED: 'Analiza nie powiodła się'}
@@ -115,6 +116,8 @@ export function AnalysisPanel({fileId}: {fileId: number}) {
             </> : <p>{saved.result.ocr.status === 'SKIPPED' ? 'Pominięto na Twoje życzenie.' : 'OCR zakończył się błędem. Opis wizualny mógł się powieść.'}</p>}
             <details><summary>Szczegóły techniczne</summary><code>{saved.result.source_sha256}</code></details>
             <p className={styles.hint}>Opis modelu jest propozycją, nie gwarancją poprawności. Nie zmieniono nazwy ani zawartości zdjęcia.</p>
+            <NamingPanel key={`${saved.id}:${saved.analyzedAt}:${saved.result.source_sha256}`}
+                fileId={fileId} disabled={busy}/>
         </div>}
     </div>
 }

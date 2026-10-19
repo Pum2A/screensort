@@ -176,12 +176,15 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
     }
     match method {
         "POST" => matches!(route, "/api/scan/jobs" | "/api/analysis/jobs"),
+        "PUT" => Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
+            .unwrap()
+            .is_match(route),
         "GET" => {
             route == "/api/catalog/page"
                 || Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$")
                     .unwrap()
                     .is_match(route)
-                || Regex::new(r"^/api/catalog/files/[1-9][0-9]*/analysis$")
+                || Regex::new(r"^/api/catalog/files/[1-9][0-9]*/(analysis|naming)$")
                     .unwrap()
                     .is_match(route)
         }
@@ -248,6 +251,12 @@ mod tests {
         assert!(allowed("POST", "/api/analysis/jobs", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
+        assert!(allowed("GET", "/api/catalog/files/1/naming", false));
+        assert!(allowed("PUT", "/api/catalog/files/1/naming", false));
+        assert!(!allowed("POST", "/api/catalog/files/1/naming", false));
+        assert!(!allowed("PUT", "/api/catalog/files/1/analysis", false));
+        assert!(!allowed("PUT", "/api/catalog/files/0/naming", false));
+        assert!(!allowed("PUT", "/api/catalog/files/../naming", false));
         for path in [
             "http://evil.test/",
             "//evil.test/",
