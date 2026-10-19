@@ -2,6 +2,40 @@
 
 Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-19
 
+## Zatwierdzanie nazw i kategorii — 2026-10-19
+
+Etap na `codex/on-demand-ai-and-batch-review`, desktop 0.2.1. Przegląd kodu:
+[review-organization-decisions.md](review-organization-decisions.md).
+Migracja V7 dodaje osobną decyzję organizacji na plik, nie zmienia wcześniejszych
+migracji. `ReviewService` atomowo zapisuje nazwę przez istniejący `NamingService`
+i kategorię/pominięcie przez `ReviewStore`. Blokada rodzica i obie wersje
+formularza chronią przed nadpisaniem nowszej decyzji. Zmiana SHA lub zatwierdzonej
+nazwy unieważnia poprzednie zatwierdzenie organizacji. Żadnego I/O na źródle.
+
+React: lista z miniaturami, jeden wybrany formularz, jawne odrzucenie edycji,
+czytelny konflikt i paginacja po 50. Nowe GET/PUT
+`/api/organization/batches/{batchId}/items/{fileId}/review` przechodzą przez
+ograniczony bridge Rust. Python, modele i katalog paczek AI bez zmian.
+`npm run review:preview` w `frontend` otwiera fikcyjny scenariusz na porcie 5183,
+bez użycia bazy i zdjęć właściciela. Nie jest częścią produkcyjnego wejścia.
+
+Lokalne testy: 142 jednostkowe Javy (2 wcześniejsze pominięcia), 14 testów
+z izolowanym PostgreSQL-em (w tym 8 nowych), 50 frontendu i 19 Rusta.
+Build i lint frontendu poprawne. Core 0.2.1 zbudowany; rzeczywisty resolver
+Tauri, start bez AI, katalog, miniatura i restart przeszły na osobnych danych.
+Pełny smoke Core + opcjonalny pakiet CPU również przeszedł: prawdziwy OCR,
+Florence, analiza folderu, pominięcie/zatwierdzenie, konflikt starego formularza
+i odczyt decyzji po restarcie. Źródłowy syntetyczny PNG pozostał bez zmian.
+Pakiet z lokalnego ZIP aktywowano na nowych danych testowych, nie w profilu
+właściciela. To test funkcjonalny, nie benchmark szybkości modeli.
+Nie aktualizowano instalacji właściciela. Nie wrzucać lokalnych raportów,
+baz i artefaktów `output` do nowych commitów.
+
+Nadal nie ma planu eksportu, kopiowania, fizycznego zmieniania nazw,
+trenowanego klasyfikatora ani wyboru modeli. Kolejny krok: uzgodniony podgląd
+planu eksportu przed bezpiecznym kopiowaniem. Starsze sekcje tego dokumentu
+opisują historię; nie traktować ich list brakujących funkcji jako stanu 0.2.1.
+
 ## Instalowanie AI z aplikacji i CI/CD — 2026-10-19
 
 Kontynuacja po `da79df5`, wersja desktop 0.2.0. Zmiany i decyzje techniczne:

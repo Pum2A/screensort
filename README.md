@@ -13,8 +13,10 @@ The current source version catalogs images, saves real analysis results and lets
 you review and approve a filename derived from a saved visual description.
 It also supports resumable whole-folder analysis with preliminary category/name
 proposals. Categories currently use explicit keyword rules, not a new trained classifier.
-Verified copy operations and downloading optional AI packages are not implemented.
-The existing 0.1.1 installer predates these changes; source changes need a new build.
+Optional AI packages can be downloaded from inside the app. The new folder review
+queue lets you edit names/categories, approve or skip images and persist decisions.
+Verified copy operations are not implemented. Preview 0.2.1 adds this review stage;
+older installers do not gain source changes without an update.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
@@ -87,6 +89,7 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Folder analysis | Durable per-file checkpoints, pause/resume, restart recovery and paged category/name proposals requiring review |
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
 | Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
+| Organization review | Editable name/category, approve or skip, persistent decisions and stale-form conflict protection |
 | Windows packaging | CoreOnly starts without Python/models; optional, checksum-pinned CPU AI package installs from the app or a matching ZIP |
 
 Matching size and modification time is a performance shortcut, not proof that
@@ -103,6 +106,9 @@ Public installers and optional model packages belong in the separate
 [distribution-only repository](https://github.com/Pum2A/screensort-releases), not in source Git history.
 The existing presentation media above shows the earlier interface.
 
+The new decision flow, exact code paths and manual test scenario are documented in
+the [organization review guide (Polish)](docs/review-organization-decisions.md).
+
 ## How it works
 
 1. Choose a source folder. Java validates it before scanning its direct entries.
@@ -118,6 +124,9 @@ The existing presentation media above shows the earlier interface.
    Java selects up to six meaningful caption words; this is a deterministic first
    version, not another AI call, translation or a semantic summarizer. A missing
    visual description allows manual entry instead. Only the decision is stored.
+7. In the whole-folder review queue, check each name/category and approve or skip
+   it. Changes are saved atomically; an outdated open form cannot overwrite a newer
+   decision. No source file is renamed or moved by approval.
 
 The scan and analysis jobs have different IDs and lifecycles. Catalog records and
 analysis results persist; the current scan job snapshots are held in memory.
