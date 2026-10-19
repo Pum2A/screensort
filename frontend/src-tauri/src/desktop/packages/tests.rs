@@ -225,3 +225,48 @@ fn rejects_archive_symlinks_even_when_the_archive_hash_is_correct() {
         archive::extract_verified(&mut input, stage.path(), &spec, &|| false, |_| {}).unwrap_err();
     assert!(error.contains("dowiązanie"), "{error}");
 }
+
+#[test]
+fn activation_never_replaces_an_existing_version() {
+    let root = tempfile::tempdir().unwrap();
+    let stage = root.path().join("stage");
+    let target = root.path().join("existing");
+    fs::create_dir(&stage).unwrap();
+    fs::create_dir(&target).unwrap();
+    fs::write(target.join("keep"), b"original").unwrap();
+    assert!(activate(&stage, &target, &|| false).is_err());
+    assert_eq!(fs::read(target.join("keep")).unwrap(), b"original");
+    assert!(stage.exists());
+}
+
+#[test]
+fn activation_obeys_cancellation_before_rename() {
+    let root = tempfile::tempdir().unwrap();
+    let stage = root.path().join("stage");
+    fs::create_dir(&stage).unwrap();
+    assert!(activate(&stage, &root.path().join("target"), &|| true).is_err());
+    assert!(stage.exists());
+}
+
+#[cfg(windows)]
+#[test]
+fn activation_retries_a_brief_windows_file_lock() {
+    use std::os::windows::fs::OpenOptionsExt;
+    let root = tempfile::tempdir().unwrap();
+    let stage = root.path().join("stage");
+    fs::create_dir(&stage).unwrap();
+    fs::write(stage.join("file"), b"payload").unwrap();
+    let held = OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(stage.join("file"))
+        .unwrap();
+    let release = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(400));
+        drop(held);
+    });
+    let target = root.path().join("installed");
+    activate(&stage, &target, &|| false).unwrap();
+    release.join().unwrap();
+    assert_eq!(fs::read(target.join("file")).unwrap(), b"payload");
+}

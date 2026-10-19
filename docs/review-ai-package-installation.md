@@ -90,6 +90,8 @@ W `install()` kolejność jest ważna:
 5. Sprawdź anulowanie oraz wymagane pliki. Zapisz `installed.json`.
 6. Zmień nazwę kompletnego katalogu na docelową. Dopiero wtedy resolver zobaczy wersję jako zainstalowaną.
 
+Na Windows aktywacja ma ograniczone ponowienie (maks. 5 sekund) po błędzie blokady/dostępu do świeżych plików. Inny proces, np. skaner antywirusowy, może chwilowo trzymać DLL bez zgody na zmianę nazwy katalogu. Nie wyłączamy ochrony Windows, nie nadpisujemy innej wersji i zachowujemy kod błędu systemowego przy trwałym niepowodzeniu. Osobny test Windows blokuje plik, zwalnia go i sprawdza aktywację. UI rozróżnia aktywację oraz zwykłe anulowanie od czerwonego błędu.
+
 `NamedTempFile` i `TempDir` sprzątają tymczasowe zasoby po zwykłym błędzie lub anulowaniu. Awaria/zabicie procesu może pozostawić osierocony staging, ale nie jest on uznawany za aktywny pakiet. Nie ma jeszcze automatycznego sprzątania po twardej awarii ani usuwania starych wersji.
 
 `installed()` sprawdza mały receipt oraz pliki wymagane, a nie hashuje ponownie 1,3 GiB przy każdym starcie. To kompromis szybkości: chronimy dystrybucję i instalację, nie udajemy antywirusa chroniącego pliki przed innym procesem tego samego użytkownika. SHA-256 nie jest podpisem wydawcy; instalator nie ma jeszcze Authenticode.
@@ -125,5 +127,21 @@ Nowy ręcznie uruchamiany workflow stanie się widoczny w Actions po dołączeni
 Dokumentacja źródłowa: [GitHub: secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows), [artefakty](https://docs.github.com/en/actions/tutorials/store-and-share-data).
 
 ## Granice tego etapu
+
+## Wyniki weryfikacji (2026-10-19)
+
+Pierwszy pełny test wykrył błąd końcowego rename na Windows. Po dodaniu ograniczonego ponowienia:
+
+* 19 testów Rust przeszło, w tym wymuszone zablokowanie/zwolnienie pliku na Windows.
+* 43 testy frontendu, lint i build przeszły. Python: 102 przeszły, 2 testy rzeczywistych modeli są opt-in.
+* Wszystkie cztery joby CI dla `dfc63b3` przeszły. Lokalny pełny Maven zatrzymał się na braku dostępnego Dockera; zdalny Maven w CI przeszedł. Osobno 6 testów zapisu/przeglądu przeszło na dołączonym, izolowanym PostgreSQL.
+* Test Core → import ZIP → OCR + Florence → analiza folderu → restart → odczyt zapisanych wyników przeszedł przez rzeczywisty Tauri PathResolver. Oryginał syntetycznego zdjęcia nie zmienił się.
+* Instalacja lokalnego ZIP zajęła 102 978 ms na tym komputerze, w tym kontrola SHA i rozpakowanie 21 387 plików. To nie jest czas instalacji Core ani uniwersalny benchmark. Nie obiecujemy błyskawicznego pobierania 713 MiB na każdym łączu.
+
+Raport lokalny: `.release/package-import-release-20261019-02.report.json` (ignorowany przez Git, bez zdjęć/danych użytkownika).
+Wydanie paczki: [AI CPU 2026-10-19-2](https://github.com/Pum2A/screensort-releases/releases/tag/ai-cpu-2026-10-19-2).
+Test publicznego pobierania i finalnego instalatora musi być potwierdzony osobno; powyższy test używał importu ZIP.
+
+## Czego ten etap nadal nie robi
 
 To nie zmienia jakości rozpoznawania Roblox/brandów. Nie dodaje ponownego trenowania, GPU, automatycznego przenoszenia/zmiany nazw oryginałów, wyboru innych modeli ani aktualizacji całej aplikacji z jej wnętrza. Core aktualizujemy nowym instalatorem, zachowując dotychczasowy katalog danych. Wyniki testów i adresy wydań są podawane przy handoffie, nie wynikają z samego istnienia tych plików.

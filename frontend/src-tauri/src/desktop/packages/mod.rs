@@ -213,12 +213,36 @@ impl PackageManager {
             .map_err(|_| "Nie można zapisać potwierdzenia instalacji.")?;
         drop(marker);
         // Same-volume rename makes a complete version visible in one step. No working version is overwritten.
-        fs::rename(stage.path(), &target).map_err(|_| {
-            "Nie można aktywować pakietu. Dotychczasowe wersje pozostają bez zmian."
-        })?;
+        self.update("ACTIVATING", spec.unpacked_bytes, spec.unpacked_bytes);
+        activate(stage.path(), &target, &|| self.cancelled())?;
         self.update("INSTALLED", spec.unpacked_bytes, spec.unpacked_bytes);
         Ok(())
     }
+}
+
+fn activate(stage: &Path, target: &Path, cancel: &impl Fn() -> bool) -> Result<(), String> {
+    for attempt in 0..21 {
+        archive::cancelled(cancel)?;
+        if target
+            .try_exists()
+            .map_err(|_| "Nie można sprawdzić wersji docelowej.")?
+        {
+            return Err("Wersja docelowa już istnieje. Niczego nie nadpisano.".into());
+        }
+        match fs::rename(stage, target) {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                // Windows scanners may briefly hold fresh DLLs without FILE_SHARE_DELETE.
+                let transient = cfg!(windows) && matches!(error.raw_os_error(), Some(5 | 32 | 33));
+                if !transient || attempt == 20 {
+                    eprintln!("AI package activation failed: {error}");
+                    return Err(format!("Nie można aktywować pakietu (błąd systemu {}). Dotychczasowe wersje pozostają bez zmian.", error.raw_os_error().unwrap_or(0)));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+        }
+    }
+    unreachable!()
 }
 
 fn installed(spec: &PackageSpec, data: &Path) -> bool {

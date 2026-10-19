@@ -32,6 +32,7 @@ export function AiPackagePanel({starting, onStart}: {starting: boolean; onStart:
     }
     const busy = requesting || !!status?.progress.busy
     const disabled = busy || starting
+    const cancelled = status?.progress.phase === 'CANCELLED' && !error
     return <section className="mx-auto my-4 max-w-4xl rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-label="Pakiet AI">
         <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3"><PackageCheck aria-hidden="true" size={24}/><div>
@@ -68,6 +69,7 @@ export function AiPackagePanel({starting, onStart}: {starting: boolean; onStart:
             <p className="mt-1 text-xs text-slate-500">Katalog nadal działa. Przerwane pobieranie można rozpocząć ponownie; nie jest jeszcze wznawiane od ostatniego bajtu.</p>
         </div>}
         {status?.progress.phase === 'INSTALLED' && <p className="mt-3 text-sm text-emerald-700" role="status">Pakiet zainstalowany. Kliknij „Uruchom AI” — nie trzeba restartować katalogu.</p>}
-        {(error || status?.progress.error) && <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">{error ?? status?.progress.error}</p>}
+        {(error || status?.progress.error) && <p className={`mt-3 rounded-lg p-3 text-sm ${cancelled ? 'bg-slate-50 text-slate-600' : 'bg-red-50 text-red-700'}`}
+            role={cancelled ? 'status' : 'alert'}>{error ?? status?.progress.error}</p>}
     </section>
 }
