@@ -304,11 +304,23 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 .unwrap()
                 .is_match(route)
         }
-        "PUT" => Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
-            .unwrap()
-            .is_match(route),
+        "PUT" => {
+            Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
+                .unwrap()
+                .is_match(route)
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
+                )
+                .unwrap()
+                .is_match(route)
+        }
         "GET" => {
             route == "/api/catalog/page"
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
+                )
+                .unwrap()
+                .is_match(route)
                 || route == "/api/organization/batches/latest"
                 || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items)?$")
                     .unwrap()
@@ -406,6 +418,21 @@ mod tests {
         assert!(!allowed("PUT", "/api/catalog/files/1/analysis", false));
         assert!(!allowed("PUT", "/api/catalog/files/0/naming", false));
         assert!(!allowed("PUT", "/api/catalog/files/../naming", false));
+        for method in ["GET", "PUT"] {
+            assert!(allowed(
+                method,
+                "/api/organization/batches/00000000-0000-0000-0000-000000000001/items/1/review",
+                false
+            ));
+            for id in ["0", "-1", "../1", "1/export", "1/rename"] {
+                assert!(!allowed(method, &format!("/api/organization/batches/00000000-0000-0000-0000-000000000001/items/{id}/review"), false));
+            }
+        }
+        assert!(!allowed(
+            "POST",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/items/1/review",
+            false
+        ));
         for path in [
             "http://evil.test/",
             "//evil.test/",

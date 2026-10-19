@@ -53,7 +53,11 @@ async fn completed(backend: &Backend, path: &str) -> Result<Value, String> {
     Err("Smoke job timed out".into())
 }
 
-async fn exercise(backend: &Backend, source: &Path, include_analysis: bool) -> Result<u64, String> {
+async fn exercise(
+    backend: &Backend,
+    source: &Path,
+    include_analysis: bool,
+) -> Result<(u64, Option<String>), String> {
     let job = request(
         backend,
         "POST",
@@ -84,6 +88,7 @@ async fn exercise(backend: &Backend, source: &Path, include_analysis: bool) -> R
     let id = page["files"][0]["id"]
         .as_u64()
         .ok_or("Synthetic image missing from catalog")?;
+    let mut reviewed_batch = None;
     if include_analysis {
         let job = request(
             backend,
@@ -125,6 +130,41 @@ async fn exercise(backend: &Backend, source: &Path, include_analysis: bool) -> R
         if result["total"] != 1 || result["completed"] != 1 || result["failed"] != 0 {
             return Err("Batch did not process the synthetic catalog entry".into());
         }
+        let batch_id = batch["id"].as_str().ok_or("Missing batch ID")?;
+        let path = format!("/api/organization/batches/{batch_id}/items/{id}/review");
+        let item = request(backend, "GET", &path, None).await?;
+        let skipped = request(
+            backend,
+            "PUT",
+            &path,
+            Some(&json!({
+                "analysisId": item["analysisId"], "sourceSha256": item["sourceSha256"],
+                "namingRevision": item["namingRevision"], "reviewRevision": -1,
+                "decision": "SKIPPED", "name": null, "category": null
+            })),
+        )
+        .await?;
+        if skipped["review"]["decision"] != "SKIPPED" {
+            return Err("Review skip did not persist".into());
+        }
+        let approval = json!({
+            "analysisId": item["analysisId"], "sourceSha256": item["sourceSha256"],
+            "namingRevision": skipped["namingRevision"], "reviewRevision": skipped["review"]["revision"],
+            "decision": "APPROVED", "name": "synthetic_reviewed.png", "category": "OTHER"
+        });
+        let approved = request(backend, "PUT", &path, Some(&approval)).await?;
+        verify_review(&approved)?;
+        let (status, bytes) = backend
+            .request("PUT", &path, Some(&approval), 64 * 1024)
+            .await?;
+        if status != 409
+            || serde_json::from_slice::<Value>(&bytes).map_err(|_| "Invalid conflict response")?
+                ["code"]
+                != "REVIEW_CHANGED"
+        {
+            return Err("An old review form overwrote a newer decision".into());
+        }
+        reviewed_batch = Some(batch_id.to_string());
     }
     let (_, image) = backend
         .request(
@@ -137,7 +177,18 @@ async fn exercise(backend: &Backend, source: &Path, include_analysis: bool) -> R
     if !image.starts_with(b"\x89PNG") {
         return Err("Thumbnail did not contain a PNG".into());
     }
-    Ok(id)
+    Ok((id, reviewed_batch))
+}
+
+fn verify_review(item: &Value) -> Result<(), String> {
+    if item["review"]["decision"] != "APPROVED"
+        || item["review"]["category"] != "OTHER"
+        || item["review"]["matchesCatalog"] != true
+        || item["approvedName"] != "synthetic_reviewed.png"
+    {
+        return Err("The approved name and category were not persisted together".into());
+    }
+    Ok(())
 }
 
 async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
@@ -194,16 +245,32 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
     )
     .await;
     owner.stop().await;
-    let id = result?;
+    let (id, reviewed_batch) = result?;
     drop(owner);
     let mut restarted = processes::start(runtime, data, |_, _| {}).await?;
     let result = if include_analysis {
-        request(
-            restarted.backend.as_ref().ok_or("Restart failed")?,
-            "GET",
-            &format!("/api/catalog/files/{id}/analysis"),
-            None,
-        )
+        async {
+            let backend = restarted.backend.as_ref().ok_or("Restart failed")?;
+            let saved = request(
+                backend,
+                "GET",
+                &format!("/api/catalog/files/{id}/analysis"),
+                None,
+            )
+            .await?;
+            let batch_id = reviewed_batch
+                .as_deref()
+                .ok_or("Review was not exercised")?;
+            let reviewed = request(
+                backend,
+                "GET",
+                &format!("/api/organization/batches/{batch_id}/items/{id}/review"),
+                None,
+            )
+            .await?;
+            verify_review(&reviewed)?;
+            Ok(saved)
+        }
         .await
     } else {
         restarted
@@ -239,7 +306,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
         return Err("Source image changed".into());
     }
     Ok(
-        json!({"passed": true, "bundledRuntimes": true, "bundledAiPresent": runtime.join("python/python.exe").is_file(), "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true, "packageInstalled": package_install_ms.is_some(), "packageInstallMs": package_install_ms, "packageDownloaded": download_package}),
+        json!({"passed": true, "bundledRuntimes": true, "bundledAiPresent": runtime.join("python/python.exe").is_file(), "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "organizationReview": include_analysis, "reviewConflict": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true, "packageInstalled": package_install_ms.is_some(), "packageInstallMs": package_install_ms, "packageDownloaded": download_package}),
     )
 }
 
