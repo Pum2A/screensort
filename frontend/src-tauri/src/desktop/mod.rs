@@ -1,5 +1,6 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
+mod packages;
 mod paths;
 mod processes;
 mod smoke;
@@ -43,6 +44,7 @@ pub struct Desktop {
     backend: Mutex<Option<processes::Backend>>,
     owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
+    packages: packages::PackageManager,
 }
 
 impl Default for Desktop {
@@ -52,6 +54,7 @@ impl Default for Desktop {
             backend: Mutex::new(None),
             owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
+            packages: packages::PackageManager::default(),
         }
     }
 }
@@ -148,7 +151,77 @@ pub async fn stop(app: &AppHandle) {
 }
 
 pub fn begin_close(app: &AppHandle) -> bool {
+    app.state::<Desktop>().packages.cancel();
     !app.state::<Desktop>().closing.swap(true, Ordering::SeqCst)
+}
+
+#[tauri::command]
+pub fn ai_package_status(app: AppHandle) -> Result<packages::PackageStatus, String> {
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Brak katalogu danych aplikacji.")?;
+    app.state::<Desktop>()
+        .packages
+        .status(&data, &runtime_path(&app)?)
+}
+
+#[tauri::command]
+pub fn cancel_ai_package(state: State<'_, Desktop>) {
+    state.packages.cancel();
+}
+
+#[tauri::command]
+pub fn install_ai_package(app: AppHandle, id: String, from_file: bool) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Brak katalogu danych aplikacji.")?;
+    let spec = packages::catalog_for_command(&id)?;
+    {
+        let desktop = app.state::<Desktop>();
+        // Same lock order as model startup: no package activation while Python starts/runs.
+        let status = desktop.status.lock().map_err(|_| "Brak stanu aplikacji.")?;
+        if !status.backend_ready
+            || status.analysis_ready
+            || status.analysis_starting
+            || desktop.closing.load(Ordering::SeqCst)
+        {
+            return Err(
+                "Zainstaluj pakiet po uruchomieniu katalogu, ale przed uruchomieniem AI.".into(),
+            );
+        }
+        desktop.packages.begin()?;
+    }
+    tauri::async_runtime::spawn(async move {
+        let worker_app = app.clone();
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            let desktop = worker_app.state::<Desktop>();
+            let local = if from_file {
+                let selected = worker_app
+                    .dialog()
+                    .file()
+                    .add_filter("Pakiet AI ScreenSort", &["zip"])
+                    .blocking_pick_file()
+                    .ok_or_else(packages::cancelled_message)?;
+                Some(
+                    selected
+                        .into_path()
+                        .map_err(|_| "Wybrany plik nie jest lokalnym ZIP.")?,
+                )
+            } else {
+                None
+            };
+            desktop.packages.install(&spec, &data, local.as_deref())
+        })
+        .await
+        .unwrap_or_else(|_| {
+            Err("Instalacja została przerwana. Dotychczasowy pakiet pozostaje bez zmian.".into())
+        });
+        app.state::<Desktop>().packages.finish(result);
+    });
+    Ok(())
 }
 
 #[tauri::command]
@@ -166,6 +239,9 @@ pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
             .map_err(|_| "Nie można odczytać stanu.")?;
         if !status.backend_ready {
             return Err("Poczekaj na uruchomienie katalogu.".into());
+        }
+        if desktop.packages.busy() {
+            return Err("Poczekaj na zakończenie instalacji pakietu AI.".into());
         }
         if status.analysis_ready || status.analysis_starting {
             return Ok(());

@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ScreenSort",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "identifier": "pl.pum.screensort",
   "build": {
     "frontendDist": "../dist",

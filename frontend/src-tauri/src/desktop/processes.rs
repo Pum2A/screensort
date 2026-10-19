@@ -80,13 +80,12 @@ impl Owner {
                     .into(),
             );
         }
-        if !self.runtime.join("python/python.exe").is_file() {
-            return Err("Pakiet AI nie jest zainstalowany. Katalog działa bez niego. Ta wersja nie obsługuje jeszcze pobierania pakietów.".into());
-        }
+        let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
+        let ai_runtime = super::packages::runtime(data, &self.runtime)?;
         // Failed starts are not a retry queue: do not accumulate child processes.
         self.analysis_attempted = true;
         let py_state = self.session.join("python.json");
-        let mut python = Command::new(self.runtime.join("python/python.exe"));
+        let mut python = Command::new(ai_runtime.join("python/python.exe"));
         python
             .args([
                 "-I",
@@ -97,7 +96,7 @@ impl Owner {
             ])
             .arg(&py_state)
             .arg("--model-cache")
-            .arg(self.runtime.join("models"))
+            .arg(ai_runtime.join("models"))
             .env("SCREENSORT_ANALYSIS_TOKEN", &self.python_token)
             .current_dir(
                 self.session

@@ -164,6 +164,24 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
             .unwrap_or(&source.to_string_lossy())
             .to_string(),
     );
+    let mut package_install_ms = None;
+    let local_package = argument("--ai-package-zip").ok();
+    let download_package = std::env::args().any(|arg| arg == "--download-ai-package");
+    if local_package.is_some() || download_package {
+        let spec = super::packages::catalog_for_command("ai-cpu")?;
+        let install_data = data.to_path_buf();
+        let started = Instant::now();
+        tauri::async_runtime::spawn_blocking(move || {
+            super::packages::PackageManager::default().install(
+                &spec,
+                &install_data,
+                local_package.as_deref(),
+            )
+        })
+        .await
+        .map_err(|_| "Package check worker stopped")??;
+        package_install_ms = Some(started.elapsed().as_millis() as u64);
+    }
     let mut owner = processes::start(runtime, data, |_, _| {}).await?;
     let include_analysis = !std::env::args().any(|arg| arg == "--catalog-only");
     if include_analysis {
@@ -221,7 +239,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
         return Err("Source image changed".into());
     }
     Ok(
-        json!({"passed": true, "bundledRuntimes": true, "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true}),
+        json!({"passed": true, "bundledRuntimes": true, "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true, "packageInstalled": package_install_ms.is_some(), "packageInstallMs": package_install_ms, "packageDownloaded": download_package}),
     )
 }
 

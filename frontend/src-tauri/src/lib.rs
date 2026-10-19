@@ -26,6 +26,9 @@ pub fn run() {
     builder
         .invoke_handler(tauri::generate_handler![
             desktop::desktop_status,
+            desktop::ai_package_status,
+            desktop::install_ai_package,
+            desktop::cancel_ai_package,
             desktop::start_analysis_runtime,
             desktop::backend_request,
             desktop::backend_image
