@@ -53,3 +53,6 @@ work/
 ### Reproducible desktop staging and large third-party runtime data ###
 .release/
 frontend/src-tauri/runtime/
+
+# Private chat attachments are not application source or release assets.
+.codex-remote-attachments/
