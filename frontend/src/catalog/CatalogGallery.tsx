@@ -55,7 +55,7 @@ export function CatalogGallery({files, demoOpen, onCloseDemo, children}: Props) 
                     setPreviewOpen(true)
                 }}/>
                 : <aside className={styles.empty} aria-label="Szczegóły obrazu"><Icon name="image"/>
-                    <h3>Każdy obraz ma swoją historię</h3><p>Kliknij kółko w katalogu. Tutaj zobaczysz nazwę, lokalizację i dane z ostatniego skanu.</p>
+                    <h3>Każdy obraz ma swoją historię</h3><p>Kliknij miniaturę. Tutaj zobaczysz nazwę, lokalizację i dane z ostatniego skanu.</p>
                     <span>Chcesz zobaczyć kolejny etap? Otwórz „Analiza · demo”.</span></aside>}
         </div>
         {selected && previewOpen && <ImageDetailsDialog key={selected.id} id={detailsId} file={selected}

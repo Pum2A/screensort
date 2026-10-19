@@ -9,6 +9,8 @@ import {fetchCatalog} from './catalog/api'
 import {folderName} from './catalog/format'
 import type {CatalogPage} from './catalog/types'
 import {Icon} from './ui/Icon'
+import {OrganizationPanel} from './organization/OrganizationPanel'
+import {rejectionLabel} from './scanning/rejectionLabels'
 import './App.css'
 
 const LAST_FOLDER_KEY = 'screensort.lastFolder'
@@ -98,7 +100,7 @@ function App() {
 
         <section className="workspace-heading" aria-labelledby="page-title">
             <h1 id="page-title">Eksplorator obrazów</h1>
-            <p>Wybierz folder → skanuj → odkrywaj pliki</p>
+            <p>Wybierz folder → skanuj → analizuj → sprawdź propozycje</p>
         </section>
 
         <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
@@ -138,14 +140,17 @@ function App() {
         {scan.rejections && scan.rejections.totalRejected > 0 && <details className="rejected-details">
             <summary>Powody pominięcia wpisów ({scan.rejections.totalRejected})</summary>
             {scan.rejections.truncated && <p>Pokazujemy {scan.rejections.files.length} przykładów z {scan.rejections.totalRejected} odrzuconych wpisów.</p>}
-            <ul>{scan.rejections.files.map((file) => <li key={file.path}><strong>{file.originalName}</strong><code>{file.reason}</code></li>)}</ul>
+            <ul>{scan.rejections.files.map((file) => <li key={file.path}><strong>{file.originalName}</strong>
+                <span>{rejectionLabel(file.reason)}<details><summary>Kod diagnostyczny</summary><code>{file.reason}</code></details></span></li>)}</ul>
         </details>}
+
+        {catalogFolder && <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogPage?.totalFiles ?? 0} scanning={loading}/>}
 
         <section className="catalog" aria-labelledby="catalog-title">
             <div className="catalog-heading"><div><h2 id="catalog-title">{folderName(catalogFolder)}
                 {catalogPage && <span className="count-badge">{catalogPage.totalFiles}</span>}</h2>
                 <p className="catalog-folder" title={catalogFolder}>{catalogFolder}</p></div>
-                <div className="catalog-actions"><span className="catalog-hint">Kliknij kółko → szczegóły obok</span>
+                <div className="catalog-actions"><span className="catalog-hint">Kliknij miniaturę → szczegóły obok</span>
                     <button type="button" className="secondary-button" aria-pressed={analysisDemoOpen}
                         onClick={() => setAnalysisDemoOpen(current => !current)}>
                         <Icon name="eye"/>Analiza <span className="demo-badge">DEMO</span>

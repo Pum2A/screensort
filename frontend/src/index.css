@@ -1,3 +1,8 @@
+@layer theme, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities) source('./');
+
+/* No Preflight: existing detail panels retain their layout during gradual migration. */
 /* Font z repozytorium, bez zewnętrznych zapytań. Licencja: public/VT323-OFL.txt. */
 @font-face {
     font-family: 'ScreenSort PC';
@@ -10,7 +15,7 @@
     font-family: 'ScreenSort PC', 'Lucida Console', Consolas, monospace;
     font-size: 20px;
     color: #222d3d;
-    background: #f6f7fa;
+    background: #faf8f4;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -18,11 +23,12 @@
     --border: #d6dde6;
     --muted: #5b6675;
     --surface: #ffffff;
-    --background: #f6f7fa;
+    --background: #faf8f4;
     --selected: #eef2ff;
     --text: #222d3d;
     --success: #236047;
     --danger: #9c3525;
+    --warning: #895710;
     --motion-duration: 360ms;
     --motion-ease: cubic-bezier(.22, 1, .36, 1);
     --thumbnail-size: 116px;

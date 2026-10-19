@@ -1,5 +1,5 @@
-.catalog-image { position: relative; aspect-ratio: 1; width: 100%; display: grid; place-items: center; overflow: hidden; background: #e9edf4; border-radius: 50%; }
-.catalog-image img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; opacity: 0; transition: opacity var(--motion-duration) var(--motion-ease); }
+.catalog-image { position: relative; aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; overflow: hidden; background: #eeede9; border-radius: 12px; }
+.catalog-image img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: contain; opacity: 0; transition: opacity var(--motion-duration) var(--motion-ease); }
 .catalog-image img.is-ready { opacity: 1; }
 .image-placeholder { color: #8c99ae; display: grid; place-items: center; }
 .image-placeholder .icon { width: 24px; height: 24px; }
