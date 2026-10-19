@@ -156,18 +156,35 @@ try {
     Move-Item -LiteralPath $stage -Destination $destination
     Write-Host "Runtime ready: $destination"
     if (-not $StageOnly) {
+        # tauri-build copies resources but does not remove files left by an older full build.
+        # Preserve the generated output before CoreOnly checks, or stale Python could mask a missing package.
+        $builtRuntime = [IO.Path]::GetFullPath((Join-Path $repo 'frontend/src-tauri/target/release/runtime'))
+        if ($builtRuntime -ne "$repo\frontend\src-tauri\target\release\runtime") { throw 'Unexpected build resource target' }
+        if (Test-Path -LiteralPath $builtRuntime) {
+            $buildBackup = Join-Path $release "backups/build-runtime-$stamp"
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($buildBackup)) | Out-Null
+            Move-Item -LiteralPath $builtRuntime -Destination $buildBackup
+            Write-Host "Previous generated build resources preserved at $buildBackup"
+        }
         Push-Location (Join-Path $repo 'frontend')
         try {
             Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--no-bundle')
+            if ($CoreOnly -and ((Test-Path -LiteralPath (Join-Path $builtRuntime 'python')) -or (Test-Path -LiteralPath (Join-Path $builtRuntime 'models')))) {
+                throw 'CoreOnly build contains stale AI resources. Refusing to generate an installer.'
+            }
             # Never ship solely on the basis of the manual --runtime-dir smoke path.
             $checkData = Join-Path $release "startup-check-$stamp"
-            $checkExe = Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe'
+            # Run an identical probe beside the real binary (same resource resolver).
+            # Do not execute the file that the bundler subsequently patches in-place.
+            $checkExe = Join-Path $repo "frontend/src-tauri/target/release/screensort-startup-check-$stamp.exe"
+            Copy-Item -LiteralPath (Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe') -Destination $checkExe
             $checkArguments = @('--startup-check', '--data-dir', ('"' + $checkData + '"'))
             if ($CoreOnly) { $checkArguments += '--catalog-only' }
             $checkProcess = Start-Process -FilePath $checkExe -ArgumentList $checkArguments -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
             if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check failed. See $checkData.report.json and session logs; no installer was generated." }
             $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
             if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }
+            if ($CoreOnly -and $checkReport.bundledAiPresent) { throw 'CoreOnly startup used a full runtime. Refusing to package.' }
             Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--bundles', 'nsis')
         }
         finally { Pop-Location }

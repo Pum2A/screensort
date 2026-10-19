@@ -239,7 +239,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
         return Err("Source image changed".into());
     }
     Ok(
-        json!({"passed": true, "bundledRuntimes": true, "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true, "packageInstalled": package_install_ms.is_some(), "packageInstallMs": package_install_ms, "packageDownloaded": download_package}),
+        json!({"passed": true, "bundledRuntimes": true, "bundledAiPresent": runtime.join("python/python.exe").is_file(), "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true, "packageInstalled": package_install_ms.is_some(), "packageInstallMs": package_install_ms, "packageDownloaded": download_package}),
     )
 }
 

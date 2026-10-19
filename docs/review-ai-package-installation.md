@@ -126,8 +126,6 @@ Nowy ręcznie uruchamiany workflow stanie się widoczny w Actions po dołączeni
 
 Dokumentacja źródłowa: [GitHub: secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [reusable workflows](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows), [artefakty](https://docs.github.com/en/actions/tutorials/store-and-share-data).
 
-## Granice tego etapu
-
 ## Wyniki weryfikacji (2026-10-19)
 
 Pierwszy pełny test wykrył błąd końcowego rename na Windows. Po dodaniu ograniczonego ponowienia:
@@ -140,7 +138,13 @@ Pierwszy pełny test wykrył błąd końcowego rename na Windows. Po dodaniu ogr
 
 Raport lokalny: `.release/package-import-release-20261019-02.report.json` (ignorowany przez Git, bez zdjęć/danych użytkownika).
 Wydanie paczki: [AI CPU 2026-10-19-2](https://github.com/Pum2A/screensort-releases/releases/tag/ai-cpu-2026-10-19-2).
-Test publicznego pobierania i finalnego instalatora musi być potwierdzony osobno; powyższy test używał importu ZIP.
+Publiczne pobieranie z GitHub również przeszło pełen test: pobranie, SHA, instalacja, OCR/Florence, analiza folderu i odczyt po restarcie. Raport: `.release/package-download-e2e-20261019-03.report.json`, instalacja razem z pobraniem 76 086 ms na tym łączu.
+
+Po wykluczeniu starych zasobów wykonano kolejne sprawdzenie: `.release/core-package-final-20261019-04.report.json`. Ma jednocześnie `bundledAiPresent: false`, `packageInstalled: true`, `ocr: true`, `visual: true`, `persistedAfterRestart: true`, `sourceUnchanged: true`. Sam import trwał 23 296 ms przy rozgrzanym cache. Różnica względem wcześniejszego pomiaru nie jest obietnicą czasu na innym komputerze.
+
+Finalny Core przeszedł też start i restart bez jakiejkolwiek instalacji AI: `.release/startup-check-20261019-202544.report.json`. Wygenerowano instalator NSIS 0.2.0. Nie uruchamiano kreatora instalacji na prywatnym profilu użytkownika, żeby nie nadpisać jego obecnej instalacji/rejestracji. Testowano rzeczywisty Tauri PathResolver i te same zasoby Core.
+
+Dodatkowy problem narzędzi budowania: Tauri kopiuje zasoby, ale pozostałości pełnego runtime w `target/release/runtime` mogą przeżyć kolejny build CoreOnly. Skrypt budowania zachowuje teraz ten wygenerowany katalog w `.release/backups`, tworzy czyste zasoby i odmawia pakowania CoreOnly, jeśli znajdzie w nich Python/modele. Raport startowy jawnie zapisuje `bundledAiPresent`. To nie usuwa danych aplikacji — chodzi wyłącznie o artefakty kompilacji.
 
 ## Czego ten etap nadal nie robi
 
