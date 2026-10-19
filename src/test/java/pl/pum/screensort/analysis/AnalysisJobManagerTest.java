@@ -31,7 +31,7 @@ class AnalysisJobManagerTest {
     });
     var saved = new SavedAnalysis(1, 1, Instant.now(), true, result);
     when(store.save(1, true, false, result)).thenReturn(saved);
-    var manager = new AnalysisJobManager(source, python, store);
+    var manager = new AnalysisJobManager(new AnalysisProcessor(source, python, store));
     try {
       var job = manager.start(1, true, false);
       assertThat(started.await(5, TimeUnit.SECONDS)).isTrue();
@@ -52,7 +52,7 @@ class AnalysisJobManagerTest {
     when(source.read(1)).thenReturn(new AnalysisSourceReader.Input(1, new byte[]{1}, "a".repeat(64), "image/png"));
     when(python.analyze(any(), anyString(), eq(true), eq(false)))
         .thenReturn(AnalysisResultTest.result("b".repeat(64)));
-    var manager = new AnalysisJobManager(source, python, store);
+    var manager = new AnalysisJobManager(new AnalysisProcessor(source, python, store));
     try {
       var terminal = awaitTerminal(manager, manager.start(1, true, false));
       assertThat(terminal.status()).isEqualTo(AnalysisJob.Status.FAILED);
