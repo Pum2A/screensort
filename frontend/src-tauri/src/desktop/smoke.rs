@@ -53,7 +53,7 @@ async fn completed(backend: &Backend, path: &str) -> Result<Value, String> {
     Err("Smoke job timed out".into())
 }
 
-async fn exercise(backend: &Backend, source: &Path) -> Result<u64, String> {
+async fn exercise(backend: &Backend, source: &Path, include_analysis: bool) -> Result<u64, String> {
     let job = request(
         backend,
         "POST",
@@ -84,27 +84,47 @@ async fn exercise(backend: &Backend, source: &Path) -> Result<u64, String> {
     let id = page["files"][0]["id"]
         .as_u64()
         .ok_or("Synthetic image missing from catalog")?;
-    let job = request(
-        backend,
-        "POST",
-        "/api/analysis/jobs",
-        Some(&json!({"fileId": id, "ocr": true, "visual": true})),
-    )
-    .await?;
-    let done = completed(
-        backend,
-        &format!(
-            "/api/analysis/jobs/{}",
-            job["id"].as_str().ok_or("Missing analysis ID")?
-        ),
-    )
-    .await?;
-    let analysis = &done["analysis"]["result"];
-    if analysis["source_sha256"] != HASH
-        || analysis["ocr"]["status"] != "COMPLETED"
-        || analysis["visual"]["status"] != "COMPLETED"
-    {
-        return Err(format!("Unexpected analysis result: {done}"));
+    if include_analysis {
+        let job = request(
+            backend,
+            "POST",
+            "/api/analysis/jobs",
+            Some(&json!({"fileId": id, "ocr": true, "visual": true})),
+        )
+        .await?;
+        let done = completed(
+            backend,
+            &format!(
+                "/api/analysis/jobs/{}",
+                job["id"].as_str().ok_or("Missing analysis ID")?
+            ),
+        )
+        .await?;
+        let analysis = &done["analysis"]["result"];
+        if analysis["source_sha256"] != HASH
+            || analysis["ocr"]["status"] != "COMPLETED"
+            || analysis["visual"]["status"] != "COMPLETED"
+        {
+            return Err(format!("Unexpected analysis result: {done}"));
+        }
+        let batch = request(
+            backend,
+            "POST",
+            "/api/organization/batches",
+            Some(&json!({"folderPath": source, "ocr": true, "visual": true})),
+        )
+        .await?;
+        let result = completed(
+            backend,
+            &format!(
+                "/api/organization/batches/{}",
+                batch["id"].as_str().ok_or("Missing batch ID")?
+            ),
+        )
+        .await?;
+        if result["total"] != 1 || result["completed"] != 1 || result["failed"] != 0 {
+            return Err("Batch did not process the synthetic catalog entry".into());
+        }
     }
     let (_, image) = backend
         .request(
@@ -145,21 +165,51 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
             .to_string(),
     );
     let mut owner = processes::start(runtime, data, |_, _| {}).await?;
-    let result = exercise(owner.backend.as_ref().ok_or("Backend not ready")?, &source).await;
+    let include_analysis = !std::env::args().any(|arg| arg == "--catalog-only");
+    if include_analysis {
+        owner.start_analysis(|| false).await?;
+    }
+    let result = exercise(
+        owner.backend.as_ref().ok_or("Backend not ready")?,
+        &source,
+        include_analysis,
+    )
+    .await;
     owner.stop().await;
     let id = result?;
     drop(owner);
     let mut restarted = processes::start(runtime, data, |_, _| {}).await?;
-    let result = request(
-        restarted.backend.as_ref().ok_or("Restart failed")?,
-        "GET",
-        &format!("/api/catalog/files/{id}/analysis"),
-        None,
-    )
-    .await;
+    let result = if include_analysis {
+        request(
+            restarted.backend.as_ref().ok_or("Restart failed")?,
+            "GET",
+            &format!("/api/catalog/files/{id}/analysis"),
+            None,
+        )
+        .await
+    } else {
+        restarted
+            .backend
+            .as_ref()
+            .ok_or("Restart failed")?
+            .request(
+                "GET",
+                &format!("/api/catalog/files/{id}/thumbnail"),
+                None,
+                6 * 1024 * 1024,
+            )
+            .await
+            .and_then(|(status, bytes)| {
+                if status == 200 && bytes.starts_with(b"\x89PNG") {
+                    Ok(json!({}))
+                } else {
+                    Err("Catalog was not persisted".into())
+                }
+            })
+    };
     restarted.stop().await;
     let saved = result?;
-    if saved["result"]["source_sha256"] != HASH {
+    if include_analysis && saved["result"]["source_sha256"] != HASH {
         return Err("Analysis was not persisted across restart".into());
     }
     if fs::read(&image).map_err(|e| e.to_string())? != bytes
@@ -171,7 +221,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
         return Err("Source image changed".into());
     }
     Ok(
-        json!({"passed": true, "bundledRuntimes": true, "scan": true, "ocr": true, "visual": true, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true}),
+        json!({"passed": true, "bundledRuntimes": true, "catalogOnly": !include_analysis, "batchAnalysis": include_analysis, "scan": true, "ocr": include_analysis, "visual": include_analysis, "thumbnail": true, "persistedAfterRestart": true, "sourceUnchanged": true}),
     )
 }
 

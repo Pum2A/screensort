@@ -2,7 +2,8 @@ param(
     [string]$JdkPath = $env:JAVA_HOME,
     [string]$VCRedistPath = '',
     [switch]$StageOnly,
-    [switch]$SkipBackendBuild
+    [switch]$SkipBackendBuild,
+    [switch]$CoreOnly
 )
 
 # Build-time tools stay on the developer's PC, not on the user's machine.
@@ -73,6 +74,8 @@ try {
     Write-Host 'Creating a private Java runtime...'
     Invoke-Checked (Join-Path $JdkPath 'bin/jlink.exe') @('--add-modules', 'java.se,jdk.unsupported,jdk.crypto.ec,jdk.zipfs', '--strip-debug', '--no-header-files', '--no-man-pages', '--output', (Join-Path $stage 'java'))
 
+    $python = Join-Path $stage 'python'
+    if (-not $CoreOnly) {
     Write-Host 'Staging portable Python and locked model dependencies...'
     Push-Location (Join-Path $repo 'analysis-service')
     try { Invoke-Checked 'uv' @('sync', '--locked', '--extra', 'vision', '--no-python-downloads') }
@@ -100,6 +103,9 @@ try {
     $snapshot = Join-Path $models "models--florence-community--Florence-2-base-ft/snapshots/$($lock.model.revision)/model.safetensors"
     if (-not (Test-Path -LiteralPath $snapshot)) { throw 'The pinned Florence model must be downloaded before packaging.' }
     Copy-Item -LiteralPath (Join-Path $models 'models--florence-community--Florence-2-base-ft') -Destination (Join-Path $stage 'models/models--florence-community--Florence-2-base-ft') -Recurse
+    } else {
+        Write-Host 'Core-only installer: Python, ML packages and models are intentionally omitted.'
+    }
 
     Write-Host 'Staging private PostgreSQL (without pgAdmin or StackBuilder)...'
     Expand-Safe (Download-Locked $lock.postgres) (Join-Path $stage 'postgres') $true
@@ -113,16 +119,20 @@ try {
         $VCRedistPath = (Get-ChildItem -LiteralPath (Join-Path $version.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' | Select-Object -First 1).FullName
     }
     foreach ($binaryDirectory in @((Join-Path $stage 'java/bin'), $python, (Join-Path $stage 'postgres/bin'))) {
+        if (-not (Test-Path -LiteralPath $binaryDirectory)) { continue }
         Get-ChildItem -LiteralPath $VCRedistPath -File -Filter '*.dll' | Copy-Item -Destination $binaryDirectory
     }
+    if (-not $CoreOnly) {
     $requiredCrt = & (Join-Path $python 'python.exe') -I -B (Join-Path $repo 'packaging/windows/check-vc-imports.py') $stage | ConvertFrom-Json
     foreach ($dll in $requiredCrt) {
         if ($dll -eq 'msvcrt.dll' -or $dll -match '-[a-f0-9]{32}\.dll$') { continue }
         if (-not (Test-Path -LiteralPath (Join-Path $python $dll))) { throw "Missing app-local CRT dependency: $dll" }
     }
+    }
     [IO.File]::WriteAllText((Join-Path $stage 'runtime-manifest.json'), ($lock | ConvertTo-Json -Depth 5), $utf8)
     Copy-Item -LiteralPath (Join-Path $repo 'packaging/windows/THIRD-PARTY-NOTICES.md') -Destination $stage
     Copy-Item -LiteralPath (Join-Path $repo 'packaging/windows/FLORENCE-LICENSE.txt') -Destination $stage
+    if (-not $CoreOnly) {
     Invoke-Checked (Join-Path $python 'python.exe') @('-I', '-B', '-c', 'import torch,onnxruntime,fastapi,PIL,screensort_analysis.launch')
     Write-Host 'Portable runtime imports OK'
     $previousModelCache = $env:SCREENSORT_MODEL_CACHE
@@ -131,6 +141,7 @@ try {
         Invoke-Checked (Join-Path $python 'python.exe') @('-I', '-B', '-c', 'from screensort_analysis.image.runtime import load_analyzer;load_analyzer()')
     } finally { $env:SCREENSORT_MODEL_CACHE = $previousModelCache }
     Write-Host 'Bundled OCR and vision warm-up OK'
+    }
     Invoke-Checked (Join-Path $stage 'postgres/bin/postgres.exe') @('--version')
     Invoke-Checked (Join-Path $stage 'java/bin/java.exe') @('-version')
 
@@ -151,7 +162,9 @@ try {
             # Never ship solely on the basis of the manual --runtime-dir smoke path.
             $checkData = Join-Path $release "startup-check-$stamp"
             $checkExe = Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe'
-            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList @('--startup-check', '--data-dir', ('"' + $checkData + '"')) -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
+            $checkArguments = @('--startup-check', '--data-dir', ('"' + $checkData + '"'))
+            if ($CoreOnly) { $checkArguments += '--catalog-only' }
+            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList $checkArguments -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
             if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check failed. See $checkData.report.json and session logs; no installer was generated." }
             $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
             if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }

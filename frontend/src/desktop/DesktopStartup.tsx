@@ -6,7 +6,7 @@ import {isDesktop} from './transport'
 import {AnalysisReadiness} from './readiness'
 import './DesktopStartup.css'
 
-type Status = {phase: string, backendReady: boolean, analysisReady: boolean, error: string | null}
+type Status = {phase: string, backendReady: boolean, analysisReady: boolean, analysisStarting: boolean, error: string | null}
 
 export function DesktopStartup({children}: {children: ReactNode}) {
     const [status, setStatus] = useState<Status | null>(null)
@@ -20,7 +20,7 @@ export function DesktopStartup({children}: {children: ReactNode}) {
                 if (!stopped) setStatus(next)
             } catch {
                 if (!stopped) setStatus({phase: 'Błąd uruchamiania', backendReady: false, analysisReady: false,
-                    error: 'Nie udało się odczytać stanu aplikacji. Zamknij ją i spróbuj ponownie.'})
+                    analysisStarting: false, error: 'Nie udało się odczytać stanu aplikacji. Zamknij ją i spróbuj ponownie.'})
             }
             if (!stopped) timer = setTimeout(() => void check(), 1000)
         }
@@ -32,11 +32,16 @@ export function DesktopStartup({children}: {children: ReactNode}) {
     if (!status?.backendReady) return <main className="desktop-startup" aria-live="polite">
         <Icon name={status?.error ? 'shield' : 'refresh'} className={status?.error ? '' : 'spin'}/>
         <h1>ScreenSort</h1><h2>{status?.phase ?? 'Przygotowujemy aplikację…'}</h2>
-        <p>{status?.error ?? 'Uruchamiamy lokalną bazę i silniki. Twoje obrazy pozostają na komputerze.'}</p>
+        <p>{status?.error ?? 'Uruchamiamy katalog i lokalną bazę. Modele AI nie są teraz ładowane.'}</p>
         {status?.error && <p>Nie usuwaj katalogu danych. Szczegóły znajdują się w lokalnych logach aplikacji.</p>}
     </main>
     return <AnalysisReadiness.Provider value={status.analysisReady}>{!status.analysisReady && <div className="desktop-notice" role="status">
-        <Icon name={status.error ? 'shield' : 'refresh'} className={status.error ? '' : 'spin'}/>
+        <Icon name={status.error ? 'shield' : 'image'} className={status.analysisStarting ? 'spin' : ''}/>
         {status.error ?? status.phase}
+        <button type="button" className="secondary-button" disabled={status.analysisStarting}
+            onClick={() => void invoke('start_analysis_runtime').catch(() => setStatus({...status,
+                error: 'Nie udało się zlecić uruchomienia AI. Spróbuj ponownie.'}))}>
+            {status.analysisStarting ? 'Przygotowywanie AI…' : 'Uruchom pakiet AI'}
+        </button>
     </div>}{children}</AnalysisReadiness.Provider>
 }

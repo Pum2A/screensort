@@ -22,6 +22,7 @@ pub struct Status {
     pub phase: String,
     pub backend_ready: bool,
     pub analysis_ready: bool,
+    pub analysis_starting: bool,
     pub error: Option<String>,
 }
 
@@ -31,6 +32,7 @@ impl Default for Status {
             phase: "Przygotowujemy aplikację…".into(),
             backend_ready: false,
             analysis_ready: false,
+            analysis_starting: false,
             error: None,
         }
     }
@@ -39,7 +41,7 @@ impl Default for Status {
 pub struct Desktop {
     status: Mutex<Status>,
     backend: Mutex<Option<processes::Backend>>,
-    owner: Mutex<Option<processes::Owner>>,
+    owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
 }
 
@@ -48,7 +50,7 @@ impl Default for Desktop {
         Self {
             status: Mutex::new(Status::default()),
             backend: Mutex::new(None),
-            owner: Mutex::new(None),
+            owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
         }
     }
@@ -103,7 +105,7 @@ pub fn launch(app: AppHandle) {
         .await;
         match result {
             Ok(owner) => {
-                *app.state::<Desktop>().owner.lock().expect("owner lock") = Some(owner);
+                *app.state::<Desktop>().owner.lock().await = Some(owner);
                 loop {
                     tauri::async_runtime::spawn_blocking(|| {
                         std::thread::sleep(std::time::Duration::from_secs(2))
@@ -117,7 +119,7 @@ pub fn launch(app: AppHandle) {
                     let stopped = desktop
                         .owner
                         .lock()
-                        .expect("owner lock")
+                        .await
                         .as_mut()
                         .and_then(|owner| owner.stopped_child());
                     if let Some(name) = stopped {
@@ -127,7 +129,9 @@ pub fn launch(app: AppHandle) {
                             status.backend_ready = false;
                         }
                         status.error = Some(format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie."));
-                        break;
+                        if name != "Python" {
+                            break;
+                        }
                     }
                 }
             }
@@ -137,12 +141,7 @@ pub fn launch(app: AppHandle) {
 }
 
 pub async fn stop(app: &AppHandle) {
-    let owner = app
-        .state::<Desktop>()
-        .owner
-        .lock()
-        .expect("owner lock")
-        .take();
+    let owner = app.state::<Desktop>().owner.lock().await.take();
     if let Some(mut owner) = owner {
         owner.stop().await;
     }
@@ -155,6 +154,52 @@ pub fn begin_close(app: &AppHandle) -> bool {
 #[tauri::command]
 pub fn desktop_status(state: State<'_, Desktop>) -> Status {
     state.status.lock().expect("status lock").clone()
+}
+
+#[tauri::command]
+pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
+    {
+        let desktop = app.state::<Desktop>();
+        let mut status = desktop
+            .status
+            .lock()
+            .map_err(|_| "Nie można odczytać stanu.")?;
+        if !status.backend_ready {
+            return Err("Poczekaj na uruchomienie katalogu.".into());
+        }
+        if status.analysis_ready || status.analysis_starting {
+            return Ok(());
+        }
+        status.analysis_starting = true;
+        status.error = None;
+        status.phase = "Przygotowujemy AI na Twoje żądanie…".into();
+    }
+    tauri::async_runtime::spawn(async move {
+        let result = {
+            let desktop = app.state::<Desktop>();
+            let mut owner = desktop.owner.lock().await;
+            match owner.as_mut() {
+                Some(owner) => {
+                    owner
+                        .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
+                        .await
+                }
+                None => Err("Katalog nie jest gotowy. Spróbuj ponownie.".into()),
+            }
+        };
+        let desktop = app.state::<Desktop>();
+        let mut status = desktop.status.lock().expect("status lock");
+        status.analysis_starting = false;
+        status.analysis_ready = result.is_ok();
+        status.phase = if result.is_ok() {
+            "AI gotowe do analizy"
+        } else {
+            "AI niedostępne — katalog działa"
+        }
+        .into();
+        status.error = result.err();
+    });
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -175,12 +220,23 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 .is_match(route);
     }
     match method {
-        "POST" => matches!(route, "/api/scan/jobs" | "/api/analysis/jobs"),
+        "POST" => {
+            matches!(
+                route,
+                "/api/scan/jobs" | "/api/analysis/jobs" | "/api/organization/batches"
+            ) || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/control$")
+                .unwrap()
+                .is_match(route)
+        }
         "PUT" => Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
             .unwrap()
             .is_match(route),
         "GET" => {
             route == "/api/catalog/page"
+                || route == "/api/organization/batches/latest"
+                || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items)?$")
+                    .unwrap()
+                    .is_match(route)
                 || Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$")
                     .unwrap()
                     .is_match(route)
@@ -249,6 +305,23 @@ mod tests {
     #[test]
     fn bridge_exposes_only_the_product_api() {
         assert!(allowed("POST", "/api/analysis/jobs", false));
+        assert!(allowed("POST", "/api/organization/batches", false));
+        assert!(allowed(
+            "GET",
+            "/api/organization/batches/latest?folderPath=test",
+            false
+        ));
+        assert!(allowed(
+            "GET",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/items?page=1",
+            false
+        ));
+        assert!(allowed(
+            "POST",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/control",
+            false
+        ));
+        assert!(!allowed("POST", "/_internal/analysis-connection", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
         assert!(allowed("GET", "/api/catalog/files/1/naming", false));
