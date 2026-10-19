@@ -9,8 +9,10 @@ local OCR and visual analysis without uploading your images to a cloud AI API.
 **Status: working early preview · Windows x64 · CPU analysis**
 
 ScreenSort is an ongoing personal project, not a finished automatic organizer.
-The current version catalogs images and saves real analysis results. Suggested
-names, categories and verified copy operations are the next product steps.
+The current source version catalogs images, saves real analysis results and lets
+you review and approve a filename derived from a saved visual description.
+Categories and verified copy operations are the next product steps.
+The existing 0.1.1 installer predates filename review; this feature needs a new build.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
@@ -81,6 +83,7 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Image explorer | Database pagination, circular thumbnails, selected-image details and a centered larger preview |
 | Local analysis | RapidOCR text extraction and Florence-2 image description for a selected image |
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
+| Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
 | Windows packaging | Prerelease installer with private Java, PostgreSQL, Python and CPU models; no developer tools required to run it |
 
 Matching size and modification time is a performance shortcut, not proof that
@@ -99,6 +102,10 @@ management are not implemented.
    reads the original, then sends image bytes to the protected local Python API.
 5. Python returns structured results. Java checks and saves them; React displays
    the OCR text, image description and individual step status.
+6. Review a filename proposal below the saved analysis, edit it and approve it.
+   Java selects up to six meaningful caption words; this is a deterministic first
+   version, not another AI call, translation or a semantic summarizer. A missing
+   visual description allows manual entry instead. Only the decision is stored.
 
 The scan and analysis jobs have different IDs and lifecycles. Catalog records and
 analysis results persist; the current scan job snapshots are held in memory.
@@ -115,8 +122,8 @@ cloud microservice platform: Rust supervises local processes on one computer.
 | --- | --- | --- |
 | Desktop shell | Window, folder picker, owned process lifecycle and restricted native bridge | Tauri 2, Rust |
 | Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, CSS Modules |
-| Application backend | Scanning, validation, catalog, analysis coordination and REST APIs | Java 25, Spring Boot 4.1.1 |
-| Persistence | Catalog and analysis storage; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, Flyway |
+| Application backend | Scanning, validation, catalog, analysis coordination, filename review and REST APIs | Java 25, Spring Boot 4.1.1 |
+| Persistence | Catalog, analysis and naming decisions; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, Flyway |
 | Analysis service | OCR and visual description, loaded local models | Python, FastAPI, RapidOCR, Florence-2-base-ft |
 | Development and checks | Reproducible dependencies, database integration and test suites | Maven Wrapper, Docker Compose, Testcontainers, Git |
 
@@ -140,13 +147,15 @@ The intended product flow is:
 
 ```text
 Choose folder → catalog images → OCR + visual description
-              → propose names, categories and tags       [planned]
-              → review and edit suggestions              [planned]
+              → suggest, edit and approve a filename     [implemented in source]
+              → suggest categories and tags              [planned]
               → create verified copies in an output folder [planned]
 ```
 
 The original folder should remain untouched. Future copy operations must avoid
 overwriting destination files and verify the copied content before finalization.
+
+[Filename review: flow, changed files and manual checks (Polish)](docs/propozycje-nazw.md).
 
 Near-term work also includes a smaller base installer with optional analysis
 downloads. This is a proposed distribution change, not part of version 0.1.1.

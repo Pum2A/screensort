@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="680" viewBox="0 0 1200 680" role="img" aria-labelledby="title desc">
   <title id="title">ScreenSort: implemented workflow and planned organization</title>
-  <desc id="desc">Tauri and React call the Java backend. Java scans a selected source folder, maintains a PostgreSQL catalog, and requests local OCR and visual analysis from Python. Results return through Java to the interface. Naming, review and verified copies are planned, not implemented.</desc>
+  <desc id="desc">Tauri and React call the Java backend. Java scans a selected source folder, maintains a PostgreSQL catalog, and requests local OCR and visual analysis from Python. The interface shows results and lets the user review a simple caption-based filename proposal. Approved names are stored separately; originals remain unchanged. Categories, tags and verified copies are planned.</desc>
   <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto-start-reverse"><path d="M0 0L8 4L0 8" fill="none" stroke="#427368" stroke-width="1.6"/></marker></defs>
   <rect width="1200" height="680" rx="24" fill="#f4f7f5"/>
   <g font-family="Consolas,monospace" fill="#173e37">
@@ -27,10 +27,10 @@
     <text x="877" y="279" font-size="17">Florence: image caption</text>
     <text x="473" y="425" font-size="22" font-weight="bold">PostgreSQL</text>
     <text x="473" y="463" font-size="17">Files + metadata</text>
-    <text x="473" y="494" font-size="17">Hashes + saved analysis</text>
+    <text x="473" y="494" font-size="17">Analysis + naming decisions</text>
     <text x="877" y="425" font-size="22" font-weight="bold">Back in the UI</text>
     <text x="877" y="463" font-size="17">OCR text + description</text>
-    <text x="877" y="494" font-size="17">Independent step status</text>
+    <text x="877" y="494" font-size="17">Review + approve a name</text>
     <g stroke="#427368" stroke-width="2.5" fill="none" marker-end="url(#arrow)">
       <path d="M332 226H440" marker-start="url(#arrow)"/>
       <path d="M737 226H845" marker-start="url(#arrow)"/>
@@ -42,6 +42,6 @@
     <text x="616" y="352" font-size="14">JPA</text>
     <rect x="48" y="581" width="1104" height="66" rx="13" fill="#edf0f8" stroke="#9fa9cb" stroke-width="1.5" stroke-dasharray="7 5"/>
     <text x="70" y="608" font-size="15" fill="#62698b">PLANNED / NOT IMPLEMENTED</text>
-    <text x="70" y="633" font-size="19" fill="#353e67">Suggested names + categories → manual review → verified copies to an output folder</text>
+    <text x="70" y="633" font-size="19" fill="#353e67">Categories + tags → verified copies to an output folder (no changes to originals)</text>
   </g>
 </svg>
