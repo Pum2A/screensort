@@ -9,6 +9,8 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 5173,
     strictPort: true,
+    // Native output contains bundled JVM/PostgreSQL/AI files, not React source.
+    watch: {ignored: ['**/src-tauri/**']},
     proxy: {
       '/api': {
         target: process.env.SCREENSORT_BACKEND_URL ?? 'http://127.0.0.1:8080',
