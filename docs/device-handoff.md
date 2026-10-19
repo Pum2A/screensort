@@ -2,6 +2,29 @@
 
 Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-19
 
+## Instalowanie AI z aplikacji i CI/CD — 2026-10-19
+
+Kontynuacja po `da79df5`, wersja desktop 0.2.0. Zmiany i decyzje techniczne:
+[review-ai-package-installation.md](review-ai-package-installation.md).
+
+`desktop/packages/` w Rust odpowiada za wkompilowany katalog zaufanych paczek,
+pobieranie HTTPS, weryfikację SHA-256/rozmiaru, import ZIP z natywnego pickera,
+bezpieczne rozpakowanie i atomową aktywację w lokalnych danych aplikacji.
+Nie nadpisuje bazy ani działającej wersji. React ma osobny `AiPackagePanel`.
+Nie zmieniano w tym etapie logiki Javy ani Pythona. Obecny profil to CPU
+RapidOCR + Florence-2-base-ft; nie ma jeszcze wyboru innych modeli/GPU/resume HTTP.
+
+Źródłowe `Pum2A/screensort` pozostaje prywatne. Publiczne dystrybucyjne repo:
+`Pum2A/screensort-releases`. Użytkownik wyraźnie zatwierdził publikowanie paczek.
+Nie publikować zdjęć, baz, logów, załączników ani całego `.release/`.
+
+CI: Java, frontend, Python, natywne testy Windows. `windows-release.yml` buduje
+CoreOnly dopiero po testach i sprawdza Tauri startup na izolowanej bazie.
+Publikacja między repozytoriami wymaga sekretu Actions `RELEASES_TOKEN`
+ograniczonego do Contents:write w repo dystrybucyjnym. Nie pobierać i nie
+kopiować lokalnego tokena `gh` do CI. Nowy workflow wymaga merge do default branch,
+aby pojawił się jako ręcznie uruchamiany w Actions. Push `codex/**` uruchamia CI.
+
 ## AI na żądanie i analiza folderu — 2026-10-19
 
 Zmiany przygotowano na gałęzi `codex/on-demand-ai-and-batch-review`, nie na `main`.

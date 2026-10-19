@@ -87,7 +87,7 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Folder analysis | Durable per-file checkpoints, pause/resume, restart recovery and paged category/name proposals requiring review |
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
 | Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
-| Windows packaging | Private runtimes; optional CoreOnly build omits Python and models, but cannot download them yet |
+| Windows packaging | CoreOnly starts without Python/models; optional, checksum-pinned CPU AI package installs from the app or a matching ZIP |
 
 Matching size and modification time is a performance shortcut, not proof that
 file bytes are unchanged. Reusing a catalog row is not the same as grouping all
@@ -96,6 +96,11 @@ inference cache and content-based duplicate management are not implemented.
 
 For the exact new code paths, limits and verification, see the
 [on-demand AI / batch review guide (Polish)](docs/review-on-demand-ai-batches.md).
+
+Optional AI installation, trust boundaries and CI/CD are explained in the
+[package installation review (Polish)](docs/review-ai-package-installation.md).
+Public installers and optional model packages belong in the separate
+[distribution-only repository](https://github.com/Pum2A/screensort-releases), not in source Git history.
 The existing presentation media above shows the earlier interface.
 
 ## How it works
