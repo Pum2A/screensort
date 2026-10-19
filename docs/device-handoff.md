@@ -1,6 +1,39 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
+Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-19
+
+## AI na żądanie i analiza folderu — 2026-10-19
+
+Zmiany przygotowano na gałęzi `codex/on-demand-ai-and-batch-review`, nie na `main`.
+Szczegółowy przegląd kodu: [review-on-demand-ai-batches.md](review-on-demand-ai-batches.md).
+Starsze sekcje poniżej są historią, nie aktualnym wykazem możliwości.
+
+Katalog startuje bez Pythona. Natywne polecenie uruchamia istniejący pakiet AI
+na żądanie i przekazuje Javie prywatny adres/token. `CoreOnly` pomija AI przy
+budowaniu. Nie dodano jeszcze pobierania pakietów ani wyboru różnych modeli.
+
+Moduł Java `organization` oraz migracja V6 dodają zadania obejmujące cały zapisany
+folder: checkpointy w PostgreSQL, pauza, wznowienie, odzyskanie po restarcie,
+propozycje kategorii i nazw. Kategorie są jawnie prostymi regułami opisu/OCR,
+nie nowym modelem rozpoznającym np. Roblox. Wszystkie wymagają sprawdzenia.
+Nowy job nie korzysta jeszcze z cache inferencji. Nie ma eksportu kopii.
+
+Frontend ma „Analizuj wszystko”, strony propozycji, Lucide i Tailwind bez Preflight.
+Zachowano istniejące lazy loading i podglądy, miniatury nie obcinają screenshotów,
+a powody pominięcia są tłumaczone użytkownikowi. Python/model pozostają bez zmian.
+
+Przygotowano i przetestowano runtime bez AI: 282,6 MiB wobec 1653,9 MiB pełnego
+pakietu na dysku. To nie wielkości instalatorów ani benchmark czasu startu.
+Pełny runtime developerski przywrócono; wariant bez AI zachowano osobno w `.release`.
+Poprzedni backend JAR również ma kopię w `.release/backups`.
+
+Nie zbudowano nowego instalatora ani nie aktualizowano zainstalowanej aplikacji.
+W tej kopii nowy kod uruchomisz przez `npm run tauri dev` w `frontend`.
+Dołączony `runtime/backend.jar` odświeżono. Na innym urządzeniu przygotuj runtime'y
+i aktualny backend zgodnie z instrukcją budowania; nie są commitowane do Git.
+
+Dotychczasowe nieśledzone przewodniki z `output` pozostawiono bez zmian i nie
+dodano ich do nowych commitów. Nie kasować starego repozytorium ani danych bazy.
 
 ## Prezentacja portfolio i LinkedIn — 2026-10-15
 

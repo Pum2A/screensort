@@ -11,8 +11,10 @@ local OCR and visual analysis without uploading your images to a cloud AI API.
 ScreenSort is an ongoing personal project, not a finished automatic organizer.
 The current source version catalogs images, saves real analysis results and lets
 you review and approve a filename derived from a saved visual description.
-Categories and verified copy operations are the next product steps.
-The existing 0.1.1 installer predates filename review; this feature needs a new build.
+It also supports resumable whole-folder analysis with preliminary category/name
+proposals. Categories currently use explicit keyword rules, not a new trained classifier.
+Verified copy operations and downloading optional AI packages are not implemented.
+The existing 0.1.1 installer predates these changes; source changes need a new build.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
@@ -80,16 +82,21 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Scanning | PNG/JPG/JPEG validation, metadata, streaming SHA-256, bounded workers and background jobs |
 | Incremental scans | Known-file lookup by relative path; unchanged size/time can reuse previous processing results |
 | Persistent catalog | PostgreSQL records survive restarts; rescans update existing paths instead of inserting another row |
-| Image explorer | Database pagination, circular thumbnails, selected-image details and a centered larger preview |
-| Local analysis | RapidOCR text extraction and Florence-2 image description for a selected image |
+| Image explorer | Database pagination, uncropped rectangular thumbnails, selected-image details and a centered larger preview |
+| Local analysis | RapidOCR text extraction and Florence-2 description; desktop starts AI only on explicit request |
+| Folder analysis | Durable per-file checkpoints, pause/resume, restart recovery and paged category/name proposals requiring review |
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
 | Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
-| Windows packaging | Prerelease installer with private Java, PostgreSQL, Python and CPU models; no developer tools required to run it |
+| Windows packaging | Private runtimes; optional CoreOnly build omits Python and models, but cannot download them yet |
 
 Matching size and modification time is a performance shortcut, not proof that
 file bytes are unchanged. Reusing a catalog row is not the same as grouping all
-content-identical files. Whole-folder AI analysis and content-based duplicate
-management are not implemented.
+content-identical files. Whole-folder jobs currently reprocess images; a versioned
+inference cache and content-based duplicate management are not implemented.
+
+For the exact new code paths, limits and verification, see the
+[on-demand AI / batch review guide (Polish)](docs/review-on-demand-ai-batches.md).
+The existing presentation media above shows the earlier interface.
 
 ## How it works
 
