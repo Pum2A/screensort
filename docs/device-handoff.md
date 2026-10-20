@@ -1,6 +1,26 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-19
+Ostatnia aktualizacja bieżącego etapu: 2026-10-20
+
+## Metryki i opcjonalny cache podglądów — 2026-10-20
+
+Nowy zakres: `ProductMetrics`, profil developerski `observability`, Prometheus
+w osobnym `compose.observability.yaml` i opcjonalny `redis-cache` dla PNG podglądów.
+Szczegóły, kod i komendy: [review-observability-and-cache.md](review-observability-and-cache.md).
+Redis nie przechowuje surowego OCR ani nie jest cache inferencji. Domyślnie oraz
+w `desktop` nie powstaje klient Redis; eksport metryk też nie odsłania desktopu.
+Nowe pakowanie Java uwzględnia `jdk.management`, ale istniejącej instalacji nie
+przebudowano. Nie zmieniano prywatnej bazy, zdjęć ani instalacji właściciela.
+Lokalnie: 154 testy bez bazy/kontenerów, 0 błędów i 2 wcześniejsze pominięcia;
+osobno 1/1 test prawdziwego eksportu HTTP. Test Redis kontenerowy pominięty przy
+wyłączonym Dockerze. Compose i PowerShell poprawne składniowo. Brak benchmarku.
+
+Kolejność dalszej pracy została zmieniona po uwagach właściciela: najpierw
+diagnostyka i niezawodny start/wznowienie analizy, potem rzeczywista interpretacja
+OCR + wizji i ocena jakości nazw, następnie UI i plan bezpiecznego kopiowania.
+[Plan kontekstowej analizy](plan-contextual-analysis.md) jest **planem**, nie
+listą gotowych funkcji. Nie dodano nowych modeli, treningu ani wykrywania danych
+wrażliwych. Danych uznanych za wrażliwe nie wolno automatycznie kasować.
 
 ## Zatwierdzanie nazw i kategorii — 2026-10-19
 

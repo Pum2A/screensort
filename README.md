@@ -20,6 +20,7 @@ older installers do not gain source changes without an update.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
+[Local metrics and optional Redis](docs/review-observability-and-cache.md) ·
 [Opis na LinkedIn po polsku](docs/linkedin-projekt.md)
 
 ## See it in action
