@@ -72,7 +72,7 @@ try {
     }
     Copy-Item -LiteralPath (Join-Path $repo 'target/screensort-0.0.1-SNAPSHOT.jar') -Destination (Join-Path $stage 'backend.jar')
     Write-Host 'Creating a private Java runtime...'
-    Invoke-Checked (Join-Path $JdkPath 'bin/jlink.exe') @('--add-modules', 'java.se,jdk.unsupported,jdk.crypto.ec,jdk.zipfs', '--strip-debug', '--no-header-files', '--no-man-pages', '--output', (Join-Path $stage 'java'))
+    Invoke-Checked (Join-Path $JdkPath 'bin/jlink.exe') @('--add-modules', 'java.se,jdk.management,jdk.unsupported,jdk.crypto.ec,jdk.zipfs', '--strip-debug', '--no-header-files', '--no-man-pages', '--output', (Join-Path $stage 'java'))
 
     $python = Join-Path $stage 'python'
     if (-not $CoreOnly) {

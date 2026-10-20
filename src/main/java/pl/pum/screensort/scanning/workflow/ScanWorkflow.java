@@ -6,6 +6,8 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.catalog.reading.KnownFilesReader;
 import pl.pum.screensort.catalog.writing.CatalogUpdater;
+import pl.pum.screensort.diagnostics.ProductMetrics;
+import static pl.pum.screensort.diagnostics.ProductMetrics.Operation.*;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 import pl.pum.screensort.scanning.image.ImageScanner;
@@ -20,16 +22,19 @@ public class ScanWorkflow {
   private final CatalogUpdater catalogUpdater;
   private final ScanFolderValidator folderValidator;
   private final KnownFilesReader knownFilesReader;
+  private final ProductMetrics metrics;
 
   public ScanWorkflow(
       ImageScanner imageScanner,
       CatalogUpdater catalogUpdater,
       ScanFolderValidator folderValidator,
-      KnownFilesReader knownFilesReader) {
+      KnownFilesReader knownFilesReader,
+      ProductMetrics metrics) {
     this.imageScanner = imageScanner;
     this.catalogUpdater = catalogUpdater;
     this.folderValidator = folderValidator;
     this.knownFilesReader = knownFilesReader;
+    this.metrics = metrics;
   }
 
   // STAN I PLAN: walidacja, mapa znanych plików, skan przyrostowy i zapis są podłączone.
@@ -63,8 +68,7 @@ public class ScanWorkflow {
   // GOTOWE 9: Po tanich kontrolach porównujemy rozmiar i datę modyfikacji.
   // Zgodne metadane pozwalają użyć zapisanego SHA-256 bez dekodowania i hashowania.
   // ScanSummary rozróżnia nowe, sprawdzone ponownie, znane bez zmian i odrzucone.
-  // PÓŹNIEJ: Dodaj osobne pomiary walidacji, odczytu mapy, skanowania i zapisu.
-  // Właściciel usunął wcześniejsze zbiorcze printy czasu z tego workflow.
+  // GOTOWE 10: Osobne metryki walidacji, odczytu mapy, skanu i zapisu, bez printów.
   public ScanResult scanAndSave(Path folder) throws IOException {
     return scanAndSave(folder, ScanProgressListener.NONE);
   }
@@ -72,16 +76,21 @@ public class ScanWorkflow {
   public ScanResult scanAndSave(Path folder, ScanProgressListener progress) throws IOException {
     ScanSummary emptySummary = new ScanSummary(0, 0, 0, 0);
     progress.onProgress(ScanStatus.PREPARING, emptySummary);
-    AllowedRoot allowedRoot = folderValidator.validate(folder);
-    Map<String, KnownFile> knowFilesByPath = knownFilesReader.read(allowedRoot);
+    AllowedRoot allowedRoot = metrics.measure(FOLDER_VALIDATION, () -> folderValidator.validate(folder));
+    Map<String, KnownFile> knowFilesByPath =
+        metrics.measure(KNOWN_FILES_READ, () -> knownFilesReader.read(allowedRoot));
     progress.onProgress(ScanStatus.SCANNING, emptySummary);
-    ScanResult result =
+    ScanResult result = metrics.measure(SCAN, () ->
         imageScanner.scan(
             allowedRoot,
             knowFilesByPath,
-            summary -> progress.onProgress(ScanStatus.SCANNING, summary));
+            summary -> progress.onProgress(ScanStatus.SCANNING, summary)));
+    metrics.scanned(result.summary());
     progress.onProgress(ScanStatus.SAVING, result.summary());
-    catalogUpdater.update(result.allowedRoot(), result);
+    metrics.measure(CATALOG_SAVE, () -> {
+      catalogUpdater.update(result.allowedRoot(), result);
+      return null;
+    });
     return result;
   }
 }
