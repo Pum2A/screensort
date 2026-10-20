@@ -14,7 +14,7 @@ async function checked<T>(response: Response): Promise<T> {
     if (!response.ok) {
         const messages: Record<number, string> = {400: 'Sprawdź folder i wybrane opcje.',
             409: 'Zadanie jest już w toku lub folder wymaga skanu. Poczekaj na bieżący obraz.',
-            503: 'Uruchom pakiet AI i spróbuj ponownie.'}
+            503: 'Uruchom silnik analizy i spróbuj ponownie.'}
         throw new Error(messages[response.status] ?? 'Nie udało się odczytać zadania. Spróbuj ponownie.')
     }
     return await response.json() as T

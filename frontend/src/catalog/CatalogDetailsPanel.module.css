@@ -8,8 +8,8 @@
     padding: 16px 18px;
     border-bottom: 1px solid var(--border);
 }
-.heading h3 { margin: 0 0 4px; font-size: 25px; font-weight: 400; }
-.heading span, .muted, .note { color: var(--muted); font-size: 18px; }
+.heading h3 { margin: 0 0 4px; font-size: 25px; font-weight: 400; font-family: var(--font-retro); }
+.heading span, .muted, .note { color: var(--muted); font-size: 11px; }
 .body { padding: 18px 16px; }
 .selected {
     position: relative;
@@ -27,17 +27,19 @@
     height: 18px;
     background: var(--border);
 }
-.thumbnail { width: 92px; flex-shrink: 0; padding: 5px; border: 1px solid var(--accent); border-radius: 50%; }
+.thumbnail { width: 76px; height: 76px; flex-shrink: 0; padding: 4px; border: 1px solid #a5be93; border-radius: 50%; }
+.thumbnail :global(.catalog-image) { aspect-ratio: 1; border-radius: 50%; }
+.thumbnail :global(img) { padding: 15%; }
 .description { min-width: 0; }
-.name { margin: 0 0 7px; overflow-wrap: anywhere; }
+.name { margin: 0 0 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 .muted { margin: 0; }
 .tree { border-left: 1px solid var(--border); margin-left: 45px; padding-left: 14px; }
 .tree > section { position: relative; margin-bottom: 8px; }
 .tree > section::before { content: ''; position: absolute; left: -15px; top: 22px; width: 14px; height: 1px; background: var(--border); }
 .properties { margin: 0; }
 .properties > div + div { margin-top: 11px; }
-.properties dt { font-size: 17px; color: var(--muted); }
-.properties dd { margin: 4px 0 0; overflow-wrap: anywhere; }
+.properties dt { font-size: 10px; color: var(--muted); }
+.properties dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: 12px; }
 .properties code { font-size: 12px; line-height: 1.6; }
 .note { display: flex; align-items: flex-start; gap: 7px; margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--border); }
 .note svg { width: 16px; height: 16px; margin-top: 2px; }

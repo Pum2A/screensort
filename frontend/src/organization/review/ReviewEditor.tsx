@@ -6,6 +6,7 @@ import {fileNameProblem} from '../../naming/fileNameRules'
 import type {BatchItem} from '../api'
 import {readReview, saveReview} from './api'
 import {categoryLabels, draftChanged, draftFor, isCategory, reviewImageUrl, reviewWrite, serverChanged} from './state'
+import {ReviewEvidence} from './ReviewEvidence'
 
 export type EditingState = {dirty: boolean; saving: boolean}
 type Props = {batchId: string; item: BatchItem; disabled: boolean; onSaved: (item: BatchItem) => void;
@@ -63,23 +64,25 @@ export function ReviewEditor({batchId, item, disabled, onSaved, onStateChange, o
 
     const src = reviewImageUrl(item, 'preview')
     return <section className="min-w-0 rounded-xl border border-stone-200 bg-white p-4 sm:p-5" aria-label={`Decyzja dla ${item.originalName}`}>
-        <div className="mb-4 h-48 overflow-hidden rounded-lg bg-stone-100 sm:h-60"><CatalogImage key={src} src={src} name={item.originalName} preview/></div>
+        <span className="eyebrow mb-3 text-xs">TWOJA DECYZJA</span>
+        <div className="mb-4 overflow-hidden rounded-lg bg-stone-100"><CatalogImage key={src} src={src} name={item.originalName} preview/></div>
         <p className="break-all text-sm text-stone-600">Oryginał: {item.originalName}</p>
-        <p className="my-2 text-sm text-stone-600">AI podpowiada. Ty wybierasz nazwę i kategorię. Zapis nie zmienia pliku na dysku.</p>
+        <p className="my-2 text-xs leading-relaxed text-stone-500">Propozycja to punkt wyjścia. Popraw nazwę i kategorię, jeśli nie oddają kontekstu. Oryginał pozostaje bez zmian.</p>
+        {item.analysisId != null && <ReviewEvidence key={item.analysisId} fileId={item.fileId} analysisId={item.analysisId} sourceHash={item.sourceSha256}/>}
         {changed && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Wynik lub decyzja zmieniły się na serwerze. Edycji nie nadpisano. Wczytaj aktualny formularz.</p>}
         {!item.analysisMatchesCatalog && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Ta analiza nie odpowiada aktualnym danym katalogu. Zeskanuj i przeanalizuj obraz ponownie.</p>}
         {item.review && !item.review.matchesCatalog && <p className="text-sm text-amber-900">Poprzednia decyzja wymaga ponownego zatwierdzenia.</p>}
         <form onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void submit('APPROVED') }}>
             <label className="mb-1 block font-semibold" htmlFor={nameId}>Nazwa pliku</label>
             <input id={nameId} value={draft.name} disabled={locked} maxLength={255} autoComplete="off"
-                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 aria-invalid={Boolean(nameProblem)} aria-describedby={feedbackId}
                 onChange={event => {setDraft({...draft, name: event.target.value}); setError(null)}}/>
             <p id={feedbackId} className={`mt-1 text-sm ${nameProblem ? 'text-red-700' : 'text-stone-500'}`}>
                 {nameProblem ?? 'Sama nazwa, bez ścieżki. Zachowujemy oryginalne rozszerzenie.'}</p>
             <label className="mb-1 mt-4 block font-semibold" htmlFor={categoryId}>Kategoria</label>
             <select id={categoryId} value={draft.category} disabled={locked}
-                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                 onChange={event => {setDraft({...draft, category: event.target.value}); setError(null)}}>
                 <option value="">Wybierz kategorię…</option>
                 {Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
