@@ -116,3 +116,16 @@ uruchomionym `npm run workspace:preview`.
 Nie przeprowadzono automatycznej instalacji na profilu właściciela ani
 pełnego testu aktualizacji starego zainstalowanego klienta przez internet.
 Starszy klient nie zawiera updatera; wymaga pierwszej instalacji 0.2.2.
+
+## Diagnostyka wydania na GitHub Actions
+
+Pierwsza budowa 0.2.2 skompilowała aplikację, ale została zatrzymana przez test
+rzeczywistego startu. Nie opublikowała instalatora ani manifestu. Skrypt pokazuje
+teraz powód z raportu testu, a workflow zachowuje sam raport syntetycznego testu
+przez 7 dni w prywatnym repozytorium. Nie wysyła sesji, hasła bazy ani zdjęć.
+
+Runner Windows otrzymuje jawny dostęp do własnego workspace dla swojego SID.
+PostgreSQL po obniżeniu uprawnień nie może polegać na prawach grupy Administrators;
+ten przypadek opisuje również [CI PostgreSQL](https://github.com/postgres/postgres/blob/master/.github/workflows/pg-ci.yml).
+Zmiana ACL dotyczy wyłącznie jednorazowej maszyny CI, nie komputera użytkownika.
+Test uruchomienia nadal jest obowiązkowy; jego wynik rozstrzyga o publikacji.

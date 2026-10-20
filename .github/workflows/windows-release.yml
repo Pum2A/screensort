@@ -41,6 +41,17 @@ jobs:
         run: rustup toolchain install 1.95.0 --profile minimal
       - name: Frontend dependencies
         run: npm ci --prefix frontend
+      - name: Allow the runner identity to own its isolated database
+        shell: pwsh
+        run: |
+          # PostgreSQL drops administrator privileges on Windows. The hosted
+          # workspace must grant its actual user SID access, not only Administrators.
+          # This affects this disposable runner only, never an installed user profile.
+          $workspace = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          if ($workspace -eq [IO.Path]::GetPathRoot($workspace)) { throw 'Refusing a drive-root ACL change' }
+          $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+          icacls.exe $workspace /grant "*$($sid):(OI)(CI)F" /Q
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare runner-only database permissions' }
       - name: Build CoreOnly and verify real Tauri startup on an isolated database
         shell: pwsh
         env:
