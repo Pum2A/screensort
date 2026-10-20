@@ -50,10 +50,10 @@ main.tsx → MotionProvider → DesktopStartup → App
                               │                ├─ CatalogGallery → CatalogDetailsPanel
                               │                │                    └─ ImageDetailsDialog
                               │                └─ OrganizationPanel
-                              │                    └─ ReviewQueue
-                              │                        ├─ ReviewCategoryTree
-                              │                        ├─ ReviewEditor → ReviewEvidence
-                              │                        └─ OrganizationPlanPreview → GET /batches/{id}/plan
+                              │                    ├─ ReviewQueue
+                              │                    │   ├─ ReviewCategoryTree
+                              │                    │   └─ ReviewEditor → ReviewEvidence
+                              │                    └─ OrganizationPlanPreview → OrganizationExport
                               └─ DesktopRuntime → DesktopAnalysisControls
                                                   └─ AiPackagePanel → AnalysisEngineContent
 ```
@@ -112,8 +112,9 @@ testem uruchomienia nowego instalatora ani prawdziwego rozgrzewania modeli.
 ## Sprawdzenia wykonane w tym etapie
 
 `npm test`: 62/62; `npm run build`, `npm run lint` i `npm run check:previews` przeszły lokalnie.
-16 testów Javy przeszło z izolowanym PostgreSQL uruchomionym przez
+17 testów Javy przeszło z izolowanym PostgreSQL uruchomionym przez
 `scripts/verify-native-tests.ps1`. Obejmuje to HTTP → baza → rzeczywista kopia pliku.
+22 testy Rusta przeszły; obejmują nowe trasy eksportu i blokadę tras wewnętrznych.
 
 W poprzednim etapie manualnie sprawdzono na fikcyjnym API: zachowanie edycji między widokami,
 potwierdzenie jej odrzucenia, zapis/konflikt, źródła OCR/wizji, filtr błędów,

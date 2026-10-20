@@ -360,7 +360,7 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
             matches!(
                 route,
                 "/api/scan/jobs" | "/api/analysis/jobs" | "/api/organization/batches"
-            ) || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/control$")
+            ) || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/(control|exports)$")
                 .unwrap()
                 .is_match(route)
         }
@@ -382,7 +382,12 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 .unwrap()
                 .is_match(route)
                 || route == "/api/organization/batches/latest"
-                || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items)?$")
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items|/plan|/exports/latest)?$",
+                )
+                .unwrap()
+                .is_match(route)
+                || Regex::new(r"^/api/organization/exports/[0-9a-fA-F-]{36}(/issues)?$")
                     .unwrap()
                     .is_match(route)
                 || Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$")
@@ -463,6 +468,24 @@ pub async fn backend_image(
 #[cfg(test)]
 mod tests {
     use super::allowed;
+    #[test]
+    fn bridge_supports_copying_and_only_its_public_routes() {
+        let batch = "/api/organization/batches/00000000-0000-0000-0000-000000000001";
+        let export = "/api/organization/exports/00000000-0000-0000-0000-000000000002";
+        assert!(allowed("GET", &format!("{batch}/plan?page=1"), false));
+        assert!(allowed("POST", &format!("{batch}/exports"), false));
+        assert!(allowed("GET", &format!("{batch}/exports/latest"), false));
+        assert!(allowed("GET", export, false));
+        assert!(allowed("GET", &format!("{export}/issues?page=1"), false));
+        for method in ["POST", "PUT", "DELETE"] {
+            assert!(!allowed(method, export, false));
+            assert!(!allowed(method, &format!("{batch}/plan"), false));
+        }
+        assert!(!allowed("GET", &format!("{batch}/exports"), false));
+        assert!(!allowed("GET", &format!("{export}/../secret"), false));
+        assert!(!allowed("GET", &format!("{export}/issues"), true));
+    }
+
     #[test]
     fn bridge_exposes_only_the_product_api() {
         assert!(allowed("POST", "/api/analysis/jobs", false));

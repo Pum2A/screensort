@@ -34,6 +34,8 @@ public class ExportManager {
   @EventListener(ApplicationReadyEvent.class)
   public void recover() { store.recover(); }
 
+  public boolean hasActiveJob() { return active.get(); }
+
   public ExportStore.Job start(UUID batchId, String destinationFolder) {
     if (destinationFolder == null || destinationFolder.isBlank()) {
       throw new ExportException(400, "DESTINATION_REQUIRED", "Wybierz folder dla uporządkowanej kopii.");

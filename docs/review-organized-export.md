@@ -27,6 +27,8 @@ OrganizationPlanPreview — wybrane miejsce + lista zatwierdzonych decyzji
 | `src/main/java/pl/pum/screensort/organization/export/OrganizedFileCopier.java` | Walidacja nazwy i ścieżek, jeden odczyt źródła małym buforem, hash i metadane przed/po odczycie, plik tymczasowy i brak nadpisywania. |
 | `src/main/java/pl/pum/screensort/organization/export/ExportManager.java` | Jedno aktywne zadanie, oddzielny folder wynikowy, obsługa pominięć i przerwania pracy. Kopiowanie odbywa się poza transakcją SQL. |
 | `src/main/java/pl/pum/screensort/organization/export/ExportController.java` | POST uruchamia zadanie i zwraca 202; GET odczytuje status lub stronę problemów. |
+| `frontend/src-tauri/src/desktop/mod.rs` | Mostek desktopowy dopuszcza wyłącznie konkretne trasy planu, uruchomienia eksportu, statusu i problemów. |
+| `src/main/java/pl/pum/screensort/desktop/DesktopLifecycle.java` | Aktualizacja instalatora czeka również na zakończenie eksportu po stronie backendu. |
 | `frontend/src/organization/export/OrganizationExport.tsx` | Odtworzenie ostatniego zadania, odpytywanie statusu, ponowienie odczytu po błędzie, blokada restartu podczas zapisu. |
 | `frontend/src/organization/OrganizationPlanPreview.tsx` | Rzeczywisty wybór folderu docelowego, podgląd stron i uruchomienie zapisu. |
 | `src/main/resources/db/migration/V8__create_organization_exports.sql` | Historia zadań i wyników; unikalny indeks dopuszcza jedno aktywne kopiowanie. |
@@ -61,7 +63,7 @@ odzyskanie statusu po przerwaniu oraz pełny przepływ HTTP → PostgreSQL → d
 Uruchomienie testów na osobnej, lokalnej bazie:
 
 ```powershell
-./scripts/verify-native-tests.ps1 -Tests 'ReviewJpaTest,OrganizedFileCopierTest'
+./scripts/verify-native-tests.ps1 -Tests 'ReviewJpaTest,OrganizedFileCopierTest,DesktopUpdateReadinessTest'
 ```
 
 Interfejs można obejrzeć też w scenariuszu fikcyjnym `workspace-preview.html?scenario=organized`.
