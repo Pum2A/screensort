@@ -187,9 +187,18 @@ try {
             $checkArguments = @('--startup-check', '--data-dir', ('"' + $checkData + '"'))
             if ($CoreOnly) { $checkArguments += '--catalog-only' }
             $checkProcess = Start-Process -FilePath $checkExe -ArgumentList $checkArguments -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
-            if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check failed. See $checkData.report.json and session logs; no installer was generated." }
+            if (-not (Test-Path -LiteralPath "$checkData.report.json")) {
+                throw "Tauri startup check exited with code $($checkProcess.ExitCode) without a report. No installer was generated."
+            }
             $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
-            if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }
+            if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) {
+                # This report is produced exclusively by the isolated synthetic check.
+                # Never print session logs, database passwords or process environments.
+                $checkError = if ($checkReport.PSObject.Properties['error']) { [string]$checkReport.error } else { 'The real Tauri resource resolver was not verified.' }
+                if ($checkError.Length -gt 2048) { $checkError = $checkError.Substring(0, 2048) }
+                throw "Tauri startup check failed: $checkError No installer was generated."
+            }
+            if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check exited with code $($checkProcess.ExitCode). No installer was generated." }
             if ($CoreOnly -and $checkReport.bundledAiPresent) { throw 'CoreOnly startup used a full runtime. Refusing to package.' }
             Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--ci', '--bundles', 'nsis')
         }

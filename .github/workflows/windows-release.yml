@@ -47,6 +47,14 @@ jobs:
           RUSTUP_TOOLCHAIN: 1.95.0
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: ./scripts/build-windows.ps1 -CoreOnly -JdkPath $env:JAVA_HOME
+      - name: Preserve isolated startup report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: screensort-startup-report-${{ github.run_number }}
+          path: .release/startup-check-*.report.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Collect only distribution files
         shell: pwsh
         run: |
