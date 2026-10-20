@@ -2,6 +2,25 @@
 
 Ostatnia aktualizacja bieżącego etapu: 2026-10-20
 
+## UI eksploratora do weryfikacji — 2026-10-20
+
+Na prośbę właściciela wykonano teraz frontend, bez zmian w Javie/Pythonie/Rust.
+Opis plików, przepływu i ograniczeń: [review-explorer-ui.md](review-explorer-ui.md).
+Nowy lekki eksplorator: sidebar, katalog po 24, siatka/gałęzie formatów,
+inspektor, animowany podgląd, osobna analiza z drzewkiem kategorii strony,
+ochrona roboczej edycji, źródła OCR/wizji na żądanie, czytelny start i silnik.
+Motion używa `LazyMotion`/`domAnimation` i respektuje ograniczenie ruchu.
+Tailwind i Lucide pozostają; złożone układy mają CSS przypisany do komponentów.
+
+`npm run workspace:preview` w `frontend`: port 5184,
+`/tests/fixtures/workspace-preview.html`, wyłącznie fikcyjne dane i testowe zapisy
+w pamięci. Produkcyjny frontend używa istniejących endpointów/bridge.
+56/56 testów frontendu, build, lint i nowy `check:previews` przeszły lokalnie.
+Sprawdzono manualnie edycję, konflikt zapisu, podgląd/fokus, wznowienie i 390 px.
+Nie przebudowano instalatora ani nie naprawiano startu modeli/semantyki nazw.
+Następna praca po weryfikacji UI: niezawodne uruchamianie analizy i rzeczywista
+interpretacja OCR + wizji według wcześniejszego planu, potem bezpieczny eksport.
+
 ## Metryki i opcjonalny cache podglądów — 2026-10-20
 
 Nowy zakres: `ProductMetrics`, profil developerski `observability`, Prometheus

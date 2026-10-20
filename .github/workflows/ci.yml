@@ -51,6 +51,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - run: npm run check:previews
       - run: npm run build
 
   analysis:
