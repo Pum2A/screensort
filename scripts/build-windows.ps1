@@ -17,6 +17,12 @@ $cache = Join-Path $release 'cache'
 $lock = Get-Content -LiteralPath (Join-Path $repo 'packaging/windows/runtime-lock.json') -Raw | ConvertFrom-Json
 $utf8 = New-Object Text.UTF8Encoding($false)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+$previousSigningKey = $env:TAURI_SIGNING_PRIVATE_KEY
+if (-not $StageOnly -and -not $env:TAURI_SIGNING_PRIVATE_KEY) {
+    $localSigningKey = Join-Path $release 'update-signing/screensort.key'
+    if (-not (Test-Path -LiteralPath $localSigningKey)) { throw 'Signed installer requires TAURI_SIGNING_PRIVATE_KEY or the protected local updater key.' }
+    $env:TAURI_SIGNING_PRIVATE_KEY = $localSigningKey
+}
 
 function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
     & $Executable @Arguments
@@ -168,7 +174,7 @@ try {
         }
         Push-Location (Join-Path $repo 'frontend')
         try {
-            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--no-bundle')
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--ci', '--no-bundle')
             if ($CoreOnly -and ((Test-Path -LiteralPath (Join-Path $builtRuntime 'python')) -or (Test-Path -LiteralPath (Join-Path $builtRuntime 'models')))) {
                 throw 'CoreOnly build contains stale AI resources. Refusing to generate an installer.'
             }
@@ -185,8 +191,8 @@ try {
             $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
             if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }
             if ($CoreOnly -and $checkReport.bundledAiPresent) { throw 'CoreOnly startup used a full runtime. Refusing to package.' }
-            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--bundles', 'nsis')
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--ci', '--bundles', 'nsis')
         }
         finally { Pop-Location }
     }
-} finally { Pop-Location }
+} finally { Pop-Location; $env:TAURI_SIGNING_PRIVATE_KEY = $previousSigningKey }

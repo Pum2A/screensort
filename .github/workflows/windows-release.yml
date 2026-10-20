@@ -1,6 +1,8 @@
 name: Windows Core release
 
 on:
+  push:
+    tags: ['desktop-v*']
   workflow_dispatch:
     inputs:
       publish:
@@ -43,14 +45,19 @@ jobs:
         shell: pwsh
         env:
           RUSTUP_TOOLCHAIN: 1.95.0
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: ./scripts/build-windows.ps1 -CoreOnly -JdkPath $env:JAVA_HOME
       - name: Collect only distribution files
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path .release/publish | Out-Null
-          $installers = @(Get-ChildItem frontend/src-tauri/target/release/bundle/nsis/*-setup.exe)
+          $version = (Get-Content frontend/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF.StartsWith('refs/tags/desktop-v') -and $env:GITHUB_REF -ne "refs/tags/desktop-v$version") { throw 'Release tag does not match app version' }
+          $installers = @(Get-ChildItem "frontend/src-tauri/target/release/bundle/nsis/ScreenSort_$($version)_x64-setup.exe")
           if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer' }
           Copy-Item -LiteralPath $installers[0].FullName -Destination .release/publish
+          Copy-Item -LiteralPath ($installers[0].FullName + '.sig') -Destination .release/publish
+          ./scripts/create-update-manifest.ps1 -Installer $installers[0].FullName -Tag "v$version-preview" -OutputPath .release/publish/latest.json
           Copy-Item packaging/windows/ai-packages.json,packaging/windows/THIRD-PARTY-NOTICES.md,packaging/windows/FLORENCE-LICENSE.txt -Destination .release/publish
           $hash = (Get-FileHash -LiteralPath $installers[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  $($installers[0].Name)" | Set-Content .release/publish/SHA256SUMS.txt -Encoding utf8NoBOM
@@ -62,14 +69,21 @@ jobs:
           retention-days: 14
           compression-level: 0
       - name: Publish approved distribution prerelease
-        if: inputs.publish
+        if: inputs.publish || startsWith(github.ref, 'refs/tags/desktop-v')
         shell: pwsh
         env:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           if (-not $env:GH_TOKEN) { throw 'Configure RELEASES_TOKEN scoped to Contents:write on Pum2A/screensort-releases only. Build artifact is already available.' }
           $version = (Get-Content frontend/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $tag = "v$version-ci-${{ github.run_number }}"
+          $tag = "v$version-preview"
           $assets = @(Get-ChildItem .release/publish -File | ForEach-Object FullName)
           gh release create $tag @assets --repo Pum2A/screensort-releases --prerelease --title "ScreenSort $version preview" --notes-file packaging/distribution/core-release.md
           if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+          gh release view updates-preview --repo Pum2A/screensort-releases *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create updates-preview --repo Pum2A/screensort-releases --prerelease --title 'ScreenSort preview update channel' --notes 'Signed Windows Core updates. Models and private data are not included.'
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare update channel' }
+          }
+          gh release upload updates-preview .release/publish/latest.json --repo Pum2A/screensort-releases --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Version release exists, but updating the channel failed. Do not delete a working release.' }

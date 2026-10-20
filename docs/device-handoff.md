@@ -2,6 +2,16 @@
 
 Ostatnia aktualizacja bieżącego etapu: 2026-10-20
 
+## Aktualizacje wewnątrz aplikacji — 0.2.2
+
+Na pilną prośbę właściciela dodano updater startujący w tle, powiadomienie,
+pobranie, weryfikację podpisu i wersji oraz instalację po zatwierdzeniu restartu.
+Opis kodu i sekretów: [review-in-app-updates.md](review-in-app-updates.md).
+Zmiany obejmują Rust, frontend, minimalny endpoint gotowości Javy oraz pipeline.
+Pierwsze przejście z 0.2.1 wymaga jednorazowej instalacji nowego Core.
+Nie uruchamiaj developera i zainstalowanej aplikacji na tej samej bazie naraz.
+Klucz prywatny jest poza Gitem; nigdy nie publikować `.release` jako całości.
+
 ## UI eksploratora do weryfikacji — 2026-10-20
 
 Na prośbę właściciela wykonano teraz frontend, bez zmian w Javie/Pythonie/Rust.
