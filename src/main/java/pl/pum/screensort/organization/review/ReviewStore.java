@@ -8,10 +8,15 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import pl.pum.screensort.organization.ApprovedFilesSql;
 
 @Repository
 public class ReviewStore {
   public record Page(List<ReviewItem> items, boolean hasNext) {}
+  public record PlanItem(long fileId, String relativePath, String originalName,
+      String category, String approvedName) {}
+  public record PlanPage(List<PlanItem> files, int pageNumber, int pageSize,
+      long totalFiles, boolean hasNext) {}
 
   private static final String SELECT = """
       select i.file_id, i.original_name, i.status, i.category, i.proposed_name, i.message,
@@ -34,6 +39,21 @@ public class ReviewStore {
     var rows = jdbc.query(SELECT + " where i.batch_id = ? order by i.file_id limit 51 offset ?",
         this::item, batchId, Math.multiplyExact((long) page, 50));
     return new Page(List.copyOf(rows.subList(0, Math.min(50, rows.size()))), rows.size() > 50);
+  }
+
+  /** Read-only export preview: only current, explicitly approved decisions are included. */
+  @Transactional(readOnly = true)
+  public PlanPage plan(UUID batchId, int page) {
+    String from = ApprovedFilesSql.FROM;
+    Long total = jdbc.queryForObject("select count(*) " + from, Long.class, batchId);
+    var rows = jdbc.query("""
+        select f.id, f.relative_path, f.original_name, r.category, n.approved_name
+        """ + from + " order by f.relative_path, f.id limit 51 offset ?",
+        (row, index) -> new PlanItem(row.getLong("id"), row.getString("relative_path"),
+            row.getString("original_name"), row.getString("category"), row.getString("approved_name")),
+        batchId, Math.multiplyExact((long) page, 50));
+    return new PlanPage(List.copyOf(rows.subList(0, Math.min(50, rows.size()))),
+        page, 50, total == null ? 0 : total, rows.size() > 50);
   }
 
   @Transactional(readOnly = true)

@@ -5,8 +5,12 @@ import static org.assertj.core.api.Assertions.*;
 import jakarta.persistence.EntityManager;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -40,12 +44,18 @@ import pl.pum.screensort.naming.NamingService;
 import pl.pum.screensort.naming.database.FileNamingRepository;
 import pl.pum.screensort.organization.BatchStore;
 import pl.pum.screensort.organization.CategorySuggester;
+import pl.pum.screensort.organization.export.ExportController;
+import pl.pum.screensort.organization.export.ExportManager;
+import pl.pum.screensort.organization.export.ExportStore;
+import pl.pum.screensort.organization.export.OrganizedFileCopier;
+import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ReviewService.class, ReviewStore.class, NamingService.class, NameSuggestionGenerator.class,
-    AnalysisStore.class, BatchStore.class, CategorySuggester.class, ReviewJpaTest.Config.class})
+    AnalysisStore.class, BatchStore.class, CategorySuggester.class, ReviewJpaTest.Config.class,
+    ExportStore.class, ExportManager.class, OrganizedFileCopier.class, ScanFolderValidator.class})
 class ReviewJpaTest {
   private static final String HASH = "a".repeat(64);
   static final PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:18.6"));
@@ -84,6 +94,9 @@ class ReviewJpaTest {
   @Autowired BatchStore batches;
   @Autowired JdbcTemplate jdbc;
   @Autowired PlatformTransactionManager transactions;
+  @Autowired ExportStore exports;
+  @Autowired ExportManager exportManager;
+  @Autowired JsonMapper json;
 
   @Test void approvesAndReloadsTheNameAndCategoryWithoutTouchingTheSource(@TempDir Path folder) throws Exception {
     Path source = folder.resolve("IMG_0026.png");
@@ -108,6 +121,78 @@ class ReviewJpaTest {
     assertThat(Files.readAllBytes(source)).containsExactly(1, 2, 3, 4);
     assertThat(Files.getLastModifiedTime(source)).isEqualTo(modified);
     assertThat(Files.exists(folder.resolve("kubek.png"))).isFalse();
+  }
+
+  @Test void organizationPlanContainsOnlyCurrentApprovedItems(@TempDir Path folder) {
+    var fixture = prepare(folder);
+    assertThat(batches.plan(fixture.batchId(), 0).totalFiles()).isZero();
+
+    var initial = reviews.read(fixture.batchId(), fixture.fileId());
+    reviews.save(fixture.batchId(), fixture.fileId(), approve(initial, "kubek.png"));
+
+    var plan = batches.plan(fixture.batchId(), 0);
+    assertThat(plan.totalFiles()).isEqualTo(1);
+    assertThat(plan.files()).containsExactly(new ReviewStore.PlanItem(
+        fixture.fileId(), "IMG_0026.png", "IMG_0026.png", "PHOTOGRAPHS", "kubek.png"));
+
+    var file = files.findById(fixture.fileId()).orElseThrow();
+    file.updateFromScan(file.getOriginalName(), file.getExtension(), 5, "b".repeat(64), Instant.now(), Instant.now());
+    entities.flush();
+    assertThat(batches.plan(fixture.batchId(), 0).totalFiles()).isZero();
+  }
+
+  @Test void exportSnapshotRejectsALaterChangeInApprovalAndRecoversAsInterrupted(@TempDir Path folder) {
+    var fixture = prepare(folder);
+    var approved = reviews.save(fixture.batchId(), fixture.fileId(), approve(reviews.read(fixture.batchId(), fixture.fileId()), "first.png"));
+    UUID id = UUID.randomUUID();
+    exports.create(id, fixture.batchId(), folder.resolve("output").toString());
+    var item = exports.next(id).orElseThrow();
+    assertThat(item.approvedName()).isEqualTo("first.png");
+    assertThat(exports.current(item)).isTrue();
+    naming.approve(fixture.fileId(), approved.analysisId(), HASH, approved.namingRevision(), "second.png");
+    assertThat(exports.current(item)).isFalse();
+    exports.recover();
+    assertThat(exports.find(id).orElseThrow().status()).isEqualTo("INTERRUPTED");
+    assertThat(exports.latest(fixture.batchId()).orElseThrow().id()).isEqualTo(id);
+  }
+
+  @Test
+  @Transactional(propagation = Propagation.NOT_SUPPORTED)
+  void exportsApprovedImageThroughHttpAndPostgresToARealCategoryFolder(@TempDir Path directory) throws Exception {
+    Path source = Files.createDirectory(directory.resolve("source"));
+    Path destination = Files.createDirectory(directory.resolve("destination"));
+    byte[] bytes = {1, 2, 3, 4, 5};
+    Path original = Files.write(source.resolve("IMG_0026.png"), bytes);
+    String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+    var fixture = new TransactionTemplate(transactions).execute(status -> prepare(source, hash));
+    reviews.save(fixture.batchId(), fixture.fileId(), approve(reviews.read(fixture.batchId(), fixture.fileId()), "kubek.png"));
+    // Existing output belongs to the user and must not be modified.
+    Path existing = Files.createDirectory(destination.resolve("ScreenSort"));
+    Files.writeString(existing.resolve("keep.txt"), "keep");
+    var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
+        .standaloneSetup(new ExportController(exportManager, exports)).build();
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+            .post("/api/organization/batches/" + fixture.batchId() + "/exports")
+            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+            .content(json.writeValueAsString(Map.of("destinationFolder", destination.toString()))))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isAccepted())
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Cache-Control", "no-store"));
+    ExportStore.Job job;
+    long timeout = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+    do {
+      job = exports.latest(fixture.batchId()).orElseThrow();
+      if (!job.status().equals("RUNNING")) break;
+      Thread.sleep(20);
+    } while (System.nanoTime() < timeout);
+    assertThat(job.status()).isEqualTo("COMPLETED");
+    assertThat(job.copied()).isOne();
+    assertThat(job.failed()).isZero();
+    assertThat(Files.readAllBytes(Path.of(job.outputFolder()).resolve("Fotografie/kubek.png"))).isEqualTo(bytes);
+    assertThat(Files.readAllBytes(original)).isEqualTo(bytes);
+    assertThat(Files.readString(existing.resolve("keep.txt"))).isEqualTo("keep");
+    mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/organization/exports/" + job.id()))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.copied").value(1));
   }
 
   @Test void skipsAndReturnsToApprovalWithoutDeletingAnExistingName(@TempDir Path folder) {
@@ -211,14 +296,20 @@ class ReviewJpaTest {
 
   private record Fixture(java.util.UUID batchId, long fileId) {}
   private Fixture prepare(Path folder) {
+    return prepare(folder, HASH);
+  }
+  private Fixture prepare(Path folder, String hash) {
     Instant now = Instant.parse("2026-10-19T12:00:00Z");
     var root = new AllowedRootEntity(folder.toAbsolutePath().toString(), false, now);
     entities.persist(root);
-    var file = new FileRecordEntity("IMG_0026.png", "IMG_0026.png", "png", 4, HASH, root, now, now);
+    long size;
+    try {size = Files.exists(folder.resolve("IMG_0026.png")) ? Files.size(folder.resolve("IMG_0026.png")) : 4;}
+    catch (java.io.IOException error) {throw new java.io.UncheckedIOException(error);}
+    var file = new FileRecordEntity("IMG_0026.png", "IMG_0026.png", "png", size, hash, root, now, now);
     entities.persist(file);
     entities.flush();
     var visual = new AnalysisResult.Visual("A mug on a desk.", "test-only", "test-revision", "caption", "cpu", 1);
-    var result = new AnalysisResult(HASH,
+    var result = new AnalysisResult(hash,
         new AnalysisResult.OcrStep(AnalysisResult.Status.SKIPPED, null, null),
         new AnalysisResult.VisualStep(AnalysisResult.Status.COMPLETED, visual, null));
     var saved = analyses.save(file.getId(), false, true, result);
