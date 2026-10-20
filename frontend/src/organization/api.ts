@@ -9,6 +9,10 @@ export type BatchItem = {fileId: number, originalName: string, status: 'PENDING'
 export type OrganizationDecision = {decision: 'APPROVED' | 'SKIPPED', category: string | null,
     reviewedAt: string, revision: number, matchesCatalog: boolean}
 export type BatchPage = {items: BatchItem[], hasNext: boolean}
+export type OrganizationPlanItem = {fileId: number, relativePath: string, originalName: string,
+    category: 'PROGRAMMING' | 'DOCUMENTS' | 'GAMES' | 'PHOTOGRAPHS' | 'OTHER', approvedName: string}
+export type OrganizationPlanPage = {files: OrganizationPlanItem[], pageNumber: number, pageSize: number,
+    totalFiles: number, hasNext: boolean}
 
 async function checked<T>(response: Response): Promise<T> {
     if (!response.ok) {
@@ -32,6 +36,9 @@ export async function readBatch(id: string, signal: AbortSignal): Promise<Batch>
 }
 export async function batchItems(id: string, page: number, signal: AbortSignal): Promise<BatchPage> {
     return checked<BatchPage>(await backendFetch(`/api/organization/batches/${encodeURIComponent(id)}/items?page=${page}`, {signal}))
+}
+export async function organizationPlan(id: string, page: number, signal: AbortSignal): Promise<OrganizationPlanPage> {
+    return checked<OrganizationPlanPage>(await backendFetch(`/api/organization/batches/${encodeURIComponent(id)}/plan?page=${page}`, {signal}))
 }
 export async function controlBatch(id: string, action: 'PAUSE' | 'RESUME' | 'CANCEL', signal: AbortSignal): Promise<Batch> {
     return checked<Batch>(await backendFetch(`/api/organization/batches/${encodeURIComponent(id)}/control`, {

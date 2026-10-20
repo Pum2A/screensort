@@ -2,6 +2,7 @@
 import {createRoot} from 'react-dom/client'
 import type {CatalogFile} from '../../src/catalog/types'
 import type {Batch, BatchItem} from '../../src/organization/api'
+import type {ExportJob} from '../../src/organization/export/api'
 import {WorkspacePreview} from './workspace-preview-ui'
 import '../../src/index.css'
 import '../../src/App.css'
@@ -29,6 +30,10 @@ let rows: BatchItem[] = files.map(file => ({fileId: file.id, originalName: file.
     analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}))
 let job: Batch = {id: batchId, folderPath: 'synthetic-fixture', status: scenario === 'paused' ? 'PAUSED' : 'COMPLETED',
     total: 94, completed: scenario === 'paused' ? 7 : 91, failed: scenario === 'paused' ? 0 : 3, processing: 0, ocr: true, visual: true, createdAt: date}
+if (scenario === 'organized') rows = rows.map((row, index) => index >= 12 ? row : {...row,
+    approvedName: ['baza_danych', 'notatki_java', 'roblox_lobby', 'gory', 'kebab', 'karta_testowa'][index % 6] + '.' + files[index].extension,
+    namingRevision: 0, review: {decision: 'APPROVED', category: row.category, matchesCatalog: true, revision: 0, reviewedAt: date}})
+let exportJob: ExportJob | null = null
 function evidence(id: number) {
     const file = files[id - 1], variant = (id - 1) % 6
     return {id: 100 + id, fileId: id, analyzedAt: date, matchesCatalog: true, result: {source_sha256: file.sha256,
@@ -48,6 +53,30 @@ window.fetch = async (input, options) => {
     const url = new URL(raw, location.href)
     if (!url.pathname.startsWith('/api/')) return nativeFetch(input, options)
     const method = options?.method ?? 'GET'
+    // This fixture simulates progress in memory. It never writes to the selected destination.
+    if (url.pathname.endsWith('/exports/latest')) return exportJob ? Response.json(exportJob) : new Response(null, {status: 404})
+    if (/^\/api\/organization\/batches\/[^/]+\/exports$/.test(url.pathname) && method === 'POST') {
+        const body = JSON.parse(String(options?.body))
+        const total = rows.filter(row => row.review?.decision === 'APPROVED' && row.review.matchesCatalog).length
+        if (!total) return Response.json({code: 'NO_APPROVALS'}, {status: 409})
+        exportJob = {id: 'synthetic-export', batchId, status: 'RUNNING', outputFolder: body.destinationFolder + '\\ScreenSort',
+            total, copied: 0, failed: 0, message: 'SYMULACJA PODGLĄDU UI — żadne pliki nie są zapisywane.', createdAt: date}
+        return Response.json(exportJob, {status: 202})
+    }
+    if (url.pathname === '/api/organization/exports/synthetic-export') {
+        if (!exportJob) return new Response(null, {status: 404})
+        const copied = Math.min(exportJob.total, exportJob.copied + 3)
+        exportJob = {...exportJob, copied, status: copied === exportJob.total ? 'COMPLETED' : 'RUNNING'}
+        return Response.json(exportJob)
+    }
+    if (url.pathname.endsWith('/plan')) {
+        const pageNumber = Number(url.searchParams.get('page') ?? 0)
+        const approved = rows.filter(row => row.review?.decision === 'APPROVED' && row.review.matchesCatalog)
+            .map(row => ({fileId: row.fileId, relativePath: files[row.fileId - 1].relativePath,
+                originalName: row.originalName, category: row.review!.category, approvedName: row.approvedName}))
+        return Response.json({files: approved.slice(pageNumber * 50, (pageNumber + 1) * 50), pageNumber, pageSize: 50,
+            totalFiles: approved.length, hasNext: (pageNumber + 1) * 50 < approved.length})
+    }
     if (url.pathname === '/api/catalog/page') {
         if (query.has('error')) return Response.json({code: 'FIXTURE_UNAVAILABLE'}, {status: 503})
         const pageNumber = Number(url.searchParams.get('pageNumber') ?? 0), pageSize = Number(url.searchParams.get('pageSize') ?? 50)

@@ -34,11 +34,12 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const [catalogLoading, setCatalogLoading] = useState(Boolean(folderPath.trim()))
     const [catalogError, setCatalogError] = useState<string | null>(null)
     const [editingReview, setEditingReview] = useState(false)
+    const [exporting, setExporting] = useState(false)
     const scan = useScanJob(completed => {
         try {localStorage.setItem('screensort.lastFolder', completed.folderPath)} catch { /* Optional preference. */ }
         showCatalog(completed.folderPath)
     })
-    const locked = scan.busy || editingReview
+    const locked = scan.busy || editingReview || exporting
     useUpdateBlocker(locked, 'Zakończ skan oraz zapisz lub odrzuć edycję propozycji przed restartem.')
 
     function showCatalog(folder: string) {
@@ -85,11 +86,11 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
             onChoose={() => void handleChooseFolder()} desktop={desktop} locked={locked}/>
         <main className="workspace-main">
             <header className="workspace-topbar"><nav aria-label="Lokalizacja w aplikacji"><span>Twoja przestrzeń</span><ChevronRight size={14}/>
-                <strong>{view === 'catalog' ? 'Katalog obrazów' : 'Analiza i porządek'}</strong></nav><span className="local-badge"><span/>Lokalnie i prywatnie</span></header>
+                <strong>{view === 'catalog' ? 'Katalog obrazów' : 'Analiza i propozycje'}</strong></nav><span className="local-badge"><span/>Lokalnie i prywatnie</span></header>
             <div className="workspace-content">
                 <section className="workspace-heading"><div><p className="eyebrow">{view === 'catalog' ? 'MNIEJ CHAOSU. WIĘCEJ KONTEKSTU.' : 'OD PLIKÓW DO SENSOWNYCH NAZW.'}</p>
-                    <h1>{view === 'catalog' ? 'Każdy obraz. Swoje miejsce.' : 'Sprawdź, zanim uporządkujesz.'}</h1>
-                    <p>{view === 'catalog' ? 'Zajrzyj do folderu. Wybierz obraz i odkryj jego szczegóły.' : 'Przeanalizuj zawartość i zdecyduj o nazwach oraz kategoriach.'}</p></div>
+                    <h1>{view === 'catalog' ? 'Każdy obraz. Swoje miejsce.' : 'Sprawdź propozycje dla swoich obrazów.'}</h1>
+                    <p>{view === 'catalog' ? 'Zajrzyj do folderu. Wybierz obraz i odkryj jego szczegóły.' : 'Uruchom analizę, a potem przejrzyj i zatwierdź proponowane nazwy oraz kategorie.'}</p></div>
                     <span className="workspace-edition">SCREENSORT<br/><strong>LOCAL EXPLORER</strong></span>
                 </section>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
@@ -134,7 +135,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
                             <span aria-live="polite">{catalogPage.pageNumber + 1} / {pageCount}</span><button className="icon-button" aria-label="Następna strona" disabled={catalogLoading || scan.busy || !catalogPage.hasNext} onClick={() => changePage(1)}><Icon name="right"/></button></div></nav>}
                 </section>
                 <section hidden={view !== 'organization'} id="organization" aria-label="Analiza i przegląd propozycji">
-                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogPage?.totalFiles ?? 0} scanning={scan.busy} onEditingChange={setEditingReview}/>
+                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogPage?.totalFiles ?? 0} scanning={scan.busy} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
                         : <div className="catalog-empty"><FolderOpen size={32}/><h3>Najpierw wybierz folder.</h3><p>Skan tworzy katalog, na którym pracuje analiza.</p><button className="secondary-button" onClick={() => setView('catalog')}>Wróć do katalogu</button></div>)}
                 </section>
                 <m.footer initial={{opacity: 0}} animate={{opacity: 1}} className="app-footer"><span><ShieldCheck size={14}/>Oryginały bez zmian. Decyzje należą do Ciebie.</span><span>ScreenSort · wersja rozwojowa</span></m.footer>

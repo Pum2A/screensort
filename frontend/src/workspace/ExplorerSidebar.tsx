@@ -17,7 +17,7 @@ export function ExplorerSidebar({folder, total, view, onView, onChoose, desktop,
                 <Images size={18}/><span>Katalog obrazów</span>{total !== null && <span className="nav-count">{total}</span>}
             </button>
             <button className="workspace-nav-item" aria-current={view === 'organization' ? 'page' : undefined} onClick={() => onView('organization')}>
-                <Workflow size={18}/><span>Analiza i porządek</span><ArrowUpRight size={14}/>
+                <Workflow size={18}/><span>Analiza i propozycje</span><ArrowUpRight size={14}/>
             </button>
         </nav>
         <div className="sidebar-source">
