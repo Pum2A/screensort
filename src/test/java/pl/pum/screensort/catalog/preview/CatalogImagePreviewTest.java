@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.matches;
 
 import java.awt.Color;
 import java.awt.image.BufferedImage;
@@ -15,6 +18,9 @@ import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
 import java.util.zip.CRC32;
 import javax.imageio.ImageIO;
+import java.util.Optional;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import pl.pum.screensort.diagnostics.ProductMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -32,7 +38,8 @@ class CatalogImagePreviewTest {
   @BeforeEach
   void setUp() {
     sourceReader = mock(CatalogImageSourceReader.class);
-    preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator());
+    preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator(),
+        new PreviewStore(Optional.empty(), new ProductMetrics(new SimpleMeterRegistry())));
   }
 
   @ParameterizedTest
@@ -161,6 +168,20 @@ class CatalogImagePreviewTest {
     assertThat(second).isNotEqualTo(first);
     BufferedImage result = ImageIO.read(new ByteArrayInputStream(second));
     assertThat(result.getRGB(0, 0)).isEqualTo(Color.BLUE.getRGB());
+  }
+
+  @Test
+  void remoteCacheWaitCannotHideSourceRemovalAndItsKeyDoesNotExposeThePath() throws Exception {
+    Path image = writeImage("private-photo.png", "png", 4, 4, Color.RED);
+    source("private-photo.png");
+    var store = mock(PreviewStore.class);
+    when(store.get(anyString())).thenAnswer(call -> {
+      Files.delete(image);
+      return new byte[] {1, 2, 3};
+    });
+    preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator(), store);
+    assertFailure(ImagePreviewException.Reason.NOT_FOUND);
+    verify(store).get(matches("screensort:preview:v1:[0-9a-f]{64}"));
   }
 
   @Test

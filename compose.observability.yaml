@@ -1,0 +1,29 @@
+name: screensort-tools
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.15.0
+    ports:
+      - '127.0.0.1:19090:9090'
+    volumes:
+      - ./packaging/observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=24h'
+      - '--storage.tsdb.retention.size=128MB'
+    mem_limit: 256m
+    cpus: 0.5
+
+  redis:
+    image: redis:8.6.6-alpine
+    ports:
+      - '127.0.0.1:16379:6379'
+    # Disposable private previews: no RDB, no AOF, no data volume.
+    command: ['redis-server', '--save', '', '--appendonly', 'no', '--maxmemory', '64mb', '--maxmemory-policy', 'allkeys-lru']
+    mem_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 2s
+      retries: 3

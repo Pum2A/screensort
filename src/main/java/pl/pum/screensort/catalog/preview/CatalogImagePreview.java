@@ -22,7 +22,11 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -49,12 +53,14 @@ public class CatalogImagePreview {
   private static final int MAX_SOURCE_EDGE = 20_000;
   private final CatalogImageSourceReader sourceReader;
   private final ScanFolderValidator folderValidator;
-  private final PreviewCache cache = new PreviewCache(128, 16L * 1024 * 1024);
+  private final PreviewStore cache;
   private final Semaphore decoders = new Semaphore(2);
 
-  public CatalogImagePreview(CatalogImageSourceReader sourceReader, ScanFolderValidator folderValidator) {
+  public CatalogImagePreview(CatalogImageSourceReader sourceReader, ScanFolderValidator folderValidator,
+      PreviewStore cache) {
     this.sourceReader = sourceReader;
     this.folderValidator = folderValidator;
+    this.cache = cache;
   }
 
   public byte[] read(long fileId, Size size) {
@@ -62,11 +68,16 @@ public class CatalogImagePreview {
     try {
       Path path = resolveSafePath(source);
       BasicFileAttributes before = readAttributes(path);
-      CacheKey key = new CacheKey(fileId, path, size, before.size(),
-          before.lastModifiedTime().toInstant(), before.fileKey(), source.sha256());
+      String key = new CacheKey(fileId, path, size, before.size(),
+          before.lastModifiedTime().toInstant(), before.fileKey(), source.sha256()).redisKey();
       // Nawet trafienie w cache wymaga aktualnego sprawdzenia folderu i pliku.
       byte[] cached = cache.get(key);
-      if (cached != null) return cached;
+      if (cached != null) {
+        if (!path.equals(resolveSafePath(source)) || !sameFile(before, readAttributes(path))) {
+          throw new ImagePreviewException(CHANGED, "Plik zmienił się podczas odczytu podglądu.");
+        }
+        return cached;
+      }
 
       if (!decoders.tryAcquire(2, TimeUnit.SECONDS)) {
         throw new ImagePreviewException(BUSY, "Podglądy są zajęte. Spróbuj ponownie za chwilę.");
@@ -194,7 +205,19 @@ public class CatalogImagePreview {
   }
 
   private record CacheKey(long fileId, Path path, Size size, long bytes,
-      Instant modifiedAt, Object fileKey, String sha256) {}
+      Instant modifiedAt, Object fileKey, String sha256) {
+    String redisKey() {
+      // NUL separates fields unambiguously; keys never expose source paths or filenames.
+      String value = fileId + "\0" + path + "\0" + size + "\0" + bytes + "\0" + modifiedAt
+          + "\0" + Objects.toString(fileKey, "") + "\0" + sha256;
+      try {
+        return "screensort:preview:v1:" + HexFormat.of().formatHex(
+            MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
+      } catch (NoSuchAlgorithmException e) {
+        throw new IllegalStateException("Required SHA-256 unavailable", e);
+      }
+    }
+  }
 
   // Plik może urosnąć po sprawdzeniu metadanych: również sam odczyt ma limit bajtów.
   private static final class LimitedInputStream extends FilterInputStream {
