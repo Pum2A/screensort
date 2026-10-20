@@ -121,11 +121,20 @@ Starszy klient nie zawiera updatera; wymaga pierwszej instalacji 0.2.2.
 
 Pierwsza budowa 0.2.2 skompilowała aplikację, ale została zatrzymana przez test
 rzeczywistego startu. Nie opublikowała instalatora ani manifestu. Skrypt pokazuje
-teraz powód z raportu testu, a workflow zachowuje sam raport syntetycznego testu
-przez 7 dni w prywatnym repozytorium. Nie wysyła sesji, hasła bazy ani zdjęć.
+teraz powód z raportu testu, a workflow zachowuje raport i dwa wskazane logi bazy
+syntetycznego testu przez 7 dni w prywatnym repozytorium. Nie wysyła plików
+konfiguracji sesji, hasła bazy, logu Javy ani zdjęć.
 
 Runner Windows otrzymuje jawny dostęp do własnego workspace dla swojego SID.
 PostgreSQL po obniżeniu uprawnień nie może polegać na prawach grupy Administrators;
 ten przypadek opisuje również [CI PostgreSQL](https://github.com/postgres/postgres/blob/master/.github/workflows/pg-ci.yml).
 Zmiana ACL dotyczy wyłącznie jednorazowej maszyny CI, nie komputera użytkownika.
 Test uruchomienia nadal jest obowiązkowy; jego wynik rozstrzyga o publikacji.
+
+Runner uruchamia polecenia jako administrator, a PostgreSQL jawnie odmawia pracy
+serwera z takim tokenem. Dlatego test uruchomienia korzysta z tymczasowego zwykłego
+konta lokalnego tworzonego **wyłącznie na maszynie GitHub Actions**. Konto ma prawo
+zapisu do swojego syntetycznego sandboxa, nie do kodu ani runtime, i jest usuwane
+po zakończeniu testu. Instalator ani aplikacja nie tworzą takich kont na komputerze
+użytkownika. Lokalna budowa nadal uruchamia test na bieżącym koncie, bez podnoszenia
+uprawnień. ScreenSort należy uruchamiać normalnie, nie jako administrator.

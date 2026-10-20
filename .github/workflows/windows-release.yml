@@ -64,8 +64,11 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: screensort-startup-report-${{ github.run_number }}
-          path: .release/startup-check-*.report.json
-          include-hidden-files: true # only the explicit report pattern, not all of .release
+          path: |
+            .release/startup-check-*/data.report.json
+            .release/startup-check-*/data/sessions/*/postgres.log
+            .release/startup-check-*/data/sessions/*/database-tools.log
+          include-hidden-files: true # synthetic report/database errors only; no credentials
           if-no-files-found: warn
           retention-days: 7
       - name: Collect only distribution files

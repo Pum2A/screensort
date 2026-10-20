@@ -173,20 +173,45 @@ try {
             Write-Host "Previous generated build resources preserved at $buildBackup"
         }
         Push-Location (Join-Path $repo 'frontend')
+        $checkUser = $null
         try {
+            $checkSandbox = Join-Path $release "startup-check-$stamp"
+            [IO.Directory]::CreateDirectory($checkSandbox) | Out-Null
+            $checkData = Join-Path $checkSandbox 'data'
+            $checkIdentity = @{}
+            if ($env:GITHUB_ACTIONS -eq 'true' -and $env:RUNNER_ENVIRONMENT -eq 'github-hosted') {
+                # Hosted runners are administrators, unlike a normal desktop user.
+                # PostgreSQL deliberately refuses an elevated server process.
+                # Create a disposable standard identity on the disposable VM only.
+                $checkUserName = 'sscheck' + [Guid]::NewGuid().ToString('N').Substring(0, 12)
+                $checkPassword = ConvertTo-SecureString ('S!9a' + [Guid]::NewGuid().ToString('N')) -AsPlainText -Force
+                $checkUser = New-LocalUser -Name $checkUserName -Password $checkPassword -AccountNeverExpires -UserMayNotChangePassword
+                Add-LocalGroupMember -SID 'S-1-5-32-545' -Member $checkUser
+                # This account may write only its synthetic data, not the source/runtime.
+                & icacls.exe $checkSandbox /grant "*$($checkUser.SID.Value):(OI)(CI)M" /Q
+                if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare the isolated standard-user smoke directory' }
+                if ((Get-Service -Name seclogon).StartType -eq 'Disabled') { Set-Service -Name seclogon -StartupType Manual }
+                Start-Service -Name seclogon
+                $checkIdentity.Credential = New-Object Management.Automation.PSCredential ("$env:COMPUTERNAME\$checkUserName", $checkPassword)
+                $checkIdentity.LoadUserProfile = $true
+                # Fail before compiling Rust if this runner cannot launch the test identity.
+                $identityOutput = Join-Path $checkSandbox 'identity.txt'
+                $identityProbe = Start-Process -FilePath (Join-Path $env:SystemRoot 'System32/whoami.exe') -ArgumentList '/user' -WorkingDirectory $checkSandbox -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput $identityOutput @checkIdentity
+                if ($identityProbe.ExitCode -ne 0 -or (Get-Content -LiteralPath $identityOutput -Raw) -notmatch [regex]::Escape($checkUser.SID.Value)) { throw 'Cannot verify the standard-user test identity' }
+                Write-Host 'Standard-user startup identity verified before compilation.'
+            }
             Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--ci', '--no-bundle')
             if ($CoreOnly -and ((Test-Path -LiteralPath (Join-Path $builtRuntime 'python')) -or (Test-Path -LiteralPath (Join-Path $builtRuntime 'models')))) {
                 throw 'CoreOnly build contains stale AI resources. Refusing to generate an installer.'
             }
             # Never ship solely on the basis of the manual --runtime-dir smoke path.
-            $checkData = Join-Path $release "startup-check-$stamp"
             # Run an identical probe beside the real binary (same resource resolver).
             # Do not execute the file that the bundler subsequently patches in-place.
             $checkExe = Join-Path $repo "frontend/src-tauri/target/release/screensort-startup-check-$stamp.exe"
             Copy-Item -LiteralPath (Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe') -Destination $checkExe
             $checkArguments = @('--startup-check', '--data-dir', ('"' + $checkData + '"'))
             if ($CoreOnly) { $checkArguments += '--catalog-only' }
-            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList $checkArguments -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
+            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList $checkArguments -WorkingDirectory ([IO.Path]::GetDirectoryName($checkExe)) -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log" @checkIdentity
             if (-not (Test-Path -LiteralPath "$checkData.report.json")) {
                 throw "Tauri startup check exited with code $($checkProcess.ExitCode) without a report. No installer was generated."
             }
@@ -202,6 +227,9 @@ try {
             if ($CoreOnly -and $checkReport.bundledAiPresent) { throw 'CoreOnly startup used a full runtime. Refusing to package.' }
             Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--ci', '--bundles', 'nsis')
         }
-        finally { Pop-Location }
+        finally {
+            if ($checkUser) { Remove-LocalUser -SID $checkUser.SID }
+            Pop-Location
+        }
     }
 } finally { Pop-Location; $env:TAURI_SIGNING_PRIVATE_KEY = $previousSigningKey }
