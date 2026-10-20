@@ -14,9 +14,9 @@ export function packagePercent(progress: PackageStatus['progress']): number {
 
 export function packagePhase(phase: string): string {
     return ({PREPARING: 'Przygotowywanie instalacji', DOWNLOADING: 'Pobieranie i kontrola SHA-256',
-        VERIFYING: 'Sprawdzanie wybranego ZIP', EXTRACTING: 'Instalowanie plików AI', ACTIVATING: 'Kończenie instalacji',
+        VERIFYING: 'Sprawdzanie wybranego ZIP', EXTRACTING: 'Instalowanie składników analizy', ACTIVATING: 'Kończenie instalacji',
         INSTALLED: 'Pakiet jest gotowy do uruchomienia', CANCELLED: 'Instalacja anulowana',
-        FAILED: 'Nie udało się zainstalować pakietu'} as Record<string, string>)[phase] ?? 'Pakiet AI'
+        FAILED: 'Nie udało się zainstalować pakietu'} as Record<string, string>)[phase] ?? 'Silnik analizy'
 }
 
 export function packageSize(bytes: number): string {

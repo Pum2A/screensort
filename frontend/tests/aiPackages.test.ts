@@ -13,8 +13,8 @@ test('package progress is bounded and handles preparation without a byte count',
 
 test('download and extracted sizes use binary units, not bits', () => {
     assert.equal(packageSize(64 * 1024 * 1024), '64 MiB')
-    assert.equal(packagePhase('EXTRACTING'), 'Instalowanie plików AI')
-    assert.equal(packagePhase('UNKNOWN'), 'Pakiet AI')
+    assert.equal(packagePhase('EXTRACTING'), 'Instalowanie składników analizy')
+    assert.equal(packagePhase('UNKNOWN'), 'Silnik analizy')
 })
 
 test('AI starts only with an installed or bundled runtime, never a partial download', () => {

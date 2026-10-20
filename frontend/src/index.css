@@ -2,8 +2,7 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source('./');
 
-/* No Preflight: existing detail panels retain their layout during gradual migration. */
-/* Font z repozytorium, bez zewnętrznych zapytań. Licencja: public/VT323-OFL.txt. */
+/* No Preflight: existing data and review panels retain their semantic HTML. */
 @font-face {
     font-family: 'ScreenSort PC';
     src: url('./assets/fonts/VT323-Regular.ttf') format('truetype');
@@ -12,42 +11,59 @@
     font-display: swap;
 }
 :root {
-    font-family: 'ScreenSort PC', 'Lucida Console', Consolas, monospace;
-    font-size: 20px;
-    color: #222d3d;
-    background: #faf8f4;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    color: #26362e;
+    background: #fbfcf9;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
-    --accent: #2548d7;
-    --border: #d6dde6;
-    --muted: #5b6675;
+    --font-retro: 'ScreenSort PC', 'Lucida Console', Consolas, monospace;
+    --accent: #2e604b;
+    --border: #dfe5dc;
+    --muted: #68746b;
     --surface: #ffffff;
-    --background: #faf8f4;
-    --selected: #eef2ff;
-    --text: #222d3d;
-    --success: #236047;
-    --danger: #9c3525;
-    --warning: #895710;
-    --motion-duration: 360ms;
+    --background: #fbfcf9;
+    --selected: #edf4e9;
+    --text: #26362e;
+    --success: #276447;
+    --danger: #b33932;
+    --warning: #8c591d;
+    --motion-duration: 260ms;
     --motion-ease: cubic-bezier(.22, 1, .36, 1);
     --thumbnail-size: 116px;
 }
 * { box-sizing: border-box; }
 html { scrollbar-gutter: stable; }
-body { margin: 0; min-width: 280px; }
+body { margin: 0; min-width: 320px; font-size: 14px; line-height: 1.5; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 a { color: inherit; }
 button, input, select, summary { -webkit-tap-highlight-color: transparent; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-::selection { background: #cad4ff; }
+::selection { background: #d6e8ca; }
 code { font-family: Consolas, 'Lucida Console', monospace; }
+[hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
-.text-button { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); border: 0; border-radius: 5px; background: transparent; font-size: 18px; padding: 8px; min-height: 44px; }
-.text-button:hover { background: var(--selected); }
+.text-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: var(--accent); border: 0; border-radius: 8px; background: transparent; font-size: 13px; padding: 8px 10px; min-height: 40px; transition: background 160ms ease, transform 160ms ease; }
+.text-button:hover:not(:disabled) { background: var(--selected); }
+.text-button:active:not(:disabled) { transform: translateY(1px); }
 .text-button .icon { width: 16px; height: 16px; }
+.eyebrow { display: block; color: var(--muted); font-family: var(--font-retro); font-size: 15px; letter-spacing: .09em; line-height: 1.3; }
+.neutral-badge { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); border-radius: 6px; padding: 3px 7px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.button-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.feedback { display: flex; align-items: flex-start; gap: 10px; padding: 13px 15px; margin: 14px 0; border: 1px solid; border-radius: 10px; font-size: 13px; overflow-wrap: anywhere; }
+.feedback > svg { flex-shrink: 0; margin-top: 1px; }
+.feedback p { margin: 0; }
+.feedback strong + p { margin-top: 5px; }
+.feedback-error { color: #a0312c; background: #fff2ef; border-color: #efc6c0; }
+.feedback-warning { color: #865014; background: #fff8e9; border-color: #eddfb9; }
+.feedback-success { color: #285c40; background: #edf7ed; border-color: #cde4cb; }
+.feedback-neutral { color: var(--muted); background: #f2f4ef; border-color: var(--border); }
+.inline-loading { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; }
+.technical-details { margin-top: 16px; font-size: 12px; color: var(--muted); }
+.technical-details summary { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }

@@ -1,23 +1,22 @@
 import {useEffect, useState} from 'react'
 import type {ReactNode} from 'react'
 import {invoke} from '@tauri-apps/api/core'
-import {Icon} from '../ui/Icon'
 import {isDesktop} from './transport'
 import {AnalysisReadiness} from './readiness'
+import {DesktopRuntime} from './runtimeContext'
+import {StartupScreen} from './StartupScreen'
+import type {DesktopStatus} from './status'
 import './DesktopStartup.css'
-import {AiPackagePanel} from './packages/AiPackagePanel'
-
-type Status = {phase: string, backendReady: boolean, analysisReady: boolean, analysisStarting: boolean, error: string | null}
 
 export function DesktopStartup({children}: {children: ReactNode}) {
-    const [status, setStatus] = useState<Status | null>(null)
+    const [status, setStatus] = useState<DesktopStatus | null>(null)
     useEffect(() => {
         if (!isDesktop()) return
         let stopped = false
         let timer: ReturnType<typeof setTimeout>
         async function check() {
             try {
-                const next = await invoke<Status>('desktop_status')
+                const next = await invoke<DesktopStatus>('desktop_status')
                 if (!stopped) setStatus(next)
             } catch {
                 if (!stopped) setStatus({phase: 'Błąd uruchamiania', backendReady: false, analysisReady: false,
@@ -30,17 +29,9 @@ export function DesktopStartup({children}: {children: ReactNode}) {
     }, [])
 
     if (!isDesktop()) return children
-    if (!status?.backendReady) return <main className="desktop-startup" aria-live="polite">
-        <Icon name={status?.error ? 'shield' : 'refresh'} className={status?.error ? '' : 'spin'}/>
-        <h1>ScreenSort</h1><h2>{status?.phase ?? 'Przygotowujemy aplikację…'}</h2>
-        <p>{status?.error ?? 'Uruchamiamy katalog i lokalną bazę. Modele AI nie są teraz ładowane.'}</p>
-        {status?.error && <p>Nie usuwaj katalogu danych. Szczegóły znajdują się w lokalnych logach aplikacji.</p>}
-    </main>
-    return <AnalysisReadiness.Provider value={status.analysisReady}>{!status.analysisReady && <div className="desktop-notice" role="status">
-        <Icon name={status.error ? 'shield' : 'image'} className={status.analysisStarting ? 'spin' : ''}/>
-        {status.error ?? status.phase}
-    </div>}{!status.analysisReady && <AiPackagePanel starting={status.analysisStarting}
-        onStart={() => void invoke('start_analysis_runtime').catch(cause => setStatus({...status,
-            error: typeof cause === 'string' ? cause : 'Nie udało się zlecić uruchomienia AI.'}))}/>
-    }{children}</AnalysisReadiness.Provider>
+    if (!status?.backendReady) return <StartupScreen status={status}/>
+    return <DesktopRuntime.Provider value={{status, start: () => {
+        void invoke('start_analysis_runtime').catch(cause => setStatus(current => current && ({...current,
+            error: typeof cause === 'string' ? cause : 'Nie udało się zlecić uruchomienia silnika analizy.'})))
+    }}}><AnalysisReadiness.Provider value={status.analysisReady}>{children}</AnalysisReadiness.Provider></DesktopRuntime.Provider>
 }
