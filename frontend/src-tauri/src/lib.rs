@@ -1,4 +1,5 @@
 mod desktop;
+mod updates;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -14,7 +15,9 @@ pub fn run() {
     }
     let mut builder = tauri::Builder::default()
         .manage(desktop::Desktop::default())
-        .plugin(tauri_plugin_dialog::init());
+        .manage(updates::Updates::default())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build());
     if !startup_check {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _, _| {
             use tauri::Manager;
@@ -31,7 +34,12 @@ pub fn run() {
             desktop::cancel_ai_package,
             desktop::start_analysis_runtime,
             desktop::backend_request,
-            desktop::backend_image
+            desktop::backend_image,
+            updates::app_update_status,
+            updates::check_app_update,
+            updates::download_app_update,
+            updates::install_app_update,
+            updates::restart_after_update_error
         ])
         .setup(move |app| {
             if startup_check {

@@ -5,6 +5,7 @@ import {batchItems, controlBatch, latestBatch, readBatch, startBatch} from './ap
 import type {Batch, BatchItem, BatchPage} from './api'
 import {ReviewQueue} from './review/ReviewQueue'
 import './OrganizationPanel.css'
+import {useUpdateBlocker} from '../desktop/updates/context'
 
 const statuses = {RUNNING: 'Analiza w toku', PAUSED: 'Wstrzymano — postęp zachowany', COMPLETED: 'Analiza zakończona', CANCELLED: 'Zadanie anulowane'}
 
@@ -71,6 +72,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
     }
 
     const running = job?.status === 'RUNNING'
+    useUpdateBlocker(running || working || (job?.processing ?? 0) > 0, 'Wstrzymaj analizę folderu i poczekaj na bieżący obraz przed restartem.')
     const paused = job?.status === 'PAUSED'
     const finished = job ? job.completed + job.failed : 0
     const remaining = job ? Math.max(0, job.total - finished) : fileCount

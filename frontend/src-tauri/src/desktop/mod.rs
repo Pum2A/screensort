@@ -9,7 +9,7 @@ use regex::Regex;
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
     Mutex,
 };
 use tauri::{AppHandle, Manager, State};
@@ -44,6 +44,8 @@ pub struct Desktop {
     backend: Mutex<Option<processes::Backend>>,
     owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
+    requests: AtomicUsize,
+    updating: AtomicBool,
     packages: packages::PackageManager,
 }
 
@@ -54,6 +56,8 @@ impl Default for Desktop {
             backend: Mutex::new(None),
             owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
+            requests: AtomicUsize::new(0),
+            updating: AtomicBool::new(false),
             packages: packages::PackageManager::default(),
         }
     }
@@ -155,6 +159,58 @@ pub fn begin_close(app: &AppHandle) -> bool {
     !app.state::<Desktop>().closing.swap(true, Ordering::SeqCst)
 }
 
+pub async fn prepare_update(app: &AppHandle) -> Result<(), String> {
+    let desktop = app.state::<Desktop>();
+    {
+        let status = desktop.status.lock().map_err(|_| "Brak stanu aplikacji.")?;
+        if !status.backend_ready || status.analysis_starting || desktop.packages.busy() {
+            return Err("Poczekaj na zakończenie uruchamiania lub instalacji silnika.".into());
+        }
+        if desktop.closing.load(Ordering::SeqCst) || desktop.updating.swap(true, Ordering::SeqCst) {
+            return Err("Aplikacja już kończy pracę.".into());
+        }
+    }
+    let ready = async {
+        if desktop.requests.load(Ordering::SeqCst) != 0 {
+            return Err(());
+        }
+        let backend = desktop.backend.lock().map_err(|_| ())?.clone().ok_or(())?;
+        let (code, bytes) = backend
+            .request("GET", "/_internal/update-ready", None, 4096)
+            .await
+            .map_err(|_| ())?;
+        let value: Value = serde_json::from_slice(&bytes).map_err(|_| ())?;
+        if code != 200 || value.get("ready").and_then(Value::as_bool) != Some(true) {
+            return Err(());
+        }
+        Ok(())
+    }
+    .await;
+    if ready.is_err() {
+        desktop.updating.store(false, Ordering::SeqCst);
+        return Err(
+            "Zakończ skan, wstrzymaj analizę i poczekaj na bieżące operacje przed instalacją."
+                .into(),
+        );
+    }
+    desktop.closing.store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+pub fn update_failed(app: &AppHandle) {
+    app.state::<Desktop>()
+        .updating
+        .store(false, Ordering::SeqCst);
+    app.state::<Desktop>()
+        .closing
+        .store(false, Ordering::SeqCst);
+    startup_failed(
+        app,
+        "Instalator nie został uruchomiony. Uruchom ScreenSort ponownie; dane pozostały bez zmian."
+            .into(),
+    );
+}
+
 #[tauri::command]
 pub fn ai_package_status(app: AppHandle) -> Result<packages::PackageStatus, String> {
     let data = app
@@ -187,6 +243,7 @@ pub fn install_ai_package(app: AppHandle, id: String, from_file: bool) -> Result
             || status.analysis_ready
             || status.analysis_starting
             || desktop.closing.load(Ordering::SeqCst)
+            || desktop.updating.load(Ordering::SeqCst)
         {
             return Err(
                 "Zainstaluj pakiet po uruchomieniu katalogu, ale przed uruchomieniem AI.".into(),
@@ -237,7 +294,10 @@ pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
             .status
             .lock()
             .map_err(|_| "Nie można odczytać stanu.")?;
-        if !status.backend_ready {
+        if !status.backend_ready
+            || desktop.updating.load(Ordering::SeqCst)
+            || desktop.closing.load(Ordering::SeqCst)
+        {
             return Err("Poczekaj na uruchomienie katalogu.".into());
         }
         if desktop.packages.busy() {
@@ -343,6 +403,19 @@ pub async fn backend_request(
     body: Option<Value>,
     state: State<'_, Desktop>,
 ) -> Result<BackendReply, String> {
+    state.requests.fetch_add(1, Ordering::SeqCst);
+    struct RequestGuard<'a>(&'a AtomicUsize);
+    impl Drop for RequestGuard<'_> {
+        fn drop(&mut self) {
+            self.0.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+    let _request = RequestGuard(&state.requests);
+    if state.updating.load(Ordering::SeqCst) || state.closing.load(Ordering::SeqCst) {
+        return Err(
+            "Aplikacja przygotowuje aktualizację. Poczekaj na ponowne uruchomienie.".into(),
+        );
+    }
     if !allowed(&method, &path, false) {
         return Err("Niedozwolane żądanie aplikacji.".into());
     }
@@ -410,6 +483,7 @@ mod tests {
             false
         ));
         assert!(!allowed("POST", "/_internal/analysis-connection", false));
+        assert!(!allowed("GET", "/_internal/update-ready", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
         assert!(allowed("GET", "/api/catalog/files/1/naming", false));

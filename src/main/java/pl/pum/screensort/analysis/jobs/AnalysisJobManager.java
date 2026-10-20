@@ -37,6 +37,7 @@ public class AnalysisJobManager {
   }
 
   public synchronized Optional<AnalysisJob> find(UUID id) { return Optional.ofNullable(jobs.get(id)); }
+  public synchronized boolean hasActiveJob() { return active != null; }
 
   private void run(UUID id, long fileId, boolean ocr, boolean visual) {
     try {

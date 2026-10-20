@@ -17,6 +17,7 @@ import {ExplorerSidebar} from './workspace/ExplorerSidebar'
 import {storedFolder} from './workspace/state'
 import type {WorkspaceView} from './workspace/state'
 import './App.css'
+import {useUpdateBlocker} from './desktop/updates/context'
 
 const CATALOG_PAGE_SIZE = 24
 
@@ -38,6 +39,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         showCatalog(completed.folderPath)
     })
     const locked = scan.busy || editingReview
+    useUpdateBlocker(locked, 'Zakończ skan oraz zapisz lub odrzuć edycję propozycji przed restartem.')
 
     function showCatalog(folder: string) {
         if (editingReview) return

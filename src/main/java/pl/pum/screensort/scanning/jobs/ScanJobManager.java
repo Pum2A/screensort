@@ -70,6 +70,8 @@ public class ScanJobManager {
     return Optional.ofNullable(jobs.get(id));
   }
 
+  public synchronized boolean hasActiveJob() { return activeJobId != null; }
+
   /** Próbka powodów odrzucenia jest dostępna dopiero po udanym zakończeniu. */
   public synchronized Optional<List<RejectedFile>> findRejections(UUID id) {
     return Optional.ofNullable(rejections.get(id));

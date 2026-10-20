@@ -6,6 +6,7 @@ import type {NamingReview} from './types'
 import {formatDate} from '../catalog/format'
 import {Icon} from '../ui/Icon'
 import styles from './NamingPanel.module.css'
+import {useUpdateBlocker} from '../desktop/updates/context'
 
 export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boolean}) {
     const [review, setReview] = useState<NamingReview | null>(null)
@@ -35,6 +36,8 @@ export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boole
     const problem = review ? fileNameProblem(name, review.originalName) : null
     const locked = disabled || loading || saving || !review?.analysisMatchesCatalog
     const alreadySaved = review?.approvalMatchesCatalog && name === review.approvedName
+    const baseName = review?.approvalMatchesCatalog ? review.approvedName ?? '' : review?.proposedName ?? ''
+    useUpdateBlocker(saving || Boolean(review && name !== baseName), 'Zapisz edytowaną nazwę obrazu przed restartem.')
 
     async function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()

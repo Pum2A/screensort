@@ -4,9 +4,10 @@ import './index.css'
 import App from './App.tsx'
 import {DesktopStartup} from './desktop/DesktopStartup'
 import {MotionProvider} from './ui/MotionProvider'
+import {UpdateProvider} from './desktop/updates/UpdateProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <MotionProvider><DesktopStartup><App /></DesktopStartup></MotionProvider>
+    <MotionProvider><UpdateProvider><DesktopStartup><App /></DesktopStartup></UpdateProvider></MotionProvider>
   </StrictMode>,
 )

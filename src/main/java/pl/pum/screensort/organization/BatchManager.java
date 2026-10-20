@@ -94,4 +94,5 @@ public class BatchManager {
 
   @PreDestroy
   public void stop() { worker.shutdownNow(); }
+  public synchronized boolean hasActiveJob() { return active != null; }
 }
