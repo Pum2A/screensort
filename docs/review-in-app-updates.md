@@ -131,6 +131,20 @@ ten przypadek opisuje również [CI PostgreSQL](https://github.com/postgres/post
 Zmiana ACL dotyczy wyłącznie jednorazowej maszyny CI, nie komputera użytkownika.
 Test uruchomienia nadal jest obowiązkowy; jego wynik rozstrzyga o publikacji.
 
+Po uwagach o czasie i nieczytelnym statusie pipeline rozdzielono na przygotowanie
+runtime/backendu, kontrolę konta testowego, kompilację, rzeczywisty test startu,
+pakowanie/podpisanie i publikację. `scripts/test-desktop-startup.ps1` obsługuje
+wyłącznie syntetyczny test; główny `build-windows.ps1` nadal uruchamia wszystkie
+te etapy po kolei i nie ma przełącznika pomijającego kontrolę przed instalatorem.
+Test ma limit pięciu minut. Przy błędzie Javy zachowuje końcówkę logu po
+redakcji tokenów/sekretów, zamiast publikować surowe pliki sesji.
+
+Oficjalna akcja `actions/cache` (przypięty commit v5.0.3) zachowuje rejestr i
+kompilację Rusta osobno dla testów i wydania, również gdy późniejszy test startu
+zawiedzie. Cache nie obejmuje runtime, instalatorów, baz, `.release` ani kluczy.
+Pierwszy przebieg nadal jest zimną kompilacją; przyspieszenie kolejnego trzeba
+potwierdzić rzeczywistym trafieniem w cache, nie samą obecnością konfiguracji.
+
 Runner uruchamia polecenia jako administrator, a PostgreSQL jawnie odmawia pracy
 serwera z takim tokenem. Dlatego test uruchomienia korzysta z tymczasowego zwykłego
 konta lokalnego tworzonego **wyłącznie na maszynie GitHub Actions**. Konto ma prawo
@@ -138,3 +152,6 @@ zapisu do swojego syntetycznego sandboxa, nie do kodu ani runtime, i jest usuwan
 po zakończeniu testu. Instalator ani aplikacja nie tworzą takich kont na komputerze
 użytkownika. Lokalna budowa nadal uruchamia test na bieżącym koncie, bez podnoszenia
 uprawnień. ScreenSort należy uruchamiać normalnie, nie jako administrator.
+Proces testowy otrzymuje własne zapisywalne `TEMP` i `TMP`; nie dziedziczy katalogu
+tymczasowego administratora ani klucza podpisującego. Załadowanie profilu konta
+przez `Start-Process -LoadUserProfile` samo nie zmienia dziedziczonego środowiska.

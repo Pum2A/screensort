@@ -91,5 +91,30 @@ jobs:
         run: rustup toolchain install 1.95.0 --profile minimal --component rustfmt
       - name: Formatting
         run: cargo +1.95.0 fmt --manifest-path frontend/src-tauri/Cargo.toml -- --check
+      - name: Restore native test compilation cache
+        id: rust-test-cache
+        continue-on-error: true
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ runner.os }}-x64-rust-1.95-tests-v1-${{ hashFiles('frontend/src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-x64-rust-1.95-tests-v1-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/debug/deps
+            frontend/src-tauri/target/debug/build
+            frontend/src-tauri/target/debug/.fingerprint
       - name: Native package and bridge tests
         run: cargo +1.95.0 test --locked --manifest-path frontend/src-tauri/Cargo.toml --lib
+      - name: Save native test compilation cache
+        if: always() && !cancelled() && steps.rust-test-cache.outcome == 'success' && steps.rust-test-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ steps.rust-test-cache.outputs.cache-primary-key }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/debug/deps
+            frontend/src-tauri/target/debug/build
+            frontend/src-tauri/target/debug/.fingerprint

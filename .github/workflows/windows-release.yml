@@ -41,6 +41,19 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - name: Install Rust
         run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Restore Rust compilation cache
+        id: rust-cache
+        continue-on-error: true
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ runner.os }}-x64-rust-1.95-core-v1-${{ hashFiles('frontend/src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-x64-rust-1.95-core-v1-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/release/deps
+            frontend/src-tauri/target/release/build
+            frontend/src-tauri/target/release/.fingerprint
       - name: Frontend dependencies
         run: npm ci --prefix frontend
       - name: Allow the runner identity to own its isolated database
@@ -54,11 +67,27 @@ jobs:
           $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
           icacls.exe $workspace /grant "*$($sid):(OI)(CI)F" /Q
           if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare runner-only database permissions' }
-      - name: Build CoreOnly and verify real Tauri startup on an isolated database
+      - name: Prepare Core runtimes and backend
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -CoreOnly -StageOnly -JdkPath $env:JAVA_HOME
+      - name: Verify standard-user process launch before compilation
+        shell: pwsh
+        run: ./scripts/test-desktop-startup.ps1 -IdentityOnly
+      - name: Compile the desktop application
+        working-directory: frontend
         shell: pwsh
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: ./scripts/build-windows.ps1 -CoreOnly -JdkPath $env:JAVA_HOME
+        run: npm run tauri -- build --ci --no-bundle
+      - name: Verify real desktop startup and catalog persistence
+        shell: pwsh
+        run: ./scripts/test-desktop-startup.ps1 -CoreOnly
+      - name: Package and sign Windows installer
+        working-directory: frontend
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: npm run tauri -- bundle --ci --bundles nsis
       - name: Preserve isolated startup report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -68,9 +97,22 @@ jobs:
             .release/startup-check-*/data.report.json
             .release/startup-check-*/data/sessions/*/postgres.log
             .release/startup-check-*/data/sessions/*/database-tools.log
+            .release/startup-check-*/java-startup-error.txt
           include-hidden-files: true # synthetic report/database errors only; no credentials
           if-no-files-found: warn
           retention-days: 7
+      - name: Save compilation cache even after a later test failure
+        if: always() && !cancelled() && steps.rust-cache.outcome == 'success' && steps.rust-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ steps.rust-cache.outputs.cache-primary-key }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/release/deps
+            frontend/src-tauri/target/release/build
+            frontend/src-tauri/target/release/.fingerprint
       - name: Collect only distribution files
         shell: pwsh
         run: |
