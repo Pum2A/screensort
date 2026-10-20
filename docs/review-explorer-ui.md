@@ -12,7 +12,7 @@ postępu ładowania modeli. Silnik analizy pozostaje uruchamiany osobno, na żą
 Stan błędu jest czerwony; oczekiwanie ma animowany wskaźnik i czas oczekiwania.
 
 Po wejściu do aplikacji są dwa odrębne widoki: **Katalog obrazów** oraz
-**Analiza i porządek**. Katalog domyślnie pobiera 24 opisy na stronę, a nie 50.
+**Analiza i propozycje**. Katalog domyślnie pobiera 24 opisy na stronę, a nie 50.
 Miniatury zachowują istniejące lazy loading. Wyszukiwanie filtruje tylko bieżącą
 stronę — nie udaje wyszukiwarki całej bazy. Można przełączyć siatkę na gałęzie
 PNG/JPEG. To grupy formatów, nie wymyślone podfoldery ani kategorie AI.
@@ -35,6 +35,12 @@ filtra wymaga jawnego odrzucenia niezapisanej edycji. Zmiana folderu/skan są
 zablokowane podczas edycji lub zapisu. Konflikt zapisu zachowuje tekst formularza;
 użytkownik sam decyduje o wczytaniu aktualnej wersji. Zatwierdzanie nadal zapisuje
 wyłącznie decyzję w bazie. Nie zmienia i nie przenosi pliku na dysku.
+Po zakończonej analizie można otworzyć „Zapisz i uporządkuj”. Pokazuje on
+stronami po 50 tylko aktualne, zatwierdzone decyzje: ścieżkę źródłową oraz
+przewidywane `ScreenSort/<kategoria>/<zatwierdzona-nazwa>`. Wybór folderu
+docelowego pozwala przygotować kopię. „Zapisz uporządkowaną kopię” uruchamia
+zadanie w Javie i pokazuje jego postęp. Każdy eksport otrzymuje nowy folder
+`ScreenSort`, `ScreenSort (2)` itd. Oryginały pozostają w swoim miejscu.
 
 ## Gdzie przechodzi kod
 
@@ -46,7 +52,8 @@ main.tsx → MotionProvider → DesktopStartup → App
                               │                └─ OrganizationPanel
                               │                    └─ ReviewQueue
                               │                        ├─ ReviewCategoryTree
-                              │                        └─ ReviewEditor → ReviewEvidence
+                              │                        ├─ ReviewEditor → ReviewEvidence
+                              │                        └─ OrganizationPlanPreview → GET /batches/{id}/plan
                               └─ DesktopRuntime → DesktopAnalysisControls
                                                   └─ AiPackagePanel → AnalysisEngineContent
 ```
@@ -63,6 +70,8 @@ main.tsx → MotionProvider → DesktopStartup → App
 | `desktop/packages/AiPackagePanel.tsx` | Prawdziwe wywołania pobierania/importu/anulowania i odpytywanie statusu. Polecenia Rusta pozostają te same. |
 | `desktop/packages/AnalysisEngineContent.tsx` | Sama prezentacja pobierania, błędu, gotowości i przygotowania modeli. Można bezpiecznie oglądać te stany bez instalacji silnika. |
 | `organization/OrganizationPanel.tsx` | Rzeczywisty stan istniejącego zadania, opcje analizy, pauza/wznowienie i pobieranie stron propozycji. |
+| `organization/OrganizationPlanPreview.tsx` | Podgląd paginowanego planu zatwierdzonych nazw i kategorii oraz wybór miejsca zapisu. |
+| `organization/export/OrganizationExport.tsx` | Zlecenie kopiowania, odczyt zapisanego postępu, błędy i folder wynikowy. |
 | `organization/review/ReviewQueue.tsx`, `filters.ts` | Wybór pliku, filtry jednej strony i blokada utraty roboczej edycji. |
 | `organization/review/ReviewEditor.tsx` | Istniejący zapis decyzji z wersjami formularza i SHA; dodano czytelniejszą prezentację, nie zmieniono kontraktu zapisu. |
 | `organization/review/ReviewEvidence.tsx` | Odczyt źródeł propozycji na żądanie; anulowanie żądania po zamknięciu i ochrona przed pokazaniem innej analizy. |
@@ -102,21 +111,24 @@ testem uruchomienia nowego instalatora ani prawdziwego rozgrzewania modeli.
 
 ## Sprawdzenia wykonane w tym etapie
 
-`npm test`: 56/56; `npm run build`, `npm run lint` i `npm run check:previews`
-przeszły lokalnie. Ostatnia komenda sprawdza typy także manualnych scenariuszy UI;
-dodano ją do joba frontend w CI.
+`npm test`: 62/62; `npm run build`, `npm run lint` i `npm run check:previews` przeszły lokalnie.
+16 testów Javy przeszło z izolowanym PostgreSQL uruchomionym przez
+`scripts/verify-native-tests.ps1`. Obejmuje to HTTP → baza → rzeczywista kopia pliku.
 
-Manualnie sprawdzono na fikcyjnym API: zachowanie edycji między widokami,
+W poprzednim etapie manualnie sprawdzono na fikcyjnym API: zachowanie edycji między widokami,
 potwierdzenie jej odrzucenia, zapis/konflikt, źródła OCR/wizji, filtr błędów,
 stronicowanie 25–48/94, podgląd/Escape/fokus, pauzę/wznowienie oraz układ 390 px
 bez poziomego wyjścia poza ekran. Weryfikacja nie jest benchmarkiem, audytem
-pełnej dostępności ani dowodem szybszego ładowania modeli.
+pełnej dostępności ani dowodem szybszego ładowania modeli. Nowy panel eksportu
+przeszedł sprawdzanie typów i testy API; automatyczna kontrola jego wyglądu została
+zablokowana przez politykę dostępu narzędzia przeglądarkowego.
 
 ## Czego ten etap nie robi
 
 Nie poprawia rozpoznawania Robloxa/kebaba/dokumentów. Nie łączy jeszcze OCR
 i wizji w model rozumiejący kontekst nazw, nie dodaje wyboru modeli ani GPU.
 Nie usuwa przyczyny ewentualnego zawieszenia usługi analizy w Rust/Python.
-Nie dodaje eksportu, kopiowania, zmieniania nazw plików ani ochrony dokumentów
-przez ich kasowanie. Nie aktualizuje prywatnej bazy ani istniejącego `.exe`.
+Eksport zapisuje kopie; nie przenosi ani nie zmienia nazw oryginałów i nie usuwa
+dokumentów. Nowy backend uruchamia migrację V8 przy starcie. Zainstalowane `.exe`
+otrzyma tę funkcję dopiero po aktualizacji do wydania 0.2.3.
 Te ograniczenia są nadal istotne przy ocenie produktu, niezależnie od wyglądu.
