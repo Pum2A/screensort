@@ -155,3 +155,10 @@ uprawnień. ScreenSort należy uruchamiać normalnie, nie jako administrator.
 Proces testowy otrzymuje własne zapisywalne `TEMP` i `TMP`; nie dziedziczy katalogu
 tymczasowego administratora ani klucza podpisującego. Załadowanie profilu konta
 przez `Start-Process -LoadUserProfile` samo nie zmienia dziedziczonego środowiska.
+
+Po publikacji 0.2.2 wykryliśmy, że `Get-Content -Raw` zwraca tekst z metadanymi
+PowerShella. `ConvertTo-Json` dołączył przez to do publicznych notatek manifestu
+lokalną ścieżkę workspace. Nie zawierała zdjęć, haseł ani tokenów. Zastąpiliśmy
+oba opublikowane manifesty wersją z samym tekstem i podpisem 0.2.2. Generator
+czyta notatki bezpośrednio przez `IO.File.ReadAllText` i przed zapisem odrzuca
+manifest, w którym notatki nie są zwykłym tekstem.

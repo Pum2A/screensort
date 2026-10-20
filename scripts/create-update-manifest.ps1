@@ -18,11 +18,18 @@ if ($decoded -notmatch ('(?m)^trusted comment:.*\bversion:' + [regex]::Escape($c
 }
 & cargo run --quiet --release --locked --manifest-path (Join-Path $repo 'frontend/src-tauri/Cargo.toml') --example verify-update -- $file.FullName ($file.FullName + '.sig') $config.version
 if ($LASTEXITCODE -ne 0) { throw 'Cryptographic verification failed. Refusing to prepare the update manifest.' }
-$notes = Get-Content -LiteralPath (Join-Path $repo 'packaging/distribution/core-release.md') -Raw
+# Get-Content's string has PowerShell provider metadata (PSPath, PSDrive, etc.).
+# ConvertTo-Json serializes that metadata unless the value is a plain .NET string.
+$notes = [IO.File]::ReadAllText((Join-Path $repo 'packaging/distribution/core-release.md'))
 $manifest = [ordered]@{version = $config.version; notes = $notes; pub_date = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'); platforms = @{
     'windows-x86_64' = @{signature = $signature; url = "https://github.com/Pum2A/screensort-releases/releases/download/$Tag/$($file.Name)"}
 }}
+$json = $manifest | ConvertTo-Json -Depth 5
+# Fail closed if serialization ever reintroduces PowerShell provider metadata.
+if ((ConvertFrom-Json -InputObject $json).notes -isnot [string]) {
+    throw 'Release notes must serialize as plain text; refusing to publish workstation metadata.'
+}
 $destination = [IO.Path]::GetFullPath($OutputPath)
 [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($destination)) | Out-Null
-[IO.File]::WriteAllText($destination, ($manifest | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding($false)))
+[IO.File]::WriteAllText($destination, $json, (New-Object Text.UTF8Encoding($false)))
 Write-Host "Update manifest prepared for $($config.version); no private signing key included."
