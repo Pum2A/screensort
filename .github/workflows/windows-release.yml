@@ -64,6 +64,7 @@ jobs:
         with:
           name: screensort-startup-report-${{ github.run_number }}
           path: .release/startup-check-*.report.json
+          include-hidden-files: true # only the explicit report pattern, not all of .release
           if-no-files-found: warn
           retention-days: 7
       - name: Collect only distribution files
@@ -84,6 +85,7 @@ jobs:
         with:
           name: screensort-windows-core-${{ github.run_number }}
           path: .release/publish/*
+          include-hidden-files: true # only the distribution staging directory
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
