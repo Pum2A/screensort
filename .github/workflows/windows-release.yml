@@ -25,6 +25,8 @@ jobs:
     needs: checks
     runs-on: windows-latest
     timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: 1.95.0
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -55,7 +57,6 @@ jobs:
       - name: Build CoreOnly and verify real Tauri startup on an isolated database
         shell: pwsh
         env:
-          RUSTUP_TOOLCHAIN: 1.95.0
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
         run: ./scripts/build-windows.ps1 -CoreOnly -JdkPath $env:JAVA_HOME
       - name: Preserve isolated startup report
