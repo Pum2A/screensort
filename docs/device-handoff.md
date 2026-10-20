@@ -428,7 +428,7 @@ https://github.com/Pum2A/screensort
 ```
 
 Domyślna gałąź to `main`. Stare repozytorium
-`<lokalny-katalog-projektu> jest wyłącznie kopią zapasową. Nie wolno
+`<lokalny-katalog-projektu>` jest wyłącznie kopią zapasową. Nie wolno
 go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git`.
 
 ## Sposób współpracy
