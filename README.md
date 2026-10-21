@@ -148,7 +148,10 @@ analysis results persist; the current scan job snapshots are held in memory.
 
 ## Architecture
 
-![Implemented ScreenSort architecture and separately marked planned organization workflow](docs/media/workflow.svg)
+![Earlier ScreenSort architecture overview with the then-planned organization workflow](docs/media/workflow.svg)
+
+The diagram is an earlier snapshot. The implemented copy workflow and its current
+limits are described in [current-state.md](docs/current-state.md).
 
 The application core remains in Java. A separate local Python analysis service
 provides a narrow boundary around the model ecosystem. This is not a distributed
