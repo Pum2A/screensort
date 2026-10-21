@@ -49,20 +49,25 @@ plików źródłowych, logo, ilustracji ani fontów z zestawu. To adaptacja styl
 odtworzenie komponentów z dokładnymi pomiarami z Figmy. Zestaw na stronie opisano
 jako CC BY 4.0; autor referencji: Marvilo — UI / UX Resources.
 
-Zmiana dotyczy nie tylko gradientu: górna nawigacja zastępuje boczny panel,
-aktywna zakładka jest czarną pigułką, przyciski mają spójne kształty, a szybkie
-działania — okrągłe pola ikon z podpisami. Duża liczba pokazuje rzeczywisty stan
-katalogu, nie wynik analizy ani sztuczną statystykę. Desktop ma kompaktowy układ
-licznika i działań, mały ekran układa je pionowo. Galeria ma białą powierzchnię,
-delikatne obramowania i wyraźny stan zaznaczenia. Fiolet jest akcentem; treść i
-formularze pozostają neutralne. Zielony sukces, bursztynowe ostrzeżenie i czerwony
-błąd zachowują odrębne znaczenia. Paginacja, lazy loading i `object-fit: contain`
-pozostają bez zmian.
+Po otrzymaniu czterech dodatkowych referencji właściciel odrzucił także wariant
+z gradientem. Najnowsza korekta usuwa cały baner, duży licznik i zdublowane akcje.
+`WorkspaceHeader` pokazuje teraz tylko nazwę widoku, krótkie objaśnienie i stan
+aktualizacji. Wybór źródła i skanowanie mają jeden pasek. Galeria i formularz
+decyzji dostają więcej miejsca; nawigacja nadal jest u góry.
+
+Przyjęto jedną roboczą paletę: złamana biel, grafit i niewielki jasnozielony akcent
+głównego działania. To interpretacja jasnych referencji, nie akceptacja kolorów
+przez właściciela. Fioletowe tła i teksty zastąpiono wspólnymi tokenami także w
+analizie, eksporcie, starcie i aktualizacjach. Usunięto ozdobny pusty panel galerii,
+numery na miniaturach i niezaznaczone kółka sugerujące wielokrotny wybór. Check
+pojawia się tylko na wybranym obrazie; semantyka przycisku pozostaje `aria-pressed`.
+Zielony sukces, bursztynowe ostrzeżenie i czerwony błąd zachowują odrębne znaczenia.
+Paginacja, lazy loading i `object-fit: contain` pozostają bez zmian.
 
 Do review tej korekty: `WorkspaceNavigation.tsx` (zastąpił `ExplorerSidebar.tsx`),
-`WorkspaceHeader.tsx`, połączenie akcji w `App.tsx`, `App.css`, tokeny `index.css`,
-style galerii, startu i kontrolki aktualizacji. Szybkie działania korzystają z
-istniejących funkcji aplikacji — nie dodają nowych endpointów ani logiki modeli.
+`WorkspaceHeader.tsx`, uproszczone wywołanie w `App.tsx`, `App.css`, tokeny `index.css`,
+style galerii, analizy, eksportu, startu i kontrolki aktualizacji. Usunięto tylko
+duplikaty działań — nie dodano nowych endpointów ani logiki modeli.
 Ta korekta nadal jest propozycją do weryfikacji, nie zatwierdzonym wydaniem.
 
 Przejścia nagłówka, inspektora i modali używają istniejącego Motion z `LazyMotion`
@@ -78,15 +83,16 @@ ikony; Tailwind pozostaje dla utilities, a układy mają pliki CSS komponentów.
 Przy audycie zależności znaleziono podatności developerskiego Vite 8.3.0;
 zaktualizowano do 8.3.3, bez wymuszonego `npm audit fix` i bez zmiany głównej wersji.
 
-Koszt bibliotek nie jest zerowy: lokalny build to około 482 kB JS / 154 kB gzip,
+Koszt bibliotek nie jest zerowy: lokalny build to około 480 kB JS / 153 kB gzip,
 wobec wcześniejszych około 427 kB / 133 kB gzip. Nie ładujemy już fontu retro;
 typografia jest systemowa i nie pobiera fontów z sieci. To dane builda, nie benchmark.
 
 ## Weryfikacja
 
-- 65/65 testów frontendu, lint, build i typowanie scenariuszy preview; nowy test
+- 66/66 testów frontendu, lint, build i typowanie scenariuszy preview; nowy test
   pilnuje kontrastu co najmniej 4.5:1 dla głównego i pomocniczego tekstu na obu
-  podstawowych powierzchniach. Nie jest to pełny audyt dostępności wszystkich widoków.
+  podstawowych powierzchniach oraz dla głównego przycisku i zaznaczonych kontrolek.
+  Nie jest to pełny audyt dostępności wszystkich widoków.
 - 23/23 testy Rusta, również pakiety, bridge i ograniczenia updatera.
 - `npm audit`: 0 zgłoszonych podatności w zablokowanym zestawie zależności.
 - Ręcznie w przeglądarce: wybór obrazu, podgląd, Escape, przełączanie widoków,
@@ -100,8 +106,8 @@ Do ręcznej kontroli: `npm run workspace:preview` w `frontend`, port 5184.
 w tym scenariuszu to atrapy, bez pobierania i instalacji. Zapis na dysk i kontrola
 wersji przez sieć wymagają zainstalowanego desktopu, nie fixture.
 Zrzuty z weryfikacji są lokalnie w `.release/ui-fluid-20261021`, poza Gitem.
-`kit-workspace.jpg` przedstawia korektę na podstawie referencji, wcześniejsze
-`catalog.jpg` i `startup.jpg` dotyczą odrzuconego wariantu.
+`neutral-workspace.jpg` przedstawia najnowszą korektę; `kit-workspace.jpg`,
+`catalog.jpg` i `startup.jpg` dotyczą odrzuconych wariantów.
 
 Dokumentacja użyta przy implementacji: [React Effects](https://react.dev/learn/synchronizing-with-effects),
 [Motion accessibility](https://motion.dev/docs/react-accessibility),

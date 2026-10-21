@@ -23,3 +23,10 @@ test('body text and small metadata meet AA contrast on both workspace surfaces',
         assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
     }
 })
+
+test('action and selected controls retain readable text on the restrained accent palette', () => {
+    for (const [foreground, background] of [['text', 'action'], ['accent', 'selected']]) {
+        const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
+        assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
+    }
+})
