@@ -1,4 +1,6 @@
 import {useEffect, useId, useRef} from 'react'
+import * as m from 'motion/react-m'
+import {useIsPresent} from 'motion/react'
 import type {RefObject} from 'react'
 import {ImageDetailsTree} from './ImageDetailsTree'
 import {isOutsideBox} from './galleryLayout'
@@ -14,6 +16,7 @@ export function ImageDetailsDialog({id, file, trigger, onClose}: Props) {
     const pointerStartedOutside = useRef(false)
     const titleId = useId()
     const hintId = useId()
+    const present = useIsPresent()
 
     useEffect(() => {
         const element = dialog.current
@@ -31,7 +34,9 @@ export function ImageDetailsDialog({id, file, trigger, onClose}: Props) {
         }
     }, [trigger])
 
-    return <dialog ref={dialog} id={id} className="image-details-dialog"
+    return <m.dialog ref={dialog} id={id} className="image-details-dialog" inert={!present}
+        initial={{opacity: 0, scale: 0.97, y: 12}} animate={{opacity: 1, scale: 1, y: 0}}
+        exit={{opacity: 0, scale: 0.98, y: 8}}
         aria-labelledby={titleId} aria-describedby={hintId}
         onCancel={(event) => {
             event.preventDefault()
@@ -72,5 +77,5 @@ export function ImageDetailsDialog({id, file, trigger, onClose}: Props) {
         </header>
         <p id={hintId} className="sr-only">Podgląd obrazu i jego danych. Escape lub krzyżyk zamyka okno.</p>
         <div className="preview-dialog-body"><ImageDetailsTree file={file}/></div>
-    </dialog>
+    </m.dialog>
 }

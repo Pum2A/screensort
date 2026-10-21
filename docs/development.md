@@ -74,8 +74,28 @@ docker compose exec postgres psql -U screensort -d screensort -c "SELECT ar.cano
 ```
 
 Zgodne metadane są skrótem wydajnościowym, nie dowodem niezmienności treści.
-Przyszłe kopiowanie wymaga świeżej weryfikacji. Hasła z `compose.yaml` są
+Kopiowanie w 0.2.3 ponownie sprawdza zawartość przez SHA-256. Hasła z `compose.yaml` są
 wyłącznie developerskie; nie używaj ich w publicznym środowisku.
+
+## Weryfikacja zatwierdzonych kopii
+
+Po analizie całego folderu zatwierdź nazwy i kategorie, otwórz „Zapisz i uporządkuj”,
+wybierz osobny folder docelowy i uruchom zapis. Powstaje nowy folder `ScreenSort`
+z kategoriami; istniejący folder powoduje użycie kolejnego numeru. Oryginały
+pozostają w dotychczasowym miejscu. Zmodyfikowany lub niedostępny plik powinien
+pojawić się na liście problemów, nie jako poprawnie zapisana kopia.
+
+Testy integracyjne mogą użyć dołączonego runtime PostgreSQL na oddzielnych,
+tymczasowych danych, zamiast bazy użytkownika:
+
+```powershell
+./scripts/verify-native-tests.ps1 -Tests 'ReviewJpaTest,OrganizedFileCopierTest,DesktopUpdateReadinessTest'
+```
+
+Szczegóły i granice: [review-organized-export.md](review-organized-export.md).
+Serwery `workspace:preview` i `review:preview` używają fikcyjnych danych w pamięci;
+nie testują prawdziwego eksportu. Samo pobranie zmian Git nie aktualizuje
+zainstalowanego `.exe`; do tego służy kanał aktualizacji w aplikacji.
 
 ## Więcej materiałów
 

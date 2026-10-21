@@ -6,6 +6,7 @@ import {formatDate} from '../catalog/format'
 import styles from './AnalysisPanel.module.css'
 import {useAnalysisReady} from '../desktop/readiness'
 import {NamingPanel} from '../naming/NamingPanel'
+import {useUpdateBlocker} from '../desktop/updates/context'
 
 const labels = {PREPARING: 'Sprawdzamy oryginał…', ANALYZING: 'OCR i analiza wizualna…',
     SAVING: 'Zapisujemy wynik…', COMPLETED: 'Wynik zapisany', FAILED: 'Analiza nie powiodła się'}
@@ -22,6 +23,7 @@ export function AnalysisPanel({fileId}: {fileId: number}) {
     const controller = useRef<AbortController | null>(null)
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
     const busy = starting || (job !== null && job.status !== 'COMPLETED' && job.status !== 'FAILED')
+    useUpdateBlocker(busy, 'Poczekaj na zakończenie analizy wybranego obrazu przed restartem.')
     const key = `screensort.analysis.job.${fileId}`
 
     const remember = useCallback((id: string | null) => {

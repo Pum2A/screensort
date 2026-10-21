@@ -1,12 +1,13 @@
 .panel { min-width: 0; }
-.hint { color: var(--muted); font-size: 17px; line-height: 1.4; }
+.hint { color: var(--muted); font-size: 11px; line-height: 1.8; }
 .options { display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0; }
-.options label { display: flex; gap: 8px; align-items: center; }
+.options label { display: flex; gap: 6px; align-items: center; font-size: 11px; }
 .results { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 10px; }
-.results h4 { font-size: 23px; margin: 20px 0 10px; font-weight: 400; }
-.results p { white-space: pre-wrap; overflow-wrap: anywhere; }
-.results pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
-.results small { color: var(--muted); overflow-wrap: anywhere; }
+.results h4 { font-family: var(--font-retro); font-size: 23px; margin: 20px 0 10px; font-weight: 400; }
+.results p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+.results pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 250px; overflow: auto; padding: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 10px; }
+.results small { color: var(--muted); overflow-wrap: anywhere; font-size: 10px; }
 .results details { margin-top: 16px; }
 .results code { display: block; overflow-wrap: anywhere; font-size: 12px; padding: 10px 0; }
-.error, .warning { border-left: 3px solid #cc6a35; padding: 8px 12px; margin-top: 12px; }
+.error { color: var(--danger); background: #fff2ef; border: 1px solid #edc8c1; border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 11px; }
+.warning { color: var(--warning); background: #fff8e9; border-left: 3px solid #cca356; padding: 8px 12px; margin-top: 12px; font-size: 11px; }

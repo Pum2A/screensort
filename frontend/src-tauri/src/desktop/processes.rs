@@ -2,7 +2,7 @@
 
 use super::paths::process_path;
 use super::Status;
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::{
     fs,
     net::TcpListener,
@@ -63,9 +63,80 @@ pub struct Owner {
     pub backend: Option<Backend>,
     python_port: u16,
     python_token: String,
+    analysis_attempted: bool,
+    runtime: PathBuf,
+    session: PathBuf,
 }
 
 impl Owner {
+    /// Optional AI failure must never take down the catalog or its database.
+    pub async fn start_analysis<F>(&mut self, mut cancelled: F) -> Result<(), String>
+    where
+        F: FnMut() -> bool,
+    {
+        if self.analysis_attempted {
+            return Err(
+                "Pakiet analizy został już uruchomiony. Po błędzie uruchom aplikację ponownie."
+                    .into(),
+            );
+        }
+        let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
+        let ai_runtime = super::packages::runtime(data, &self.runtime)?;
+        // Failed starts are not a retry queue: do not accumulate child processes.
+        self.analysis_attempted = true;
+        let py_state = self.session.join("python.json");
+        let mut python = Command::new(ai_runtime.join("python/python.exe"));
+        python
+            .args([
+                "-I",
+                "-B",
+                "-m",
+                "screensort_analysis.launch",
+                "--state-file",
+            ])
+            .arg(&py_state)
+            .arg("--model-cache")
+            .arg(ai_runtime.join("models"))
+            .env("SCREENSORT_ANALYSIS_TOKEN", &self.python_token)
+            .current_dir(
+                self.session
+                    .parent()
+                    .and_then(Path::parent)
+                    .unwrap_or(&self.session),
+            );
+        let pid = self.spawn("Python", python, &self.session.join("python.log"))?;
+        self.python_port = published(&py_state, pid, self).await?;
+        let client = http_client()?;
+        let deadline = Instant::now() + Duration::from_secs(180);
+        while Instant::now() < deadline && !cancelled() {
+            if let Some(name) = self.stopped_child() {
+                return Err(format!(
+                    "Proces {name} zakończył przygotowanie z błędem. Katalog pozostaje dostępny."
+                ));
+            }
+            if let Ok(response) = client
+                .get(format!("http://127.0.0.1:{}/ready", self.python_port))
+                .bearer_auth(&self.python_token)
+                .send()
+                .await
+            {
+                if response.status().is_success() {
+                    let backend = self.backend.as_ref().ok_or("Katalog jest niedostępny.")?;
+                    let (status, _) = backend.request("POST", "/_internal/analysis-connection", Some(&json!({
+                        "url": format!("http://127.0.0.1:{}", self.python_port), "token": self.python_token
+                    })), 4096).await?;
+                    return if status == 204 {
+                        Ok(())
+                    } else {
+                        Err("Nie udało się połączyć silnika analizy z katalogiem.".into())
+                    };
+                }
+            }
+            pause(Duration::from_millis(250)).await;
+        }
+        Err("Przerwano przygotowanie AI lub przekroczono czas oczekiwania. Katalog pozostaje dostępny.".into())
+    }
+
     fn spawn(
         &mut self,
         name: &'static str,
@@ -257,7 +328,6 @@ where
     let data = data_path.as_path();
     for executable in [
         "java/bin/java.exe",
-        "python/python.exe",
         "postgres/bin/initdb.exe",
         "postgres/bin/postgres.exe",
         "backend.jar",
@@ -300,30 +370,10 @@ where
         backend: None,
         python_port: 0,
         python_token: python_token.clone(),
+        analysis_attempted: false,
+        runtime: runtime.to_path_buf(),
+        session: session.clone(),
     };
-    update(
-        Status {
-            phase: "Uruchamiamy lokalne modele OCR i wizji…".into(),
-            ..Status::default()
-        },
-        None,
-    );
-    let py_state = session.join("python.json");
-    let mut python = Command::new(runtime.join("python/python.exe"));
-    python
-        .args([
-            "-I",
-            "-B",
-            "-m",
-            "screensort_analysis.launch",
-            "--state-file",
-        ])
-        .arg(&py_state)
-        .arg("--model-cache")
-        .arg(runtime.join("models"))
-        .env("SCREENSORT_ANALYSIS_TOKEN", &python_token)
-        .current_dir(data);
-    let py_pid = owner.spawn("Python", python, &session.join("python.log"))?;
     update(
         Status {
             phase: "Przygotowujemy prywatną bazę PostgreSQL…".into(),
@@ -428,7 +478,6 @@ where
             &session.join("database-tools.log"),
         )?;
     }
-    owner.python_port = published(&py_state, py_pid, &mut owner).await?;
     let java_state = session.join("java.json");
     update(
         Status {
@@ -448,11 +497,8 @@ where
         .env("SCREENSORT_DB_PASSWORD", &password)
         .env("SCREENSORT_DESKTOP_TOKEN", &desktop_token)
         .env("SCREENSORT_DESKTOP_STATE_FILE", &java_state)
-        .env("SCREENSORT_ANALYSIS_TOKEN", &python_token)
-        .env(
-            "SCREENSORT_ANALYSIS_URL",
-            format!("http://127.0.0.1:{}", owner.python_port),
-        )
+        .env_remove("SCREENSORT_ANALYSIS_TOKEN")
+        .env_remove("SCREENSORT_ANALYSIS_URL")
         .env_remove("JAVA_TOOL_OPTIONS")
         .env_remove("JDK_JAVA_OPTIONS")
         .env_remove("_JAVA_OPTIONS")
@@ -475,43 +521,15 @@ where
     owner.backend = Some(backend.clone());
     update(
         Status {
-            phase: "Kończymy przygotowanie silników analizy…".into(),
+            phase: "Katalog gotowy. AI uruchomisz, gdy będzie potrzebne.".into(),
             backend_ready: true,
             analysis_ready: false,
+            analysis_starting: false,
             error: None,
         },
         Some(backend.clone()),
     );
-    let client = http_client()?;
-    let deadline = Instant::now() + Duration::from_secs(180);
-    while Instant::now() < deadline {
-        if let Some(name) = owner.stopped_child() {
-            return Err(format!(
-                "Proces {name} przerwał przygotowanie. Sprawdź lokalne logi."
-            ));
-        }
-        if let Ok(response) = client
-            .get(format!("http://127.0.0.1:{}/ready", owner.python_port))
-            .bearer_auth(&python_token)
-            .send()
-            .await
-        {
-            if response.status().is_success() {
-                update(
-                    Status {
-                        phase: "Gotowe".into(),
-                        backend_ready: true,
-                        analysis_ready: true,
-                        error: None,
-                    },
-                    Some(backend),
-                );
-                return Ok(owner);
-            }
-        }
-        pause(Duration::from_millis(250)).await;
-    }
-    Err("Przekroczono czas przygotowania modeli. Sprawdź kompletność instalacji i logi.".into())
+    Ok(owner)
 }
 
 fn hide(command: &mut Command) {

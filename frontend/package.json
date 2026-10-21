@@ -9,21 +9,28 @@
     "lint": "oxlint src tests vite.config.ts",
     "test": "tsc -p tsconfig.tests.json && node --test .test-output/tests/*.test.js",
     "preview": "vite preview",
+    "review:preview": "node tests/fixtures/review-preview-server.mjs",
+    "workspace:preview": "node tests/fixtures/workspace-preview-server.mjs",
+    "check:previews": "tsc -p tsconfig.preview.json",
     "tauri": "tauri"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
     "@tauri-apps/plugin-dialog": "^2.7.3",
+    "lucide-react": "^1.59.0",
+    "motion": "14.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.11.5",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "tailwindcss": "^4.3.3",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

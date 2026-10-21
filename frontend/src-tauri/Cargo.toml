@@ -1,12 +1,12 @@
 [package]
 name = "screensort-desktop"
-version = "0.1.1"
+version = "0.2.3"
 description = "ScreenSort desktop shell"
 authors = ["ScreenSort contributors"]
 license = ""
 repository = ""
 edition = "2021"
-rust-version = "1.77.2"
+rust-version = "1.88"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -21,12 +21,21 @@ tauri-build = { version = "2.6.3", features = [] }
 tauri = { version = "2.11.6", features = [] }
 tauri-plugin-dialog = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+futures-util = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.13", default-features = false, features = ["json"] }
+reqwest = { version = "0.13", default-features = false, features = ["json", "native-tls"] }
+sha2 = "0.10"
+tempfile = "3"
+zip = { version = "9.0.5", default-features = false, features = ["deflate-flate2-zlib-rs"] }
 getrandom = "0.3"
 regex = "1"
 dunce = "=1.0.5"
 
+[dev-dependencies]
+base64 = "0.22"
+minisign-verify = "0.2.5"
+
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Storage_FileSystem"] }

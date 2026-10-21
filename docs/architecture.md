@@ -2,6 +2,13 @@
 
 Status: Draft v0.1
 
+Current-state note, 2026-10-21: this file preserves the initial design. The local
+Python HTTP integration, Java-owned analysis, desktop packaging, review decisions
+and verified organized copies now exist. Use [current-state.md](current-state.md)
+for the implemented flow and known gaps, and [review-organized-export.md](review-organized-export.md)
+for the copy protocol. The health-only API and future desktop statements below
+describe historical stages, not the current release.
+
 Update 2026-10-12: this is the initial design, not the complete current layout.
 [ADR-004](adr/ADR-004-local-python-analysis-service.md) brings forward an independent
 local Python analysis service. Its HTTP API remains health-only; standalone OCR

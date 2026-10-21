@@ -11,11 +11,22 @@ local OCR and visual analysis without uploading your images to a cloud AI API.
 ScreenSort is an ongoing personal project, not a finished automatic organizer.
 The current source version catalogs images, saves real analysis results and lets
 you review and approve a filename derived from a saved visual description.
-Categories and verified copy operations are the next product steps.
-The existing 0.1.1 installer predates filename review; this feature needs a new build.
+It also supports resumable whole-folder analysis with preliminary category/name
+proposals. Categories currently use explicit keyword rules, not a new trained classifier.
+Optional AI packages can be downloaded from inside the app. The new folder review
+queue lets you edit names/categories, approve or skip images and persist decisions.
+Preview 0.2.3 also creates organized copies of explicitly approved images in
+category folders, verifies their source content against the approved SHA-256 and
+preserves originals and existing destination files. In-app updates are available;
+older installers do not gain source changes without an update.
+
+[Current state and known gaps (Polish)](docs/current-state.md) is the dated
+implementation and verification snapshot. Use `main` as the integration baseline;
+short-lived feature branches return to `main` through a tested pull request.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
+[Local metrics and optional Redis](docs/review-observability-and-cache.md) ·
 [Opis na LinkedIn po polsku](docs/linkedin-projekt.md)
 
 ## See it in action
@@ -80,16 +91,34 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Scanning | PNG/JPG/JPEG validation, metadata, streaming SHA-256, bounded workers and background jobs |
 | Incremental scans | Known-file lookup by relative path; unchanged size/time can reuse previous processing results |
 | Persistent catalog | PostgreSQL records survive restarts; rescans update existing paths instead of inserting another row |
-| Image explorer | Database pagination, circular thumbnails, selected-image details and a centered larger preview |
-| Local analysis | RapidOCR text extraction and Florence-2 image description for a selected image |
+| Image explorer | Database pagination, uncropped rectangular thumbnails, selected-image details and a centered larger preview |
+| Local analysis | RapidOCR text extraction and Florence-2 description; desktop starts AI only on explicit request |
+| Folder analysis | Durable per-file checkpoints, pause/resume, restart recovery and paged category/name proposals requiring review |
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
 | Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
-| Windows packaging | Prerelease installer with private Java, PostgreSQL, Python and CPU models; no developer tools required to run it |
+| Organization review | Editable name/category, approve or skip, persistent decisions and stale-form conflict protection |
+| Organized copies | Paged approval plan, native output-folder picker, background copying into category folders, persisted progress and per-file problems |
+| Windows packaging | CoreOnly starts without Python/models; optional, checksum-pinned CPU AI package installs from the app or a matching ZIP |
+| In-app updates | Signed, version-bound Core updates from the preview channel, with restart guards for active work |
 
 Matching size and modification time is a performance shortcut, not proof that
 file bytes are unchanged. Reusing a catalog row is not the same as grouping all
-content-identical files. Whole-folder AI analysis and content-based duplicate
-management are not implemented.
+content-identical files. Whole-folder jobs currently reprocess images; a versioned
+inference cache and content-based duplicate management are not implemented.
+
+For the exact new code paths, limits and verification, see the
+[on-demand AI / batch review guide (Polish)](docs/review-on-demand-ai-batches.md).
+
+Optional AI installation, trust boundaries and CI/CD are explained in the
+[package installation review (Polish)](docs/review-ai-package-installation.md).
+Public installers and optional model packages belong in the separate
+[distribution-only repository](https://github.com/Pum2A/screensort-releases), not in source Git history.
+The existing presentation media above shows the earlier interface.
+
+The new decision flow, exact code paths and manual test scenario are documented in
+the [organization review guide (Polish)](docs/review-organization-decisions.md).
+The [organized export guide (Polish)](docs/review-organized-export.md) follows the
+approved decision through the Java worker to the destination file.
 
 ## How it works
 
@@ -106,13 +135,23 @@ management are not implemented.
    Java selects up to six meaningful caption words; this is a deterministic first
    version, not another AI call, translation or a semantic summarizer. A missing
    visual description allows manual entry instead. Only the decision is stored.
+7. In the whole-folder review queue, check each name/category and approve or skip
+   it. Changes are saved atomically; an outdated open form cannot overwrite a newer
+   decision. No source file is renamed or moved by approval.
+8. Open the organization plan, choose a destination and explicitly start copying.
+   Java creates a new `ScreenSort` output directory, resolves name collisions and
+   hashes each source while streaming it to a temporary file. Only matching content
+   is finalized; React shows persisted progress and per-file problems.
 
 The scan and analysis jobs have different IDs and lifecycles. Catalog records and
 analysis results persist; the current scan job snapshots are held in memory.
 
 ## Architecture
 
-![Implemented ScreenSort architecture and separately marked planned organization workflow](docs/media/workflow.svg)
+![Earlier ScreenSort architecture overview with the then-planned organization workflow](docs/media/workflow.svg)
+
+The diagram is an earlier snapshot. The implemented copy workflow and its current
+limits are described in [current-state.md](docs/current-state.md).
 
 The application core remains in Java. A separate local Python analysis service
 provides a narrow boundary around the model ecosystem. This is not a distributed
@@ -121,9 +160,9 @@ cloud microservice platform: Rust supervises local processes on one computer.
 | Component | Responsibility | Technology |
 | --- | --- | --- |
 | Desktop shell | Window, folder picker, owned process lifecycle and restricted native bridge | Tauri 2, Rust |
-| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, CSS Modules |
+| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, Tailwind, component-scoped CSS, Motion, Lucide |
 | Application backend | Scanning, validation, catalog, analysis coordination, filename review and REST APIs | Java 25, Spring Boot 4.1.1 |
-| Persistence | Catalog, analysis and naming decisions; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, Flyway |
+| Persistence | Catalog, analysis, review decisions and copy jobs; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, JdbcTemplate, Flyway |
 | Analysis service | OCR and visual description, loaded local models | Python, FastAPI, RapidOCR, Florence-2-base-ft |
 | Development and checks | Reproducible dependencies, database integration and test suites | Maven Wrapper, Docker Compose, Testcontainers, Git |
 
@@ -147,20 +186,24 @@ The intended product flow is:
 
 ```text
 Choose folder → catalog images → OCR + visual description
-              → suggest, edit and approve a filename     [implemented in source]
-              → suggest categories and tags              [planned]
-              → create verified copies in an output folder [planned]
+              → baseline name/category proposals → manual approval
+              → preview plan → verified organized copies [implemented]
+
+Shared OCR/vision interpretation, useful contextual names,
+alternative model profiles and semantic search             [not implemented]
 ```
 
-The original folder should remain untouched. Future copy operations must avoid
-overwriting destination files and verify the copied content before finalization.
+The original folder remains untouched. Each export creates a separate output
+directory; completed copies are kept if a later file fails. A restart marks an
+unfinished export as interrupted, not resumed. A new export creates a new directory.
 
 [Filename review: flow, changed files and manual checks (Polish)](docs/propozycje-nazw.md).
 
-Near-term work also includes a smaller base installer with optional analysis
-downloads. This is a proposed distribution change, not part of version 0.1.1.
-Search by extracted content, batch analysis, GPU acceleration and cross-device
-synchronization are not available yet.
+Core-only installation and optional analysis downloads are implemented. The next
+product gap is reliable model startup/retry and evidence-based contextual naming,
+not another copy of the baseline caption-to-name rule. Search by extracted content,
+GPU acceleration, alternative model selection and cross-device synchronization
+are not available yet. See the [contextual analysis plan](docs/plan-contextual-analysis.md).
 
 ## Running and building
 
@@ -170,8 +213,11 @@ synchronization are not available yet.
 - [Python analysis service setup](analysis-service/README.md)
 
 The Windows installer runs without a separately installed JDK, Python, Node or
-Docker. Building it still requires developer tools. The current offline installer
-is large and unsigned; it has not been verified on a clean Windows VM. Binary
+Docker. Building it still requires developer tools. Core 0.2.3 is published in the
+[distribution repository](https://github.com/Pum2A/screensort-releases/releases/tag/v0.2.3-preview).
+Its updater signature is not a Windows Authenticode certificate. The installer
+still bundles the core runtimes and offline WebView installer; clean-VM validation
+remains separate from the isolated startup checks. Binary
 runtimes, model weights, local databases and installers are not committed to Git.
 
 ## Project notes

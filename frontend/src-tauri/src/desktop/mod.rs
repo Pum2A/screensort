@@ -1,5 +1,6 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
+mod packages;
 mod paths;
 mod processes;
 mod smoke;
@@ -8,7 +9,7 @@ use regex::Regex;
 use serde::Serialize;
 use serde_json::Value;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
     Mutex,
 };
 use tauri::{AppHandle, Manager, State};
@@ -22,6 +23,7 @@ pub struct Status {
     pub phase: String,
     pub backend_ready: bool,
     pub analysis_ready: bool,
+    pub analysis_starting: bool,
     pub error: Option<String>,
 }
 
@@ -31,6 +33,7 @@ impl Default for Status {
             phase: "Przygotowujemy aplikację…".into(),
             backend_ready: false,
             analysis_ready: false,
+            analysis_starting: false,
             error: None,
         }
     }
@@ -39,8 +42,11 @@ impl Default for Status {
 pub struct Desktop {
     status: Mutex<Status>,
     backend: Mutex<Option<processes::Backend>>,
-    owner: Mutex<Option<processes::Owner>>,
+    owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
+    requests: AtomicUsize,
+    updating: AtomicBool,
+    packages: packages::PackageManager,
 }
 
 impl Default for Desktop {
@@ -48,8 +54,11 @@ impl Default for Desktop {
         Self {
             status: Mutex::new(Status::default()),
             backend: Mutex::new(None),
-            owner: Mutex::new(None),
+            owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
+            requests: AtomicUsize::new(0),
+            updating: AtomicBool::new(false),
+            packages: packages::PackageManager::default(),
         }
     }
 }
@@ -103,7 +112,7 @@ pub fn launch(app: AppHandle) {
         .await;
         match result {
             Ok(owner) => {
-                *app.state::<Desktop>().owner.lock().expect("owner lock") = Some(owner);
+                *app.state::<Desktop>().owner.lock().await = Some(owner);
                 loop {
                     tauri::async_runtime::spawn_blocking(|| {
                         std::thread::sleep(std::time::Duration::from_secs(2))
@@ -117,7 +126,7 @@ pub fn launch(app: AppHandle) {
                     let stopped = desktop
                         .owner
                         .lock()
-                        .expect("owner lock")
+                        .await
                         .as_mut()
                         .and_then(|owner| owner.stopped_child());
                     if let Some(name) = stopped {
@@ -127,7 +136,9 @@ pub fn launch(app: AppHandle) {
                             status.backend_ready = false;
                         }
                         status.error = Some(format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie."));
-                        break;
+                        if name != "Python" {
+                            break;
+                        }
                     }
                 }
             }
@@ -137,24 +148,194 @@ pub fn launch(app: AppHandle) {
 }
 
 pub async fn stop(app: &AppHandle) {
-    let owner = app
-        .state::<Desktop>()
-        .owner
-        .lock()
-        .expect("owner lock")
-        .take();
+    let owner = app.state::<Desktop>().owner.lock().await.take();
     if let Some(mut owner) = owner {
         owner.stop().await;
     }
 }
 
 pub fn begin_close(app: &AppHandle) -> bool {
+    app.state::<Desktop>().packages.cancel();
     !app.state::<Desktop>().closing.swap(true, Ordering::SeqCst)
+}
+
+pub async fn prepare_update(app: &AppHandle) -> Result<(), String> {
+    let desktop = app.state::<Desktop>();
+    {
+        let status = desktop.status.lock().map_err(|_| "Brak stanu aplikacji.")?;
+        if !status.backend_ready || status.analysis_starting || desktop.packages.busy() {
+            return Err("Poczekaj na zakończenie uruchamiania lub instalacji silnika.".into());
+        }
+        if desktop.closing.load(Ordering::SeqCst) || desktop.updating.swap(true, Ordering::SeqCst) {
+            return Err("Aplikacja już kończy pracę.".into());
+        }
+    }
+    let ready = async {
+        if desktop.requests.load(Ordering::SeqCst) != 0 {
+            return Err(());
+        }
+        let backend = desktop.backend.lock().map_err(|_| ())?.clone().ok_or(())?;
+        let (code, bytes) = backend
+            .request("GET", "/_internal/update-ready", None, 4096)
+            .await
+            .map_err(|_| ())?;
+        let value: Value = serde_json::from_slice(&bytes).map_err(|_| ())?;
+        if code != 200 || value.get("ready").and_then(Value::as_bool) != Some(true) {
+            return Err(());
+        }
+        Ok(())
+    }
+    .await;
+    if ready.is_err() {
+        desktop.updating.store(false, Ordering::SeqCst);
+        return Err(
+            "Zakończ skan, wstrzymaj analizę i poczekaj na bieżące operacje przed instalacją."
+                .into(),
+        );
+    }
+    desktop.closing.store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+pub fn update_failed(app: &AppHandle) {
+    app.state::<Desktop>()
+        .updating
+        .store(false, Ordering::SeqCst);
+    app.state::<Desktop>()
+        .closing
+        .store(false, Ordering::SeqCst);
+    startup_failed(
+        app,
+        "Instalator nie został uruchomiony. Uruchom ScreenSort ponownie; dane pozostały bez zmian."
+            .into(),
+    );
+}
+
+#[tauri::command]
+pub fn ai_package_status(app: AppHandle) -> Result<packages::PackageStatus, String> {
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Brak katalogu danych aplikacji.")?;
+    app.state::<Desktop>()
+        .packages
+        .status(&data, &runtime_path(&app)?)
+}
+
+#[tauri::command]
+pub fn cancel_ai_package(state: State<'_, Desktop>) {
+    state.packages.cancel();
+}
+
+#[tauri::command]
+pub fn install_ai_package(app: AppHandle, id: String, from_file: bool) -> Result<(), String> {
+    use tauri_plugin_dialog::DialogExt;
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Brak katalogu danych aplikacji.")?;
+    let spec = packages::catalog_for_command(&id)?;
+    {
+        let desktop = app.state::<Desktop>();
+        // Same lock order as model startup: no package activation while Python starts/runs.
+        let status = desktop.status.lock().map_err(|_| "Brak stanu aplikacji.")?;
+        if !status.backend_ready
+            || status.analysis_ready
+            || status.analysis_starting
+            || desktop.closing.load(Ordering::SeqCst)
+            || desktop.updating.load(Ordering::SeqCst)
+        {
+            return Err(
+                "Zainstaluj pakiet po uruchomieniu katalogu, ale przed uruchomieniem AI.".into(),
+            );
+        }
+        desktop.packages.begin()?;
+    }
+    tauri::async_runtime::spawn(async move {
+        let worker_app = app.clone();
+        let result = tauri::async_runtime::spawn_blocking(move || {
+            let desktop = worker_app.state::<Desktop>();
+            let local = if from_file {
+                let selected = worker_app
+                    .dialog()
+                    .file()
+                    .add_filter("Pakiet AI ScreenSort", &["zip"])
+                    .blocking_pick_file()
+                    .ok_or_else(packages::cancelled_message)?;
+                Some(
+                    selected
+                        .into_path()
+                        .map_err(|_| "Wybrany plik nie jest lokalnym ZIP.")?,
+                )
+            } else {
+                None
+            };
+            desktop.packages.install(&spec, &data, local.as_deref())
+        })
+        .await
+        .unwrap_or_else(|_| {
+            Err("Instalacja została przerwana. Dotychczasowy pakiet pozostaje bez zmian.".into())
+        });
+        app.state::<Desktop>().packages.finish(result);
+    });
+    Ok(())
 }
 
 #[tauri::command]
 pub fn desktop_status(state: State<'_, Desktop>) -> Status {
     state.status.lock().expect("status lock").clone()
+}
+
+#[tauri::command]
+pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
+    {
+        let desktop = app.state::<Desktop>();
+        let mut status = desktop
+            .status
+            .lock()
+            .map_err(|_| "Nie można odczytać stanu.")?;
+        if !status.backend_ready
+            || desktop.updating.load(Ordering::SeqCst)
+            || desktop.closing.load(Ordering::SeqCst)
+        {
+            return Err("Poczekaj na uruchomienie katalogu.".into());
+        }
+        if desktop.packages.busy() {
+            return Err("Poczekaj na zakończenie instalacji pakietu AI.".into());
+        }
+        if status.analysis_ready || status.analysis_starting {
+            return Ok(());
+        }
+        status.analysis_starting = true;
+        status.error = None;
+        status.phase = "Przygotowujemy AI na Twoje żądanie…".into();
+    }
+    tauri::async_runtime::spawn(async move {
+        let result = {
+            let desktop = app.state::<Desktop>();
+            let mut owner = desktop.owner.lock().await;
+            match owner.as_mut() {
+                Some(owner) => {
+                    owner
+                        .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
+                        .await
+                }
+                None => Err("Katalog nie jest gotowy. Spróbuj ponownie.".into()),
+            }
+        };
+        let desktop = app.state::<Desktop>();
+        let mut status = desktop.status.lock().expect("status lock");
+        status.analysis_starting = false;
+        status.analysis_ready = result.is_ok();
+        status.phase = if result.is_ok() {
+            "AI gotowe do analizy"
+        } else {
+            "AI niedostępne — katalog działa"
+        }
+        .into();
+        status.error = result.err();
+    });
+    Ok(())
 }
 
 #[derive(Serialize)]
@@ -175,12 +356,40 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 .is_match(route);
     }
     match method {
-        "POST" => matches!(route, "/api/scan/jobs" | "/api/analysis/jobs"),
-        "PUT" => Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
-            .unwrap()
-            .is_match(route),
+        "POST" => {
+            matches!(
+                route,
+                "/api/scan/jobs" | "/api/analysis/jobs" | "/api/organization/batches"
+            ) || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/(control|exports)$")
+                .unwrap()
+                .is_match(route)
+        }
+        "PUT" => {
+            Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
+                .unwrap()
+                .is_match(route)
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
+                )
+                .unwrap()
+                .is_match(route)
+        }
         "GET" => {
             route == "/api/catalog/page"
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
+                )
+                .unwrap()
+                .is_match(route)
+                || route == "/api/organization/batches/latest"
+                || Regex::new(
+                    r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items|/plan|/exports/latest)?$",
+                )
+                .unwrap()
+                .is_match(route)
+                || Regex::new(r"^/api/organization/exports/[0-9a-fA-F-]{36}(/issues)?$")
+                    .unwrap()
+                    .is_match(route)
                 || Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$")
                     .unwrap()
                     .is_match(route)
@@ -199,6 +408,19 @@ pub async fn backend_request(
     body: Option<Value>,
     state: State<'_, Desktop>,
 ) -> Result<BackendReply, String> {
+    state.requests.fetch_add(1, Ordering::SeqCst);
+    struct RequestGuard<'a>(&'a AtomicUsize);
+    impl Drop for RequestGuard<'_> {
+        fn drop(&mut self) {
+            self.0.fetch_sub(1, Ordering::SeqCst);
+        }
+    }
+    let _request = RequestGuard(&state.requests);
+    if state.updating.load(Ordering::SeqCst) || state.closing.load(Ordering::SeqCst) {
+        return Err(
+            "Aplikacja przygotowuje aktualizację. Poczekaj na ponowne uruchomienie.".into(),
+        );
+    }
     if !allowed(&method, &path, false) {
         return Err("Niedozwolane żądanie aplikacji.".into());
     }
@@ -247,8 +469,44 @@ pub async fn backend_image(
 mod tests {
     use super::allowed;
     #[test]
+    fn bridge_supports_copying_and_only_its_public_routes() {
+        let batch = "/api/organization/batches/00000000-0000-0000-0000-000000000001";
+        let export = "/api/organization/exports/00000000-0000-0000-0000-000000000002";
+        assert!(allowed("GET", &format!("{batch}/plan?page=1"), false));
+        assert!(allowed("POST", &format!("{batch}/exports"), false));
+        assert!(allowed("GET", &format!("{batch}/exports/latest"), false));
+        assert!(allowed("GET", export, false));
+        assert!(allowed("GET", &format!("{export}/issues?page=1"), false));
+        for method in ["POST", "PUT", "DELETE"] {
+            assert!(!allowed(method, export, false));
+            assert!(!allowed(method, &format!("{batch}/plan"), false));
+        }
+        assert!(!allowed("GET", &format!("{batch}/exports"), false));
+        assert!(!allowed("GET", &format!("{export}/../secret"), false));
+        assert!(!allowed("GET", &format!("{export}/issues"), true));
+    }
+
+    #[test]
     fn bridge_exposes_only_the_product_api() {
         assert!(allowed("POST", "/api/analysis/jobs", false));
+        assert!(allowed("POST", "/api/organization/batches", false));
+        assert!(allowed(
+            "GET",
+            "/api/organization/batches/latest?folderPath=test",
+            false
+        ));
+        assert!(allowed(
+            "GET",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/items?page=1",
+            false
+        ));
+        assert!(allowed(
+            "POST",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/control",
+            false
+        ));
+        assert!(!allowed("POST", "/_internal/analysis-connection", false));
+        assert!(!allowed("GET", "/_internal/update-ready", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
         assert!(allowed("GET", "/api/catalog/files/1/naming", false));
@@ -257,6 +515,21 @@ mod tests {
         assert!(!allowed("PUT", "/api/catalog/files/1/analysis", false));
         assert!(!allowed("PUT", "/api/catalog/files/0/naming", false));
         assert!(!allowed("PUT", "/api/catalog/files/../naming", false));
+        for method in ["GET", "PUT"] {
+            assert!(allowed(
+                method,
+                "/api/organization/batches/00000000-0000-0000-0000-000000000001/items/1/review",
+                false
+            ));
+            for id in ["0", "-1", "../1", "1/export", "1/rename"] {
+                assert!(!allowed(method, &format!("/api/organization/batches/00000000-0000-0000-0000-000000000001/items/{id}/review"), false));
+            }
+        }
+        assert!(!allowed(
+            "POST",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/items/1/review",
+            false
+        ));
         for path in [
             "http://evil.test/",
             "//evil.test/",

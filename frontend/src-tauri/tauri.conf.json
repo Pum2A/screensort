@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "ScreenSort",
-  "version": "0.1.1",
+  "version": "0.2.3",
   "identifier": "pl.pum.screensort",
   "build": {
     "frontendDist": "../dist",
@@ -25,6 +25,7 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": ["nsis"],
     "resources": { "runtime/": "runtime/" },
@@ -41,6 +42,14 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGNzY0MTk0QTUzN0E4MzEKUldReHFEZWxsRUYydjk3QmduQWt5UUVGeVIyamF1dGpRRXBvYzRhRkc0NktjOHcxV1B5T2ZPZTUK",
+      "endpoints": ["https://github.com/Pum2A/screensort-releases/releases/download/updates-preview/latest.json"],
+      "requireSignedVersion": true,
+      "windows": {"installMode": "passive"}
     }
   }
 }

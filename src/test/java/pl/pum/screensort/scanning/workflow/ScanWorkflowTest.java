@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import pl.pum.screensort.diagnostics.ProductMetrics;
 import pl.pum.screensort.catalog.reading.KnownFilesReader;
 import pl.pum.screensort.catalog.writing.CatalogUpdater;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
@@ -28,7 +30,9 @@ class ScanWorkflowTest {
   private final CatalogUpdater updater = mock(CatalogUpdater.class);
   private final ScanFolderValidator validator = mock(ScanFolderValidator.class);
   private final KnownFilesReader reader = mock(KnownFilesReader.class);
-  private final ScanWorkflow workflow = new ScanWorkflow(scanner, updater, validator, reader);
+  private final SimpleMeterRegistry registry = new SimpleMeterRegistry();
+  private final ScanWorkflow workflow = new ScanWorkflow(scanner, updater, validator, reader,
+      new ProductMetrics(registry));
 
   @Test
   void reportsStagesAndReceivedCountersBeforeSaving() throws Exception {
@@ -77,6 +81,9 @@ class ScanWorkflowTest {
     // COMPLETED ustawia manager dopiero po powrocie z całego workflow.
     assertFalse(stages.contains(ScanStatus.COMPLETED));
     verify(updater).update(root, result);
+    assertEquals(1, registry.get("screensort.operation").tag("operation", "catalog_save")
+        .tag("outcome", "success").timer().count());
+    assertEquals(1, registry.get("screensort.scan.files").tag("outcome", "rejected").counter().count());
   }
 
   @Test
@@ -89,5 +96,7 @@ class ScanWorkflowTest {
         () -> workflow.scanAndSave(folder, (status, summary) -> stages.add(status)));
     assertEquals(List.of(ScanStatus.PREPARING), stages);
     verifyNoInteractions(reader, scanner, updater);
+    assertEquals(1, registry.get("screensort.operation").tag("operation", "folder_validation")
+        .tag("outcome", "failure").timer().count());
   }
 }

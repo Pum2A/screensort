@@ -1,6 +1,168 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu i UI: 2026-10-15
+Ostatnia aktualizacja bieżącego etapu: 2026-10-21
+
+## Bieżący stan — najpierw przeczytaj tę sekcję
+
+Aktualna mapa funkcji, luk i testów: [current-state.md](current-state.md).
+Wydanie Windows Core to 0.2.3. Działa zapis zatwierdzonych kopii w folderach
+kategorii; opis kodu: [review-organized-export.md](review-organized-export.md).
+Aktualizacje są dostępne w aplikacji przez podpisany kanał `updates-preview`.
+
+PR #1 scalono 2026-10-21 do `codex/on-demand-ai-and-batch-review`, nie do `main`.
+Synchronizacja integruje ten stan z `main`; kolejne małe gałęzie mają wychodzić
+z aktualnego `main` i wracać do niego przez PR oraz CI. Nie utrzymujemy dodatkowej
+stałej gałęzi integracyjnej. Sprawdź stan PR synchronizacyjnego, zanim zaczniesz
+nową pracę. Nie usuwaj historii ani starych gałęzi bez potrzeby.
+
+Repozytorium źródłowe jest publiczne. Nie commituj prywatnych zdjęć, baz, logów,
+załączników, katalogu `.release` ani lokalnych przewodników z `output`.
+Starsze sekcje i prompt na końcu są historią: stwierdzenia „brak eksportu”,
+„HTTP health-only”, „brak klienta Javy” i „repo prywatne” nie opisują wersji 0.2.3.
+Przed kontynuacją użyj bieżącej mapy zamiast kopiować historyczny prompt w całości.
+
+Najbliższe luki: brak wspólnej interpretacji OCR/wizji w nazwach, pojedynczy profil
+Florence CPU, brak ponownego startu silnika po nieudanej próbie bez restartu
+aplikacji. Nie przedstawiaj testów kontraktu jako pomiaru trafności modeli.
+
+## Aktualizacje wewnątrz aplikacji — 0.2.2
+
+Na pilną prośbę właściciela dodano updater startujący w tle, powiadomienie,
+pobranie, weryfikację podpisu i wersji oraz instalację po zatwierdzeniu restartu.
+Opis kodu i sekretów: [review-in-app-updates.md](review-in-app-updates.md).
+Zmiany obejmują Rust, frontend, minimalny endpoint gotowości Javy oraz pipeline.
+Pierwsze przejście z 0.2.1 wymaga jednorazowej instalacji nowego Core.
+Nie uruchamiaj developera i zainstalowanej aplikacji na tej samej bazie naraz.
+Klucz prywatny jest poza Gitem; nigdy nie publikować `.release` jako całości.
+
+## UI eksploratora do weryfikacji — 2026-10-20
+
+Na prośbę właściciela wykonano teraz frontend, bez zmian w Javie/Pythonie/Rust.
+Opis plików, przepływu i ograniczeń: [review-explorer-ui.md](review-explorer-ui.md).
+Nowy lekki eksplorator: sidebar, katalog po 24, siatka/gałęzie formatów,
+inspektor, animowany podgląd, osobna analiza z drzewkiem kategorii strony,
+ochrona roboczej edycji, źródła OCR/wizji na żądanie, czytelny start i silnik.
+Motion używa `LazyMotion`/`domAnimation` i respektuje ograniczenie ruchu.
+Tailwind i Lucide pozostają; złożone układy mają CSS przypisany do komponentów.
+
+`npm run workspace:preview` w `frontend`: port 5184,
+`/tests/fixtures/workspace-preview.html`, wyłącznie fikcyjne dane i testowe zapisy
+w pamięci. Produkcyjny frontend używa istniejących endpointów/bridge.
+56/56 testów frontendu, build, lint i nowy `check:previews` przeszły lokalnie.
+Sprawdzono manualnie edycję, konflikt zapisu, podgląd/fokus, wznowienie i 390 px.
+Nie przebudowano instalatora ani nie naprawiano startu modeli/semantyki nazw.
+Następna praca po weryfikacji UI: niezawodne uruchamianie analizy i rzeczywista
+interpretacja OCR + wizji według wcześniejszego planu, potem bezpieczny eksport.
+
+## Metryki i opcjonalny cache podglądów — 2026-10-20
+
+Nowy zakres: `ProductMetrics`, profil developerski `observability`, Prometheus
+w osobnym `compose.observability.yaml` i opcjonalny `redis-cache` dla PNG podglądów.
+Szczegóły, kod i komendy: [review-observability-and-cache.md](review-observability-and-cache.md).
+Redis nie przechowuje surowego OCR ani nie jest cache inferencji. Domyślnie oraz
+w `desktop` nie powstaje klient Redis; eksport metryk też nie odsłania desktopu.
+Nowe pakowanie Java uwzględnia `jdk.management`, ale istniejącej instalacji nie
+przebudowano. Nie zmieniano prywatnej bazy, zdjęć ani instalacji właściciela.
+Lokalnie: 154 testy bez bazy/kontenerów, 0 błędów i 2 wcześniejsze pominięcia;
+osobno 1/1 test prawdziwego eksportu HTTP. Test Redis kontenerowy pominięty przy
+wyłączonym Dockerze. Compose i PowerShell poprawne składniowo. Brak benchmarku.
+
+Kolejność dalszej pracy została zmieniona po uwagach właściciela: najpierw
+diagnostyka i niezawodny start/wznowienie analizy, potem rzeczywista interpretacja
+OCR + wizji i ocena jakości nazw, następnie UI i plan bezpiecznego kopiowania.
+[Plan kontekstowej analizy](plan-contextual-analysis.md) jest **planem**, nie
+listą gotowych funkcji. Nie dodano nowych modeli, treningu ani wykrywania danych
+wrażliwych. Danych uznanych za wrażliwe nie wolno automatycznie kasować.
+
+## Zatwierdzanie nazw i kategorii — 2026-10-19
+
+Etap na `codex/on-demand-ai-and-batch-review`, desktop 0.2.1. Przegląd kodu:
+[review-organization-decisions.md](review-organization-decisions.md).
+Migracja V7 dodaje osobną decyzję organizacji na plik, nie zmienia wcześniejszych
+migracji. `ReviewService` atomowo zapisuje nazwę przez istniejący `NamingService`
+i kategorię/pominięcie przez `ReviewStore`. Blokada rodzica i obie wersje
+formularza chronią przed nadpisaniem nowszej decyzji. Zmiana SHA lub zatwierdzonej
+nazwy unieważnia poprzednie zatwierdzenie organizacji. Żadnego I/O na źródle.
+
+React: lista z miniaturami, jeden wybrany formularz, jawne odrzucenie edycji,
+czytelny konflikt i paginacja po 50. Nowe GET/PUT
+`/api/organization/batches/{batchId}/items/{fileId}/review` przechodzą przez
+ograniczony bridge Rust. Python, modele i katalog paczek AI bez zmian.
+`npm run review:preview` w `frontend` otwiera fikcyjny scenariusz na porcie 5183,
+bez użycia bazy i zdjęć właściciela. Nie jest częścią produkcyjnego wejścia.
+
+Lokalne testy: 142 jednostkowe Javy (2 wcześniejsze pominięcia), 14 testów
+z izolowanym PostgreSQL-em (w tym 8 nowych), 50 frontendu i 19 Rusta.
+Build i lint frontendu poprawne. Core 0.2.1 zbudowany; rzeczywisty resolver
+Tauri, start bez AI, katalog, miniatura i restart przeszły na osobnych danych.
+Pełny smoke Core + opcjonalny pakiet CPU również przeszedł: prawdziwy OCR,
+Florence, analiza folderu, pominięcie/zatwierdzenie, konflikt starego formularza
+i odczyt decyzji po restarcie. Źródłowy syntetyczny PNG pozostał bez zmian.
+Pakiet z lokalnego ZIP aktywowano na nowych danych testowych, nie w profilu
+właściciela. To test funkcjonalny, nie benchmark szybkości modeli.
+Nie aktualizowano instalacji właściciela. Nie wrzucać lokalnych raportów,
+baz i artefaktów `output` do nowych commitów.
+
+Nadal nie ma planu eksportu, kopiowania, fizycznego zmieniania nazw,
+trenowanego klasyfikatora ani wyboru modeli. Kolejny krok: uzgodniony podgląd
+planu eksportu przed bezpiecznym kopiowaniem. Starsze sekcje tego dokumentu
+opisują historię; nie traktować ich list brakujących funkcji jako stanu 0.2.1.
+
+## Instalowanie AI z aplikacji i CI/CD — 2026-10-19
+
+Kontynuacja po `da79df5`, wersja desktop 0.2.0. Zmiany i decyzje techniczne:
+[review-ai-package-installation.md](review-ai-package-installation.md).
+
+`desktop/packages/` w Rust odpowiada za wkompilowany katalog zaufanych paczek,
+pobieranie HTTPS, weryfikację SHA-256/rozmiaru, import ZIP z natywnego pickera,
+bezpieczne rozpakowanie i atomową aktywację w lokalnych danych aplikacji.
+Nie nadpisuje bazy ani działającej wersji. React ma osobny `AiPackagePanel`.
+Nie zmieniano w tym etapie logiki Javy ani Pythona. Obecny profil to CPU
+RapidOCR + Florence-2-base-ft; nie ma jeszcze wyboru innych modeli/GPU/resume HTTP.
+
+Źródłowe `Pum2A/screensort` pozostaje prywatne. Publiczne dystrybucyjne repo:
+`Pum2A/screensort-releases`. Użytkownik wyraźnie zatwierdził publikowanie paczek.
+Nie publikować zdjęć, baz, logów, załączników ani całego `.release/`.
+
+CI: Java, frontend, Python, natywne testy Windows. `windows-release.yml` buduje
+CoreOnly dopiero po testach i sprawdza Tauri startup na izolowanej bazie.
+Publikacja między repozytoriami wymaga sekretu Actions `RELEASES_TOKEN`
+ograniczonego do Contents:write w repo dystrybucyjnym. Nie pobierać i nie
+kopiować lokalnego tokena `gh` do CI. Nowy workflow wymaga merge do default branch,
+aby pojawił się jako ręcznie uruchamiany w Actions. Push `codex/**` uruchamia CI.
+
+## AI na żądanie i analiza folderu — 2026-10-19
+
+Zmiany przygotowano na gałęzi `codex/on-demand-ai-and-batch-review`, nie na `main`.
+Szczegółowy przegląd kodu: [review-on-demand-ai-batches.md](review-on-demand-ai-batches.md).
+Starsze sekcje poniżej są historią, nie aktualnym wykazem możliwości.
+
+Katalog startuje bez Pythona. Natywne polecenie uruchamia istniejący pakiet AI
+na żądanie i przekazuje Javie prywatny adres/token. `CoreOnly` pomija AI przy
+budowaniu. Nie dodano jeszcze pobierania pakietów ani wyboru różnych modeli.
+
+Moduł Java `organization` oraz migracja V6 dodają zadania obejmujące cały zapisany
+folder: checkpointy w PostgreSQL, pauza, wznowienie, odzyskanie po restarcie,
+propozycje kategorii i nazw. Kategorie są jawnie prostymi regułami opisu/OCR,
+nie nowym modelem rozpoznającym np. Roblox. Wszystkie wymagają sprawdzenia.
+Nowy job nie korzysta jeszcze z cache inferencji. Nie ma eksportu kopii.
+
+Frontend ma „Analizuj wszystko”, strony propozycji, Lucide i Tailwind bez Preflight.
+Zachowano istniejące lazy loading i podglądy, miniatury nie obcinają screenshotów,
+a powody pominięcia są tłumaczone użytkownikowi. Python/model pozostają bez zmian.
+
+Przygotowano i przetestowano runtime bez AI: 282,6 MiB wobec 1653,9 MiB pełnego
+pakietu na dysku. To nie wielkości instalatorów ani benchmark czasu startu.
+Pełny runtime developerski przywrócono; wariant bez AI zachowano osobno w `.release`.
+Poprzedni backend JAR również ma kopię w `.release/backups`.
+
+Nie zbudowano nowego instalatora ani nie aktualizowano zainstalowanej aplikacji.
+W tej kopii nowy kod uruchomisz przez `npm run tauri dev` w `frontend`.
+Dołączony `runtime/backend.jar` odświeżono. Na innym urządzeniu przygotuj runtime'y
+i aktualny backend zgodnie z instrukcją budowania; nie są commitowane do Git.
+
+Dotychczasowe nieśledzone przewodniki z `output` pozostawiono bez zmian i nie
+dodano ich do nowych commitów. Nie kasować starego repozytorium ani danych bazy.
 
 ## Prezentacja portfolio i LinkedIn — 2026-10-15
 
@@ -289,7 +451,7 @@ https://github.com/Pum2A/screensort
 ```
 
 Domyślna gałąź to `main`. Stare repozytorium
-`<lokalny-katalog-projektu> jest wyłącznie kopią zapasową. Nie wolno
+`<lokalny-katalog-projektu>` jest wyłącznie kopią zapasową. Nie wolno
 go jeszcze usuwać ani modyfikować i nie wolno kopiować z niego katalogu `.git`.
 
 ## Sposób współpracy

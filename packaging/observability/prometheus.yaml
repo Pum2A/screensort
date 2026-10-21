@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s
+  scrape_timeout: 2s
+
+scrape_configs:
+  - job_name: screensort-dev
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # Docker Desktop: the Java management server remains bound to host loopback.
+      - targets: ['host.docker.internal:19091']

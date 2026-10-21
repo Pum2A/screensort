@@ -14,7 +14,7 @@ export function CatalogDetailsPanel({file, onPreview}: {file: CatalogFile, onPre
         <div className={styles.body}>
             <div className={styles.selected}>
                 <div className={styles.thumbnail}><CatalogImage key={src} src={src} name=""/></div>
-                <div className={styles.description}><p className={styles.name}>{file.originalName}</p>
+                <div className={styles.description}><p className={styles.name} title={file.originalName}>{file.originalName}</p>
                     <p className={styles.muted}>{file.extension.toUpperCase()} · {formatSize(file.sizeBytes)}</p>
                     <button type="button" className="text-button" onClick={event => onPreview(event.currentTarget)}><Icon name="zoom"/>Powiększ obraz</button>
                 </div>

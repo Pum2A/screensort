@@ -1,0 +1,156 @@
+name: Windows Core release
+
+on:
+  push:
+    tags: ['desktop-v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish a prerelease in the public distribution-only repository
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    needs: checks
+    runs-on: windows-latest
+    timeout-minutes: 60
+    env:
+      RUSTUP_TOOLCHAIN: 1.95.0
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Rust
+        run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Restore Rust compilation cache
+        id: rust-cache
+        continue-on-error: true
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ runner.os }}-x64-rust-1.95-core-v1-${{ hashFiles('frontend/src-tauri/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-x64-rust-1.95-core-v1-
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/release/deps
+            frontend/src-tauri/target/release/build
+            frontend/src-tauri/target/release/.fingerprint
+      - name: Frontend dependencies
+        run: npm ci --prefix frontend
+      - name: Allow the runner identity to own its isolated database
+        shell: pwsh
+        run: |
+          # PostgreSQL drops administrator privileges on Windows. The hosted
+          # workspace must grant its actual user SID access, not only Administrators.
+          # This affects this disposable runner only, never an installed user profile.
+          $workspace = [IO.Path]::GetFullPath($env:GITHUB_WORKSPACE)
+          if ($workspace -eq [IO.Path]::GetPathRoot($workspace)) { throw 'Refusing a drive-root ACL change' }
+          $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+          icacls.exe $workspace /grant "*$($sid):(OI)(CI)F" /Q
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare runner-only database permissions' }
+      - name: Prepare Core runtimes and backend
+        shell: pwsh
+        run: ./scripts/build-windows.ps1 -CoreOnly -StageOnly -JdkPath $env:JAVA_HOME
+      - name: Verify standard-user process launch before compilation
+        shell: pwsh
+        run: ./scripts/test-desktop-startup.ps1 -IdentityOnly
+      - name: Compile the desktop application
+        working-directory: frontend
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: npm run tauri -- build --ci --no-bundle
+      - name: Verify real desktop startup and catalog persistence
+        shell: pwsh
+        run: ./scripts/test-desktop-startup.ps1 -CoreOnly
+      - name: Package and sign Windows installer
+        working-directory: frontend
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: npm run tauri -- bundle --ci --bundles nsis
+      - name: Preserve isolated startup report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: screensort-startup-report-${{ github.run_number }}
+          path: |
+            .release/startup-check-*/data.report.json
+            .release/startup-check-*/data/sessions/*/postgres.log
+            .release/startup-check-*/data/sessions/*/database-tools.log
+            .release/startup-check-*/java-startup-error.txt
+          include-hidden-files: true # synthetic report/database errors only; no credentials
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Save compilation cache even after a later test failure
+        if: always() && !cancelled() && steps.rust-cache.outcome == 'success' && steps.rust-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          key: ${{ steps.rust-cache.outputs.cache-primary-key }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            frontend/src-tauri/target/release/deps
+            frontend/src-tauri/target/release/build
+            frontend/src-tauri/target/release/.fingerprint
+      - name: Collect only distribution files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path .release/publish | Out-Null
+          $version = (Get-Content frontend/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:GITHUB_REF.StartsWith('refs/tags/desktop-v') -and $env:GITHUB_REF -ne "refs/tags/desktop-v$version") { throw 'Release tag does not match app version' }
+          $installers = @(Get-ChildItem "frontend/src-tauri/target/release/bundle/nsis/ScreenSort_$($version)_x64-setup.exe")
+          if ($installers.Count -ne 1) { throw 'Expected exactly one Windows installer' }
+          Copy-Item -LiteralPath $installers[0].FullName -Destination .release/publish
+          Copy-Item -LiteralPath ($installers[0].FullName + '.sig') -Destination .release/publish
+          ./scripts/create-update-manifest.ps1 -Installer $installers[0].FullName -Tag "v$version-preview" -OutputPath .release/publish/latest.json
+          Copy-Item packaging/windows/ai-packages.json,packaging/windows/THIRD-PARTY-NOTICES.md,packaging/windows/FLORENCE-LICENSE.txt -Destination .release/publish
+          $hash = (Get-FileHash -LiteralPath $installers[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $($installers[0].Name)" | Set-Content .release/publish/SHA256SUMS.txt -Encoding utf8NoBOM
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: screensort-windows-core-${{ github.run_number }}
+          path: .release/publish/*
+          include-hidden-files: true # only the distribution staging directory
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+      - name: Publish approved distribution prerelease
+        if: inputs.publish || startsWith(github.ref, 'refs/tags/desktop-v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          if (-not $env:GH_TOKEN) { throw 'Configure RELEASES_TOKEN scoped to Contents:write on Pum2A/screensort-releases only. Build artifact is already available.' }
+          $version = (Get-Content frontend/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $tag = "v$version-preview"
+          $assets = @(Get-ChildItem .release/publish -File | ForEach-Object FullName)
+          gh release create $tag @assets --repo Pum2A/screensort-releases --prerelease --title "ScreenSort $version preview" --notes-file packaging/distribution/core-release.md
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
+          gh release view updates-preview --repo Pum2A/screensort-releases *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create updates-preview --repo Pum2A/screensort-releases --prerelease --title 'ScreenSort preview update channel' --notes 'Signed Windows Core updates. Models and private data are not included.'
+            if ($LASTEXITCODE -ne 0) { throw 'Cannot prepare update channel' }
+          }
+          gh release upload updates-preview .release/publish/latest.json --repo Pum2A/screensort-releases --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Version release exists, but updating the channel failed. Do not delete a working release.' }

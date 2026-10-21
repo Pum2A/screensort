@@ -11,25 +11,18 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.springframework.stereotype.Service;
+import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.AnalysisException;
-import pl.pum.screensort.analysis.client.PythonAnalysisClient;
-import pl.pum.screensort.analysis.database.AnalysisStore;
-import pl.pum.screensort.analysis.result.AnalysisResult;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.analysis.source.AnalysisSourceReader;
 
 @Service
 public class AnalysisJobManager {
-  private final AnalysisSourceReader sources;
-  private final PythonAnalysisClient python;
-  private final AnalysisStore store;
+  private final AnalysisProcessor processor;
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final Map<UUID, AnalysisJob> jobs = new LinkedHashMap<>();
   private UUID active;
 
-  public AnalysisJobManager(AnalysisSourceReader sources, PythonAnalysisClient python, AnalysisStore store) {
-    this.sources = sources; this.python = python; this.store = store;
-  }
+  public AnalysisJobManager(AnalysisProcessor processor) { this.processor = processor; }
 
   public synchronized AnalysisJob start(long fileId, boolean ocr, boolean visual) {
     if (fileId <= 0 || (!ocr && !visual)) throw new AnalysisException(400, "Wybierz obraz i rodzaj analizy.");
@@ -44,19 +37,12 @@ public class AnalysisJobManager {
   }
 
   public synchronized Optional<AnalysisJob> find(UUID id) { return Optional.ofNullable(jobs.get(id)); }
+  public synchronized boolean hasActiveJob() { return active != null; }
 
   private void run(UUID id, long fileId, boolean ocr, boolean visual) {
     try {
-      var input = sources.read(fileId);
       update(id, ANALYZING, null, null);
-      AnalysisResult result = python.analyze(input.bytes(), input.mediaType(), ocr, visual);
-      if (!input.sha256().equals(result.sourceSha256())) throw new AnalysisException(502, "Nie zgadza się hash wyniku analizy.");
-      if ((ocr == (result.ocr().status() == AnalysisResult.Status.SKIPPED))
-          || (visual == (result.visual().status() == AnalysisResult.Status.SKIPPED))) {
-        throw new AnalysisException(502, "Serwis zwrócił wynik niezgodny z zamówioną analizą.");
-      }
-      update(id, SAVING, null, null);
-      var saved = store.save(fileId, ocr, visual, result);
+      var saved = processor.process(fileId, ocr, visual, null, () -> update(id, SAVING, null, null));
       update(id, COMPLETED, saved, null);
     } catch (RuntimeException e) {
       String message = e instanceof AnalysisException ? e.getMessage()

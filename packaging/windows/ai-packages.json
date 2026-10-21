@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "packages": [{
+    "id": "ai-cpu",
+    "name": "OCR + opis obrazu (CPU)",
+    "version": "2026-10-19-2",
+    "url": "https://github.com/Pum2A/screensort-releases/releases/download/ai-cpu-2026-10-19-2/screensort-ai-cpu-windows-x64-2026-10-19-2.zip",
+    "sha256": "e9e4d9dd335a7158de93807c3e2ac8bcaaadd6692a0add1c1ef84d84fbbfc37f",
+    "archiveBytes": 747507987,
+    "unpackedBytes": 1365180817,
+    "fileCount": 21387,
+    "requiredFiles": [
+      "python/python.exe",
+      "python/python314.dll",
+      "python/app/screensort_analysis/launch.py",
+      "python/Lib/site-packages/rapidocr/__init__.py",
+      "python/Lib/site-packages/torch/__init__.py",
+      "models/models--florence-community--Florence-2-base-ft/snapshots/0b03b6f15a4a211370fb204aee4e7dd48887ea37/model.safetensors",
+      "THIRD-PARTY-NOTICES.md",
+      "FLORENCE-LICENSE.txt"
+    ]
+  }]
+}

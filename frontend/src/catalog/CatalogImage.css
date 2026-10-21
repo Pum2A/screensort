@@ -1,11 +1,11 @@
-.catalog-image { position: relative; aspect-ratio: 1; width: 100%; display: grid; place-items: center; overflow: hidden; background: #e9edf4; border-radius: 50%; }
-.catalog-image img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; opacity: 0; transition: opacity var(--motion-duration) var(--motion-ease); }
+.catalog-image { position: relative; aspect-ratio: 4 / 3; width: 100%; display: grid; place-items: center; overflow: hidden; background: #edf1e8; border-radius: 12px; }
+.catalog-image img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: contain; opacity: 0; transition: opacity var(--motion-duration) var(--motion-ease); }
 .catalog-image img.is-ready { opacity: 1; }
 .image-placeholder { color: #8c99ae; display: grid; place-items: center; }
 .image-placeholder .icon { width: 24px; height: 24px; }
-.image-unavailable { padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; color: var(--muted); font-size: 16px; }
+.image-unavailable { padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; color: var(--danger); font-size: 10px; }
 .image-unavailable .icon { width: 24px; height: 24px; }
-.image-unavailable small { font-size: 18px; line-height: 1.3; max-width: 260px; }
+.image-unavailable small { font-size: 12px; line-height: 1.6; max-width: 260px; }
 .catalog-image-large { aspect-ratio: 4 / 3; border-radius: 8px; background: #e9edf4; }
 .catalog-image-large img { object-fit: contain; }
 @media (max-width: 640px) { .catalog-image-large { max-height: 320px; } }

@@ -2,7 +2,8 @@ param(
     [string]$JdkPath = $env:JAVA_HOME,
     [string]$VCRedistPath = '',
     [switch]$StageOnly,
-    [switch]$SkipBackendBuild
+    [switch]$SkipBackendBuild,
+    [switch]$CoreOnly
 )
 
 # Build-time tools stay on the developer's PC, not on the user's machine.
@@ -16,6 +17,12 @@ $cache = Join-Path $release 'cache'
 $lock = Get-Content -LiteralPath (Join-Path $repo 'packaging/windows/runtime-lock.json') -Raw | ConvertFrom-Json
 $utf8 = New-Object Text.UTF8Encoding($false)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
+$previousSigningKey = $env:TAURI_SIGNING_PRIVATE_KEY
+if (-not $StageOnly -and -not $env:TAURI_SIGNING_PRIVATE_KEY) {
+    $localSigningKey = Join-Path $release 'update-signing/screensort.key'
+    if (-not (Test-Path -LiteralPath $localSigningKey)) { throw 'Signed installer requires TAURI_SIGNING_PRIVATE_KEY or the protected local updater key.' }
+    $env:TAURI_SIGNING_PRIVATE_KEY = $localSigningKey
+}
 
 function Invoke-Checked([string]$Executable, [string[]]$Arguments) {
     & $Executable @Arguments
@@ -71,8 +78,10 @@ try {
     }
     Copy-Item -LiteralPath (Join-Path $repo 'target/screensort-0.0.1-SNAPSHOT.jar') -Destination (Join-Path $stage 'backend.jar')
     Write-Host 'Creating a private Java runtime...'
-    Invoke-Checked (Join-Path $JdkPath 'bin/jlink.exe') @('--add-modules', 'java.se,jdk.unsupported,jdk.crypto.ec,jdk.zipfs', '--strip-debug', '--no-header-files', '--no-man-pages', '--output', (Join-Path $stage 'java'))
+    Invoke-Checked (Join-Path $JdkPath 'bin/jlink.exe') @('--add-modules', 'java.se,jdk.management,jdk.unsupported,jdk.crypto.ec,jdk.zipfs', '--strip-debug', '--no-header-files', '--no-man-pages', '--output', (Join-Path $stage 'java'))
 
+    $python = Join-Path $stage 'python'
+    if (-not $CoreOnly) {
     Write-Host 'Staging portable Python and locked model dependencies...'
     Push-Location (Join-Path $repo 'analysis-service')
     try { Invoke-Checked 'uv' @('sync', '--locked', '--extra', 'vision', '--no-python-downloads') }
@@ -100,6 +109,9 @@ try {
     $snapshot = Join-Path $models "models--florence-community--Florence-2-base-ft/snapshots/$($lock.model.revision)/model.safetensors"
     if (-not (Test-Path -LiteralPath $snapshot)) { throw 'The pinned Florence model must be downloaded before packaging.' }
     Copy-Item -LiteralPath (Join-Path $models 'models--florence-community--Florence-2-base-ft') -Destination (Join-Path $stage 'models/models--florence-community--Florence-2-base-ft') -Recurse
+    } else {
+        Write-Host 'Core-only installer: Python, ML packages and models are intentionally omitted.'
+    }
 
     Write-Host 'Staging private PostgreSQL (without pgAdmin or StackBuilder)...'
     Expand-Safe (Download-Locked $lock.postgres) (Join-Path $stage 'postgres') $true
@@ -113,16 +125,20 @@ try {
         $VCRedistPath = (Get-ChildItem -LiteralPath (Join-Path $version.FullName 'x64') -Directory -Filter 'Microsoft.VC*.CRT' | Select-Object -First 1).FullName
     }
     foreach ($binaryDirectory in @((Join-Path $stage 'java/bin'), $python, (Join-Path $stage 'postgres/bin'))) {
+        if (-not (Test-Path -LiteralPath $binaryDirectory)) { continue }
         Get-ChildItem -LiteralPath $VCRedistPath -File -Filter '*.dll' | Copy-Item -Destination $binaryDirectory
     }
+    if (-not $CoreOnly) {
     $requiredCrt = & (Join-Path $python 'python.exe') -I -B (Join-Path $repo 'packaging/windows/check-vc-imports.py') $stage | ConvertFrom-Json
     foreach ($dll in $requiredCrt) {
         if ($dll -eq 'msvcrt.dll' -or $dll -match '-[a-f0-9]{32}\.dll$') { continue }
         if (-not (Test-Path -LiteralPath (Join-Path $python $dll))) { throw "Missing app-local CRT dependency: $dll" }
     }
+    }
     [IO.File]::WriteAllText((Join-Path $stage 'runtime-manifest.json'), ($lock | ConvertTo-Json -Depth 5), $utf8)
     Copy-Item -LiteralPath (Join-Path $repo 'packaging/windows/THIRD-PARTY-NOTICES.md') -Destination $stage
     Copy-Item -LiteralPath (Join-Path $repo 'packaging/windows/FLORENCE-LICENSE.txt') -Destination $stage
+    if (-not $CoreOnly) {
     Invoke-Checked (Join-Path $python 'python.exe') @('-I', '-B', '-c', 'import torch,onnxruntime,fastapi,PIL,screensort_analysis.launch')
     Write-Host 'Portable runtime imports OK'
     $previousModelCache = $env:SCREENSORT_MODEL_CACHE
@@ -131,6 +147,7 @@ try {
         Invoke-Checked (Join-Path $python 'python.exe') @('-I', '-B', '-c', 'from screensort_analysis.image.runtime import load_analyzer;load_analyzer()')
     } finally { $env:SCREENSORT_MODEL_CACHE = $previousModelCache }
     Write-Host 'Bundled OCR and vision warm-up OK'
+    }
     Invoke-Checked (Join-Path $stage 'postgres/bin/postgres.exe') @('--version')
     Invoke-Checked (Join-Path $stage 'java/bin/java.exe') @('-version')
 
@@ -145,18 +162,23 @@ try {
     Move-Item -LiteralPath $stage -Destination $destination
     Write-Host "Runtime ready: $destination"
     if (-not $StageOnly) {
+        # tauri-build copies resources but does not remove files left by an older full build.
+        # Preserve the generated output before CoreOnly checks, or stale Python could mask a missing package.
+        $builtRuntime = [IO.Path]::GetFullPath((Join-Path $repo 'frontend/src-tauri/target/release/runtime'))
+        if ($builtRuntime -ne "$repo\frontend\src-tauri\target\release\runtime") { throw 'Unexpected build resource target' }
+        if (Test-Path -LiteralPath $builtRuntime) {
+            $buildBackup = Join-Path $release "backups/build-runtime-$stamp"
+            [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($buildBackup)) | Out-Null
+            Move-Item -LiteralPath $builtRuntime -Destination $buildBackup
+            Write-Host "Previous generated build resources preserved at $buildBackup"
+        }
         Push-Location (Join-Path $repo 'frontend')
         try {
-            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--no-bundle')
-            # Never ship solely on the basis of the manual --runtime-dir smoke path.
-            $checkData = Join-Path $release "startup-check-$stamp"
-            $checkExe = Join-Path $repo 'frontend/src-tauri/target/release/screensort-desktop.exe'
-            $checkProcess = Start-Process -FilePath $checkExe -ArgumentList @('--startup-check', '--data-dir', ('"' + $checkData + '"')) -WindowStyle Hidden -PassThru -Wait -RedirectStandardOutput "$checkData.stdout.log" -RedirectStandardError "$checkData.stderr.log"
-            if ($checkProcess.ExitCode -ne 0) { throw "Tauri startup check failed. See $checkData.report.json and session logs; no installer was generated." }
-            $checkReport = Get-Content -LiteralPath "$checkData.report.json" -Raw | ConvertFrom-Json
-            if (-not $checkReport.passed -or -not $checkReport.tauriResourceResolver) { throw 'The real Tauri startup path was not verified. Refusing to package.' }
-            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--bundles', 'nsis')
+            & (Join-Path $repo 'scripts/test-desktop-startup.ps1') -IdentityOnly
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'build', '--ci', '--no-bundle')
+            & (Join-Path $repo 'scripts/test-desktop-startup.ps1') -CoreOnly:$CoreOnly
+            Invoke-Checked 'npm.cmd' @('run', 'tauri', '--', 'bundle', '--ci', '--bundles', 'nsis')
         }
         finally { Pop-Location }
     }
-} finally { Pop-Location }
+} finally { Pop-Location; $env:TAURI_SIGNING_PRIVATE_KEY = $previousSigningKey }

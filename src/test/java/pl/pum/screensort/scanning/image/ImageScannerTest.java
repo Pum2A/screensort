@@ -35,10 +35,14 @@ import pl.pum.screensort.scanning.result.ScanSummary;
 class ImageScannerTest {
 
   @Test
-  void findsSupportedImagesInDemoFolder() throws Exception {
+  void findsSupportedImagesAndRejectsUnsupportedFile(@TempDir Path folder) throws Exception {
+    writeImage(folder.resolve("first.png"), 2);
+    writeImage(folder.resolve("second.png"), 3);
+    Files.writeString(folder.resolve("notes.zip"), "Synthetic unsupported-file fixture.");
+
     try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
       ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
-      AllowedRoot allowedRoot = new ScanFolderValidator().validate(Path.of("demo-images"));
+      AllowedRoot allowedRoot = new ScanFolderValidator().validate(folder);
 
       ScanResult result = scanner.scan(allowedRoot, Map.of());
 
