@@ -4,6 +4,11 @@ Ostatnia aktualizacja bieżącego etapu: 2026-10-21
 
 ## Bieżący stan — najpierw przeczytaj tę sekcję
 
+Etap 0.2.4 przebudowuje UI i inicjuje kontrolę aktualizacji przy starcie Tauri,
+nie przy zamontowaniu Reacta. Szczegóły: [review-fluid-workspace.md](review-fluid-workspace.md).
+Nie zmienia modeli, nazewnictwa ani sposobu zapisu prywatnych danych.
+Sekcja 0.2.3 poniżej opisuje wcześniejszy etap i jego opublikowane wydanie.
+
 Aktualna mapa funkcji, luk i testów: [current-state.md](current-state.md).
 Wydanie Windows Core to 0.2.3. Działa zapis zatwierdzonych kopii w folderach
 kategorii; opis kodu: [review-organized-export.md](review-organized-export.md).

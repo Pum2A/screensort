@@ -1,10 +1,12 @@
 ## ScreenSort Windows x64 preview
 
-New in 0.2.3: save reviewed images as an organized copy. Approve names and
-categories, select a destination, and follow copying progress inside ScreenSort.
-The app creates category folders, preserves existing files and checks each
-source against its approved SHA-256 while copying. Original images stay in place.
-Core updates can be downloaded and installed from ScreenSort.
+New in 0.2.4: a redesigned workspace, larger image cards, updated review and
+startup screens, smoother interactions and accessible tooltips. The native
+application checks for updates on each fresh launch, independently of the UI;
+the current version/check result is visible in the header. Offline checks do not
+block the catalog. Downloading and installing still require an explicit action.
+Existing verified category copies and source-file protections remain unchanged.
+This update does not change the recognition models or improve contextual naming.
 
 The Core installer starts the local catalog and private PostgreSQL without installing Python or loading AI models. No Docker, JDK or system Python is required on the user's machine.
 
