@@ -3,6 +3,27 @@
 Status: Draft v0.1  
 Assumed pace: 10–15 focused hours per week
 
+## Implementation snapshot — 2026-10-21
+
+The milestone dates below are the original plan, not current delivery estimates.
+See [current-state.md](current-state.md) for verified implementation status.
+
+Cataloging, Java/Python HTTP analysis, whole-folder jobs, manual review, a Windows
+installer, in-app updates and verified organized copying are implemented in 0.2.3.
+Milestone 4 remains incomplete: useful contextual naming, tags and cross-catalog
+OCR search are not delivered. Milestone 5 has working copies and collision checks,
+but lacks a capacity preflight and resumable interrupted export. Recovery currently
+marks an unfinished export interrupted and preserves completed copies.
+
+Prometheus integration and optional preview-only Redis exist for development;
+they are not required by the desktop installer. Tauri is no longer deferred.
+GPU/model profiles, semantic search, filesystem watching, cloud synchronization
+and distributed brokers remain outside the implemented feature set.
+
+Next delivery order: reliable model startup/retry with measured stages, then a
+synthetic evaluation set and shared OCR/vision interpretation for better names.
+New infrastructure alone does not satisfy either of these product outcomes.
+
 Update 2026-10-11: [ADR-004](adr/ADR-004-local-python-analysis-service.md)
 brings the narrow local Python analysis service into milestone 3. Its independently
 runnable health-only scaffold exists. The original dates below are planning

@@ -1,6 +1,29 @@
 # ScreenSort — przenoszenie pracy między urządzeniami i rozmowami AI
 
-Ostatnia aktualizacja bieżącego etapu: 2026-10-20
+Ostatnia aktualizacja bieżącego etapu: 2026-10-21
+
+## Bieżący stan — najpierw przeczytaj tę sekcję
+
+Aktualna mapa funkcji, luk i testów: [current-state.md](current-state.md).
+Wydanie Windows Core to 0.2.3. Działa zapis zatwierdzonych kopii w folderach
+kategorii; opis kodu: [review-organized-export.md](review-organized-export.md).
+Aktualizacje są dostępne w aplikacji przez podpisany kanał `updates-preview`.
+
+PR #1 scalono 2026-10-21 do `codex/on-demand-ai-and-batch-review`, nie do `main`.
+Synchronizacja integruje ten stan z `main`; kolejne małe gałęzie mają wychodzić
+z aktualnego `main` i wracać do niego przez PR oraz CI. Nie utrzymujemy dodatkowej
+stałej gałęzi integracyjnej. Sprawdź stan PR synchronizacyjnego, zanim zaczniesz
+nową pracę. Nie usuwaj historii ani starych gałęzi bez potrzeby.
+
+Repozytorium źródłowe jest publiczne. Nie commituj prywatnych zdjęć, baz, logów,
+załączników, katalogu `.release` ani lokalnych przewodników z `output`.
+Starsze sekcje i prompt na końcu są historią: stwierdzenia „brak eksportu”,
+„HTTP health-only”, „brak klienta Javy” i „repo prywatne” nie opisują wersji 0.2.3.
+Przed kontynuacją użyj bieżącej mapy zamiast kopiować historyczny prompt w całości.
+
+Najbliższe luki: brak wspólnej interpretacji OCR/wizji w nazwach, pojedynczy profil
+Florence CPU, brak ponownego startu silnika po nieudanej próbie bez restartu
+aplikacji. Nie przedstawiaj testów kontraktu jako pomiaru trafności modeli.
 
 ## Aktualizacje wewnątrz aplikacji — 0.2.2
 

@@ -15,8 +15,14 @@ It also supports resumable whole-folder analysis with preliminary category/name
 proposals. Categories currently use explicit keyword rules, not a new trained classifier.
 Optional AI packages can be downloaded from inside the app. The new folder review
 queue lets you edit names/categories, approve or skip images and persist decisions.
-Verified copy operations are not implemented. Preview 0.2.1 adds this review stage;
+Preview 0.2.3 also creates organized copies of explicitly approved images in
+category folders, verifies their source content against the approved SHA-256 and
+preserves originals and existing destination files. In-app updates are available;
 older installers do not gain source changes without an update.
+
+[Current state and known gaps (Polish)](docs/current-state.md) is the dated
+implementation and verification snapshot. Use `main` as the integration baseline;
+short-lived feature branches return to `main` through a tested pull request.
 
 [Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
 [Architecture](#architecture) · [Development](docs/development.md) ·
@@ -91,7 +97,9 @@ This is one example, not an accuracy claim. Captions may be incomplete or incorr
 | Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
 | Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
 | Organization review | Editable name/category, approve or skip, persistent decisions and stale-form conflict protection |
+| Organized copies | Paged approval plan, native output-folder picker, background copying into category folders, persisted progress and per-file problems |
 | Windows packaging | CoreOnly starts without Python/models; optional, checksum-pinned CPU AI package installs from the app or a matching ZIP |
+| In-app updates | Signed, version-bound Core updates from the preview channel, with restart guards for active work |
 
 Matching size and modification time is a performance shortcut, not proof that
 file bytes are unchanged. Reusing a catalog row is not the same as grouping all
@@ -109,6 +117,8 @@ The existing presentation media above shows the earlier interface.
 
 The new decision flow, exact code paths and manual test scenario are documented in
 the [organization review guide (Polish)](docs/review-organization-decisions.md).
+The [organized export guide (Polish)](docs/review-organized-export.md) follows the
+approved decision through the Java worker to the destination file.
 
 ## How it works
 
@@ -128,6 +138,10 @@ the [organization review guide (Polish)](docs/review-organization-decisions.md).
 7. In the whole-folder review queue, check each name/category and approve or skip
    it. Changes are saved atomically; an outdated open form cannot overwrite a newer
    decision. No source file is renamed or moved by approval.
+8. Open the organization plan, choose a destination and explicitly start copying.
+   Java creates a new `ScreenSort` output directory, resolves name collisions and
+   hashes each source while streaming it to a temporary file. Only matching content
+   is finalized; React shows persisted progress and per-file problems.
 
 The scan and analysis jobs have different IDs and lifecycles. Catalog records and
 analysis results persist; the current scan job snapshots are held in memory.
@@ -143,9 +157,9 @@ cloud microservice platform: Rust supervises local processes on one computer.
 | Component | Responsibility | Technology |
 | --- | --- | --- |
 | Desktop shell | Window, folder picker, owned process lifecycle and restricted native bridge | Tauri 2, Rust |
-| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, CSS Modules |
+| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, Tailwind, component-scoped CSS, Motion, Lucide |
 | Application backend | Scanning, validation, catalog, analysis coordination, filename review and REST APIs | Java 25, Spring Boot 4.1.1 |
-| Persistence | Catalog, analysis and naming decisions; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, Flyway |
+| Persistence | Catalog, analysis, review decisions and copy jobs; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, JdbcTemplate, Flyway |
 | Analysis service | OCR and visual description, loaded local models | Python, FastAPI, RapidOCR, Florence-2-base-ft |
 | Development and checks | Reproducible dependencies, database integration and test suites | Maven Wrapper, Docker Compose, Testcontainers, Git |
 
@@ -169,20 +183,24 @@ The intended product flow is:
 
 ```text
 Choose folder → catalog images → OCR + visual description
-              → suggest, edit and approve a filename     [implemented in source]
-              → suggest categories and tags              [planned]
-              → create verified copies in an output folder [planned]
+              → baseline name/category proposals → manual approval
+              → preview plan → verified organized copies [implemented]
+
+Shared OCR/vision interpretation, useful contextual names,
+alternative model profiles and semantic search             [not implemented]
 ```
 
-The original folder should remain untouched. Future copy operations must avoid
-overwriting destination files and verify the copied content before finalization.
+The original folder remains untouched. Each export creates a separate output
+directory; completed copies are kept if a later file fails. A restart marks an
+unfinished export as interrupted, not resumed. A new export creates a new directory.
 
 [Filename review: flow, changed files and manual checks (Polish)](docs/propozycje-nazw.md).
 
-Near-term work also includes a smaller base installer with optional analysis
-downloads. This is a proposed distribution change, not part of version 0.1.1.
-Search by extracted content, batch analysis, GPU acceleration and cross-device
-synchronization are not available yet.
+Core-only installation and optional analysis downloads are implemented. The next
+product gap is reliable model startup/retry and evidence-based contextual naming,
+not another copy of the baseline caption-to-name rule. Search by extracted content,
+GPU acceleration, alternative model selection and cross-device synchronization
+are not available yet. See the [contextual analysis plan](docs/plan-contextual-analysis.md).
 
 ## Running and building
 
@@ -192,8 +210,11 @@ synchronization are not available yet.
 - [Python analysis service setup](analysis-service/README.md)
 
 The Windows installer runs without a separately installed JDK, Python, Node or
-Docker. Building it still requires developer tools. The current offline installer
-is large and unsigned; it has not been verified on a clean Windows VM. Binary
+Docker. Building it still requires developer tools. Core 0.2.3 is published in the
+[distribution repository](https://github.com/Pum2A/screensort-releases/releases/tag/v0.2.3-preview).
+Its updater signature is not a Windows Authenticode certificate. The installer
+still bundles the core runtimes and offline WebView installer; clean-VM validation
+remains separate from the isolated startup checks. Binary
 runtimes, model weights, local databases and installers are not committed to Git.
 
 ## Project notes
