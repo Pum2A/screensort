@@ -56,3 +56,12 @@ frontend/src-tauri/runtime/
 
 # Private chat attachments are not application source or release assets.
 .codex-remote-attachments/
+
+### Local tool caches and generated review material ###
+.pytest_cache/
+.ruff_cache/
+.tmp/
+tmp/
+.commandcode/
+output/code-review/
+output/video/
