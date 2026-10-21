@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
+import pl.pum.screensort.diagnostics.RedactedThrowable;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 import pl.pum.screensort.scanning.result.ScanResult;
 import pl.pum.screensort.scanning.result.RejectedFile;
@@ -112,8 +113,13 @@ public class ScanJobManager {
               ? exception.getMessage()
               : "Skanowanie lub zapis katalogu nie powiodły się. Szczegóły są w logu backendu.";
       fail(id, message);
-      log.warn("Nie udało się zakończyć zadania skanu {}", id, exception);
-      throw exception;
+      log.warn("Nie udało się zakończyć zadania skanu {}", id, RedactedThrowable.of(exception));
+      if (exception instanceof InvalidScanFolderException) throw exception;
+      // Oryginał trafiłby do logu kontenera razem ze ścieżką z komunikatu IO.
+      if (exception instanceof IOException) {
+        throw new IOException("Scan failed", RedactedThrowable.of(exception));
+      }
+      throw new IllegalStateException("Scan failed", RedactedThrowable.of(exception));
     } finally {
       release(id);
     }

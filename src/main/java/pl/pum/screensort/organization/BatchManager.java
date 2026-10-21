@@ -14,6 +14,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.AnalysisProcessor;
+import pl.pum.screensort.diagnostics.RedactedThrowable;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 @Service
@@ -95,7 +96,7 @@ public class BatchManager {
         }
       }
     } catch (RuntimeException error) {
-      log.error("Folder analysis failed and was paused: job={}", job.id(), error);
+      log.error("Folder analysis failed and was paused: job={}", job.id(), RedactedThrowable.of(error));
       store.state(job.id(), "PAUSED");
     } finally {
       try { store.release(job.id()); }

@@ -17,6 +17,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import pl.pum.screensort.diagnostics.RedactedThrowable;
 import pl.pum.screensort.organization.BatchStore;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
@@ -98,7 +99,7 @@ public class ExportManager {
       }
       store.finish(id, "INTERRUPTED", "Kopiowanie zostało przerwane. Zapisane kopie pozostały w folderze wynikowym.");
     } catch (RuntimeException error) {
-      log.error("Organized copy failed: export={}", id, error);
+      log.error("Organized copy failed: export={}", id, RedactedThrowable.of(error));
       store.finish(id, "INTERRUPTED", "Nie udało się dokończyć kopiowania. Zapisane kopie pozostały w folderze wynikowym.");
     } finally { active.set(false); }
   }

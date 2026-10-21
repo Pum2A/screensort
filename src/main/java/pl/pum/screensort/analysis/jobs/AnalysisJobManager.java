@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
+import pl.pum.screensort.diagnostics.RedactedThrowable;
 
 @Service
 public class AnalysisJobManager {
@@ -53,7 +54,7 @@ public class AnalysisJobManager {
       if (e instanceof AnalysisException) {
         log.warn("Image analysis stopped: job={} file={} reason={}", id, fileId, e.getMessage());
       } else {
-        log.error("Image analysis failed: job={} file={}", id, fileId, e);
+        log.error("Image analysis failed: job={} file={}", id, fileId, RedactedThrowable.of(e));
       }
       String message = e instanceof AnalysisException ? e.getMessage()
           : "Analiza lub zapis wyniku nie powiodły się. Oryginał pozostaje bez zmian.";
