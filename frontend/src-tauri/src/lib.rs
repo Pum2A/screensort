@@ -45,6 +45,7 @@ pub fn run() {
             if startup_check {
                 desktop::launch_startup_check(app.handle().clone());
             } else {
+                updates::on_launch(app.handle());
                 desktop::launch(app.handle().clone());
             }
             Ok(())

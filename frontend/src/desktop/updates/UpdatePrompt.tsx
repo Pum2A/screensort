@@ -4,8 +4,10 @@ import {ArrowDownToLine, Check, CircleAlert, Download, LoaderCircle, RefreshCw, 
 import {Modal} from '../../ui/Modal'
 import {AppUpdates} from './context'
 import type {UpdateContextValue} from './context'
-import {installationBlocker, updatePercent} from './state'
+import {installationBlocker, updateLabel, updatePending, updatePercent} from './state'
+import {Tooltip} from '../../ui/Tooltip'
 import {packageSize} from '../packages/state'
+import './updates.css'
 
 export function UpdateDetails({context}: {context: UpdateContextValue}) {
     const {status, error, reasons, check, download, install, restart} = context
@@ -42,8 +44,12 @@ export function UpdatePrompt() {
     const {status} = context
     const attention = ['AVAILABLE', 'DOWNLOADED', 'DOWNLOADING', 'INSTALLING', 'RESTART_REQUIRED'].includes(status.phase)
     return <>
-        <div className="app-update-anchor"><button ref={trigger} className="update-settings" onClick={() => setOpen(true)} aria-haspopup="dialog"><ArrowDownToLine size={14}/>Wersja {status.currentVersion || '…'}{attention && <span className="update-dot"/>}</button></div>
+        <div className="app-update-anchor"><Tooltip label="Aktualizacje sprawdzane przy każdym uruchomieniu">
+            <button ref={trigger} className="update-settings" data-phase={status.phase} onClick={() => setOpen(true)} aria-haspopup="dialog">
+                {updatePending(status.phase) ? <LoaderCircle size={14} className="spin"/> : status.phase === 'UP_TO_DATE' ? <Check size={14}/> : status.phase === 'ERROR' ? <CircleAlert size={14}/> : <ArrowDownToLine size={14}/>}
+                <span aria-live="polite">{updateLabel(status)}</span>{attention && <span className="update-dot"/>}
+            </button></Tooltip></div>
         {attention && !open && dismissed !== status.version && <aside className="app-update-toast" aria-label="Aktualizacja aplikacji"><Download size={20}/><div><strong>{status.phase === 'DOWNLOADED' ? 'Gotowe do instalacji' : status.phase === 'DOWNLOADING' ? 'Pobieramy aktualizację' : 'Nowa wersja ScreenSort'}</strong><p>{status.version}</p><button className="text-button" onClick={() => setOpen(true)}>Pokaż aktualizację</button></div><button className="icon-button" aria-label="Przypomnij po ponownym uruchomieniu" onClick={() => setDismissed(status.version)}><X size={16}/></button></aside>}
-        <AnimatePresence>{open && <Modal title="Aktualizacje ScreenSort" subtitle="ZAPROJEKTOWANE NA DALSZY ROZWÓJ" trigger={trigger} onClose={() => setOpen(false)}><UpdateDetails context={context}/></Modal>}</AnimatePresence>
+        <AnimatePresence>{open && <Modal title="Zawsze na bieżąco." subtitle="AKTUALIZACJE SCREENSORT" trigger={trigger} onClose={() => setOpen(false)}><UpdateDetails context={context}/></Modal>}</AnimatePresence>
     </>
 }

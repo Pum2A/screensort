@@ -2,7 +2,7 @@
 use futures_util::future::{AbortHandle, Abortable};
 use serde::Serialize;
 use std::{sync::Mutex, time::Duration};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tauri_plugin_updater::{Update, UpdaterExt};
 
 const MAX_UPDATE_BYTES: u64 = 512 * 1024 * 1024;
@@ -26,6 +26,7 @@ struct Pending {
 struct Inner {
     status: Status,
     pending: Option<Pending>,
+    launch_checked: bool,
 }
 pub struct Updates(Mutex<Inner>);
 
@@ -33,6 +34,7 @@ impl Default for Updates {
     fn default() -> Self {
         Self(Mutex::new(Inner {
             pending: None,
+            launch_checked: false,
             status: Status {
                 phase: if cfg!(debug_assertions) {
                     "DEVELOPMENT"
@@ -48,6 +50,30 @@ impl Default for Updates {
             },
         }))
     }
+}
+
+impl Updates {
+    fn claim_launch_check(&self) -> bool {
+        let mut inner = self.0.lock().expect("update state");
+        if inner.launch_checked {
+            return false;
+        }
+        inner.launch_checked = true;
+        true
+    }
+}
+
+/// A fresh native process always checks; a webview reload never triggers another check.
+/// No persisted 'already checked' flag, backend readiness dependency or startup blocking.
+pub fn on_launch(app: &AppHandle) {
+    if !app.state::<Updates>().claim_launch_check() {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let state = app.state::<Updates>();
+        let _ = check(&app, &state).await;
+    });
 }
 
 fn busy(phase: &str) -> bool {
@@ -75,6 +101,10 @@ pub fn app_update_status(state: State<'_, Updates>) -> Status {
 
 #[tauri::command]
 pub async fn check_app_update(app: AppHandle, state: State<'_, Updates>) -> Result<Status, String> {
+    check(&app, &state).await
+}
+
+async fn check(app: &AppHandle, state: &Updates) -> Result<Status, String> {
     {
         let mut inner = state.0.lock().expect("update state");
         if cfg!(debug_assertions)
@@ -229,6 +259,14 @@ pub fn restart_after_update_error(app: AppHandle, state: State<'_, Updates>) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn each_process_checks_at_launch_but_webview_remounts_do_not() {
+        let first_process = Updates::default();
+        assert!(first_process.claim_launch_check());
+        assert!(!first_process.claim_launch_check());
+        let next_process = Updates::default();
+        assert!(next_process.claim_launch_check());
+    }
     #[test]
     fn update_downloads_are_only_from_our_https_distribution() {
         for value in ["https://github.com/Pum2A/screensort-releases/releases/download/v0.2.3/ScreenSort_0.2.3_x64-setup.exe"] {
