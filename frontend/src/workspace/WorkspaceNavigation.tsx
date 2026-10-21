@@ -7,7 +7,7 @@ type Props = {total: number | null; view: WorkspaceView; onView: (view: Workspac
 export function WorkspaceNavigation({total, view, onView}: Props) {
     return <header className="workspace-navigation-bar">
         <a className="brand" href="#catalog" onClick={event => {event.preventDefault(); onView('catalog')}}>
-            <span className="brand-mark"><ScanLine size={23}/></span><span>ScreenSort<span className="brand-version">TWOJE OBRAZY. TWÓJ PORZĄDEK.</span></span>
+            <span className="brand-mark"><ScanLine size={22}/></span><span>ScreenSort</span>
         </a>
         <nav className="workspace-navigation" aria-label="Widoki aplikacji">
             <button className="workspace-nav-item" aria-current={view === 'catalog' ? 'page' : undefined} onClick={() => onView('catalog')}>

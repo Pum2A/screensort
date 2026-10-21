@@ -15,14 +15,13 @@ import {Tooltip} from '../ui/Tooltip'
 import styles from './CatalogGallery.module.css'
 
 type Props = {files: CatalogFile[]; children?: ReactNode}
-type TileProps = {file: CatalogFile; index: number; selected: boolean; onSelect: () => void; onPreview: (button: HTMLButtonElement) => void}
+type TileProps = {file: CatalogFile; selected: boolean; onSelect: () => void; onPreview: (button: HTMLButtonElement) => void}
 
-function ImageTile({file, index, selected, onSelect, onPreview}: TileProps) {
+function ImageTile({file, selected, onSelect, onPreview}: TileProps) {
     const src = imageUrl(file, 'thumbnail')
     return <m.button type="button" className={styles.tile} data-selected={selected} aria-pressed={selected}
         aria-label={'Pokaż szczegóły: ' + file.originalName} onClick={onSelect}
         onDoubleClick={event => onPreview(event.currentTarget)} whileHover={{y: -3}} whileTap={{scale: 0.985}}>
-        <span className={styles.tileIndex}>{String(index + 1).padStart(2, '0')}</span>
         <div className={styles.preview}><CatalogImage key={src} src={src} name=""/></div>
         <span className={styles.selectionMark} aria-hidden="true">{selected && <Check size={12}/>}</span>
         <div className={styles.info}><strong title={file.originalName}>{file.originalName}</strong>
@@ -47,8 +46,8 @@ export function CatalogGallery({files, children}: Props) {
         panel.current?.scrollIntoView({behavior: reducedMotion ? 'instant' : 'smooth', block: 'start'})
     }, [selected])
 
-    function tile(file: CatalogFile, index: number) {
-        return <ImageTile key={file.id} file={file} index={index} selected={file.id === selectedId}
+    function tile(file: CatalogFile) {
+        return <ImageTile key={file.id} file={file} selected={file.id === selectedId}
             onSelect={() => setSelectedId(file.id)} onPreview={button => {setSelectedId(file.id); previewButton.current = button; setPreviewOpen(true)}}/>
     }
 
@@ -80,9 +79,8 @@ export function CatalogGallery({files, children}: Props) {
                 {selected ? <m.div key={selected.id} initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -4}}>
                     <CatalogDetailsPanel file={selected} onPreview={trigger => {previewButton.current = trigger; setPreviewOpen(true)}}/>
                 </m.div> : <m.aside key="empty" className={styles.empty} initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} aria-label="Szczegóły obrazu">
-                    <span className={styles.emptyKicker}>BLIŻEJ SZCZEGÓŁÓW</span><div className={styles.emptyIllustration}><Image size={32}/><span/><i/></div>
-                    <h3>Spójrz bliżej.</h3><p>Kliknij dowolny obraz. Jego podgląd, szczegóły i zapisana analiza pojawią się właśnie tutaj.</p>
-                    <div className={styles.emptyTree}><span>Obraz</span><span>Plik i lokalizacja</span><span>Tekst i zawartość</span></div>
+                    <div className={styles.emptyIllustration}><Image size={24}/></div>
+                    <h3>Szczegóły obrazu</h3><p>Wybierz miniaturę, aby zobaczyć podgląd, dane pliku i zapisaną analizę.</p>
                     <small>Oryginał pozostaje bez zmian.</small>
                 </m.aside>}
             </AnimatePresence>

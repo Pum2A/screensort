@@ -96,7 +96,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
             {[{label: 'Tekst i obraz', ocr: true, visual: true}, {label: 'Tylko tekst', ocr: true, visual: false}, {label: 'Tylko obraz', ocr: false, visual: true}].map(option =>
                 <button key={option.label} aria-pressed={ocr === option.ocr && visual === option.visual} disabled={working || running} onClick={() => {setOcr(option.ocr); setVisual(option.visual)}}>{option.label}</button>)}
         </div>}
-        {!ready && <div className="feedback feedback-warning"><Info size={17}/><p>Uruchom <strong>silnik analizy</strong> w panelu po lewej. Katalog i skanowanie działają bez niego.</p></div>}
+        {!ready && <div className="feedback feedback-warning"><Info size={17}/><p>Uruchom <strong>silnik analizy</strong> w górnym pasku aplikacji. Katalog i skanowanie działają bez niego.</p></div>}
         {error && <div role="alert" className="feedback feedback-error"><CircleAlert size={18}/><div><p>{error}</p><button className="text-button" onClick={() => {setError(null); setRefresh(value => value + 1)}}>Odśwież stan</button></div></div>}
         {job ? <>
             <div className="batch-progress" data-state={job.failed > 0 ? 'warning' : job.status.toLowerCase()}>
@@ -109,7 +109,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
                         {paused && <small>Wznowienie zachowuje już zapisane wyniki.</small>}</div></div>
                 {paused && !ready && <p className="batch-resume-hint">Zachowano {finished} z {job.total} wyników. Po uruchomieniu silnika kliknij „Wznów analizę”.</p>}
             </div>
-            <div className="review-section-heading"><div><span className="eyebrow">PROPOZYCJE DO TWOJEJ WERYFIKACJI</span><h3>Wybierz obraz. Nadaj mu kontekst.</h3></div>
+            <div className="review-section-heading"><div><h3>Przegląd propozycji</h3></div>
                 <div className="review-section-actions"><details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Nazwy pochodzą obecnie z opisu wizualnego, a kategorie z prostych reguł OCR i opisu. To nie jest jeszcze wspólna interpretacja. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details>
                     {job.status === 'COMPLETED' && <button type="button" className="secondary-button" disabled={editingReview || working || exporting}
                         aria-expanded={planOpen} onClick={() => setPlanOpen(value => !value)}><FolderTree size={16}/>{planOpen ? 'Ukryj plan' : 'Zapisz i uporządkuj'}</button>}</div></div>
@@ -122,7 +122,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
                 <span>Strona {page + 1}</span><button className="icon-button" aria-label="Następne propozycje" disabled={!items?.hasNext || working || editingReview} onClick={() => {setItems(null); setPage(value => value + 1)}}><IconRight/></button></div></nav>
             {editingReview && <p className="review-draft-hint">Przed zmianą strony zapisz lub odrzuć edycję. Samo przełączenie na katalog jej nie usuwa.</p>}
             {paused && <button className="text-button" disabled={blocked} onClick={() => void action('START')}>Zamiast wznawiać, rozpocznij nową analizę całego folderu</button>}
-        </> : <div className="organization-empty"><span><Sparkles size={27}/></span><h3>Najpierw zobaczmy, co jest w środku.</h3><p>„Analizuj wszystko” obejmie wszystkie {fileCount} zapisanych obrazów w tym folderze. Po analizie pojawi się tutaj przegląd nazw i kategorii.</p><small>RapidOCR + Florence-2 · CPU · bez wysyłania zdjęć</small></div>}
+        </> : <div className="organization-empty"><span><Sparkles size={27}/></span><h3>Brak wyników analizy</h3><p>„Analizuj wszystko” obejmie wszystkie {fileCount} zapisanych obrazów w tym folderze. Po analizie pojawi się tutaj przegląd nazw i kategorii.</p><small>RapidOCR + Florence-2 · CPU · bez wysyłania zdjęć</small></div>}
     </section>
 }
 

@@ -27,7 +27,7 @@
     height: 18px;
     background: var(--border);
 }
-.thumbnail { width: 76px; height: 76px; flex-shrink: 0; padding: 4px; border: 1px solid var(--border); border-radius: 17px; background: #f4f1fc; }
+.thumbnail { width: 76px; height: 76px; flex-shrink: 0; padding: 4px; border: 1px solid var(--border); border-radius: 17px; background: var(--soft); }
 .thumbnail :global(.catalog-image) { aspect-ratio: 1; border-radius: 13px; }
 .thumbnail :global(img) { padding: 8%; }
 .description { min-width: 0; }

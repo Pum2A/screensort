@@ -1,4 +1,4 @@
-.organization-plan { margin: 22px 0; padding: 23px; border: 1px solid #e0d4ee; border-radius: 22px; background: #faf7fd; animation: plan-enter 260ms var(--motion-ease) both; }
+.organization-plan { margin: 22px 0; padding: 23px; border: 1px solid var(--border); border-radius: 22px; background: var(--soft); animation: plan-enter 260ms var(--motion-ease) both; }
 .organization-plan-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 .organization-plan-heading .eyebrow { color: var(--muted); font-size: 9px; letter-spacing: .12em; }
 .organization-plan-heading h3 { margin: 7px 0; font-size: 24px; font-weight: 650; letter-spacing: -.045em; }
@@ -15,7 +15,7 @@
 .organization-plan-list { display: grid; max-height: 360px; overflow: auto; border: 1px solid var(--border); border-radius: 9px; background: #fff; }
 .organization-plan-row { display: grid; grid-template-columns: minmax(0, 1fr) 18px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; padding: 13px 15px; border-bottom: 1px solid var(--border); }
 .organization-plan-row:last-child { border-bottom: 0; }
-.organization-plan-row > svg { color: #a18bb4; }
+.organization-plan-row > svg { color: var(--muted); }
 .organization-plan-source, .organization-plan-target { display: grid; min-width: 0; gap: 4px; }
 .organization-plan-source span, .organization-plan-target span { color: var(--muted); font-size: 10px; }
 .organization-plan-source strong, .organization-plan-target strong { overflow: hidden; color: var(--text); font-size: 11px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
@@ -26,7 +26,7 @@
 .organization-plan-pagination > div { display: flex; gap: 5px; }
 .organization-plan-safety { margin: 12px 0 0; }
 .organization-export { margin: 15px 0; }
-.organization-export-action { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px; border-radius: 16px; background: #eee6f7; }
+.organization-export-action { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 20px; border-radius: 16px; background: var(--selected); }
 .organization-export-action > div { flex: 1; }
 .organization-export-action strong { font-size: 13px; }
 .organization-export-action p { margin: 5px 0 0; max-width: 540px; color: var(--muted); font-size: 11px; line-height: 1.6; }

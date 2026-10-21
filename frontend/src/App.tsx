@@ -86,9 +86,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         <WorkspaceNavigation total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}/>
         <main className="workspace-main">
             <div className="workspace-content">
-                <WorkspaceHeader view={view} folder={catalogFolder} total={catalogPage?.totalFiles ?? null} onAnalyze={() => navigate('organization')}
-                    onChoose={() => {if (desktop) void handleChooseFolder(); else document.getElementById('folder-path')?.focus()}}
-                    onScan={() => {setError(null); void scan.start(folderPath)}} locked={locked} canScan={Boolean(folderPath.trim())} scanning={scan.busy}/>
+                <WorkspaceHeader view={view}/>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}
