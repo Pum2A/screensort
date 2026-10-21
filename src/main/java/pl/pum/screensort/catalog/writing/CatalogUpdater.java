@@ -9,7 +9,6 @@ import pl.pum.screensort.catalog.database.AllowedRootEntity;
 import pl.pum.screensort.catalog.database.AllowedRootRepository;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
-import pl.pum.screensort.catalog.dto.CatalogFileDto;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.result.AcceptedImage;
 import pl.pum.screensort.scanning.result.ScanResult;
@@ -55,7 +54,6 @@ public class CatalogUpdater {
                 Instant.now());
 
         fileRecordRepository.save(newFile);
-        System.out.println(CatalogFileDto.from(newFile));
       } else {
         FileRecordEntity storedFile = existingFile.get();
         storedFile.updateFromScan(
@@ -66,7 +64,6 @@ public class CatalogUpdater {
             image.lastModifiedAt().truncatedTo(ChronoUnit.MICROS),
             Instant.now());
         fileRecordRepository.save(storedFile);
-        System.out.println(CatalogFileDto.from(storedFile));
       }
     }
   }
