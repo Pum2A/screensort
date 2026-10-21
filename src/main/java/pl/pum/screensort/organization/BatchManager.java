@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -16,6 +18,8 @@ import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 @Service
 public class BatchManager {
+  private static final Logger log = LoggerFactory.getLogger(BatchManager.class);
+
   private final BatchStore store;
   private final AnalysisProcessor processor;
   private final ScanFolderValidator folders;
@@ -54,7 +58,13 @@ public class BatchManager {
 
   public synchronized BatchStore.Job resume(UUID id) {
     if (active != null) throw new AnalysisException(409, "Poczekaj na zakończenie bieżącego obrazu.");
-    var job = store.resume(id);
+    BatchStore.Job job;
+    try {
+      job = store.resume(id);
+    } catch (DataIntegrityViolationException error) {
+      // Unikalny indeks dopuszcza tylko jeden aktywny batch w całej bazie.
+      throw new AnalysisException(409, "Inna analiza folderu jest w toku.");
+    }
     if (!job.status().equals("RUNNING")) throw new AnalysisException(409, "Tego zadania nie można wznowić.");
     launch(job);
     return job;
@@ -85,6 +95,7 @@ public class BatchManager {
         }
       }
     } catch (RuntimeException error) {
+      log.error("Folder analysis failed and was paused: job={}", job.id(), error);
       store.state(job.id(), "PAUSED");
     } finally {
       try { store.release(job.id()); }
