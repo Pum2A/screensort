@@ -3,6 +3,7 @@ import {Check, CircleAlert, Database, FolderOpen, LoaderCircle, ScanLine, Shield
 import * as m from 'motion/react-m'
 import type {DesktopStatus} from './status'
 import {elapsedLabel, startupStep} from './status'
+import {UpdatePrompt} from './updates/UpdatePrompt'
 
 export function WaitingTime({active = true}: {active?: boolean}) {
     const [elapsed, setElapsed] = useState(0)
@@ -21,9 +22,10 @@ export function StartupScreen({status}: {status: DesktopStatus | null}) {
         {icon: FolderOpen, title: 'Twój katalog', detail: 'Uruchomienie i sprawdzenie aplikacji'}]
     return <main className="desktop-startup">
         <m.section className="startup-card" initial={{opacity: 0, y: 12}} animate={{opacity: 1, y: 0}} aria-labelledby="startup-title">
-            <div className="startup-brand"><span className="brand-mark"><ScanLine size={28}/></span><span>ScreenSort</span></div>
-            <p className="eyebrow">CHWILA DLA TWOJEJ PRZESTRZENI</p>
-            <h1 id="startup-title">Przygotowujemy<br/>miejsce na porządek.</h1>
+            <div className="startup-topline"><div className="startup-brand"><span className="brand-mark"><ScanLine size={24}/></span><span>ScreenSort</span></div><UpdatePrompt/></div>
+            <div className="startup-orbit" aria-hidden="true"><span/><span/><span/><ScanLine size={34}/></div>
+            <p className="eyebrow">WSZYSTKO ZOSTAJE U CIEBIE</p>
+            <h1 id="startup-title">Za chwilę<br/>jesteś u siebie.</h1>
             <p className="startup-intro">Otwieramy lokalny katalog. Ciężkie modele nie są teraz ładowane.</p>
             <ol className="startup-steps" aria-label="Etapy uruchamiania">
                 {steps.map(({icon: StepIcon, title, detail}, index) => <li key={title} data-state={index < current ? 'done' : index === current ? status?.error ? 'error' : 'active' : 'pending'}>

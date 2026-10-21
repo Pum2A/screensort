@@ -1,14 +1,14 @@
 .panel {
     min-width: 0;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 20px;
     background: var(--surface);
 }
 .heading {
     padding: 16px 18px;
     border-bottom: 1px solid var(--border);
 }
-.heading h3 { margin: 0 0 4px; font-size: 25px; font-weight: 400; font-family: var(--font-retro); }
+.heading h3 { margin: 0 0 6px; font-size: 20px; font-weight: 650; letter-spacing: -.04em; }
 .heading span, .muted, .note { color: var(--muted); font-size: 11px; }
 .body { padding: 18px 16px; }
 .selected {
@@ -27,9 +27,9 @@
     height: 18px;
     background: var(--border);
 }
-.thumbnail { width: 76px; height: 76px; flex-shrink: 0; padding: 4px; border: 1px solid #a5be93; border-radius: 50%; }
-.thumbnail :global(.catalog-image) { aspect-ratio: 1; border-radius: 50%; }
-.thumbnail :global(img) { padding: 15%; }
+.thumbnail { width: 76px; height: 76px; flex-shrink: 0; padding: 4px; border: 1px solid var(--border); border-radius: 17px; background: #f4f1fc; }
+.thumbnail :global(.catalog-image) { aspect-ratio: 1; border-radius: 13px; }
+.thumbnail :global(img) { padding: 8%; }
 .description { min-width: 0; }
 .name { margin: 0 0 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
 .muted { margin: 0; }

@@ -11,6 +11,7 @@ import {formatSize} from './format'
 import type {CatalogFile} from './types'
 import {filterCatalogPage, groupCatalogPage} from '../workspace/state'
 import type {GalleryLayout} from '../workspace/state'
+import {Tooltip} from '../ui/Tooltip'
 import styles from './CatalogGallery.module.css'
 
 type Props = {files: CatalogFile[]; children?: ReactNode}
@@ -20,7 +21,7 @@ function ImageTile({file, index, selected, onSelect, onPreview}: TileProps) {
     const src = imageUrl(file, 'thumbnail')
     return <m.button type="button" className={styles.tile} data-selected={selected} aria-pressed={selected}
         aria-label={'Pokaż szczegóły: ' + file.originalName} onClick={onSelect}
-        onDoubleClick={event => onPreview(event.currentTarget)} whileHover={{y: -4}} whileTap={{scale: 0.97}}>
+        onDoubleClick={event => onPreview(event.currentTarget)} whileHover={{y: -3}} whileTap={{scale: 0.985}}>
         <span className={styles.tileIndex}>{String(index + 1).padStart(2, '0')}</span>
         <div className={styles.preview}><CatalogImage key={src} src={src} name=""/></div>
         <span className={styles.selectionMark} aria-hidden="true">{selected && <Check size={12}/>}</span>
@@ -59,8 +60,8 @@ export function CatalogGallery({files, children}: Props) {
                     {query && <button className={styles.clearSearch} aria-label="Wyczyść wyszukiwanie" onClick={() => setQuery('')}><X size={14}/></button>}
                 </div>
                 <div className={styles.layoutSwitch} role="group" aria-label="Układ katalogu">
-                    <button aria-pressed={layout === 'grid'} aria-label="Siatka obrazów" title="Siatka" onClick={() => setLayout('grid')}><Grid2X2 size={16}/></button>
-                    <button aria-pressed={layout === 'branches'} aria-label="Gałęzie według formatu" title="Gałęzie według formatu" onClick={() => setLayout('branches')}><FolderTree size={16}/></button>
+                    <Tooltip label="Siatka obrazów"><button aria-pressed={layout === 'grid'} aria-label="Siatka obrazów" onClick={() => setLayout('grid')}><Grid2X2 size={17}/></button></Tooltip>
+                    <Tooltip label="Pogrupuj według formatu"><button aria-pressed={layout === 'branches'} aria-label="Gałęzie według formatu" onClick={() => setLayout('branches')}><FolderTree size={17}/></button></Tooltip>
                 </div>
             </div>
             <div className={styles.canvas}>
@@ -79,8 +80,8 @@ export function CatalogGallery({files, children}: Props) {
                 {selected ? <m.div key={selected.id} initial={{opacity: 0, y: 6}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -4}}>
                     <CatalogDetailsPanel file={selected} onPreview={trigger => {previewButton.current = trigger; setPreviewOpen(true)}}/>
                 </m.div> : <m.aside key="empty" className={styles.empty} initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} aria-label="Szczegóły obrazu">
-                    <span className={styles.emptyKicker}>INSPEKTOR OBRAZU</span><div className={styles.emptyIllustration}><Image size={36}/><span/><i/></div>
-                    <h3>Co kryje ten obraz?</h3><p>Wybierz miniaturę. Tutaj połączymy podgląd, metadane i zapisane wyniki analizy.</p>
+                    <span className={styles.emptyKicker}>BLIŻEJ SZCZEGÓŁÓW</span><div className={styles.emptyIllustration}><Image size={32}/><span/><i/></div>
+                    <h3>Spójrz bliżej.</h3><p>Kliknij dowolny obraz. Jego podgląd, szczegóły i zapisana analiza pojawią się właśnie tutaj.</p>
                     <div className={styles.emptyTree}><span>Obraz</span><span>Plik i lokalizacja</span><span>Tekst i zawartość</span></div>
                     <small>Oryginał pozostaje bez zmian.</small>
                 </m.aside>}

@@ -1,4 +1,4 @@
-import {ArrowUpRight, CheckCheck, ChevronDown, FolderOpen, FolderTree, Images, ScanLine, ShieldCheck, Workflow} from 'lucide-react'
+import {ArrowUpRight, CheckCheck, ChevronDown, FolderOpen, FolderPlus, Images, ScanLine, ShieldCheck, Sparkles} from 'lucide-react'
 import {folderName} from '../catalog/format'
 import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls'
 import type {WorkspaceView} from './state'
@@ -9,15 +9,15 @@ type Props = {folder: string; total: number | null; view: WorkspaceView; onView:
 export function ExplorerSidebar({folder, total, view, onView, onChoose, desktop, locked}: Props) {
     return <aside className="explorer-sidebar" aria-label="Nawigacja eksploratora">
         <a className="brand" href="#catalog" onClick={event => {event.preventDefault(); onView('catalog')}}>
-            <span className="brand-mark"><ScanLine size={24}/></span><span>ScreenSort<span className="brand-version">PRYWATNA PRZESTRZEŃ</span></span>
+            <span className="brand-mark"><ScanLine size={23}/></span><span>ScreenSort<span className="brand-version">LOCAL. BY DESIGN.</span></span>
         </a>
         <div className="sidebar-section-label">TWOJA PRZESTRZEŃ</div>
         <nav className="workspace-navigation" aria-label="Widoki aplikacji">
             <button className="workspace-nav-item" aria-current={view === 'catalog' ? 'page' : undefined} onClick={() => onView('catalog')}>
-                <Images size={18}/><span>Katalog obrazów</span>{total !== null && <span className="nav-count">{total}</span>}
+                <Images size={19}/><span>Biblioteka</span>{total !== null && <span className="nav-count">{total}</span>}
             </button>
             <button className="workspace-nav-item" aria-current={view === 'organization' ? 'page' : undefined} onClick={() => onView('organization')}>
-                <Workflow size={18}/><span>Analiza i propozycje</span><ArrowUpRight size={14}/>
+                <Sparkles size={19}/><span>Analiza i porządek</span><ArrowUpRight size={15}/>
             </button>
         </nav>
         <div className="sidebar-source">
@@ -28,11 +28,11 @@ export function ExplorerSidebar({folder, total, view, onView, onChoose, desktop,
             </div>
             <p className="source-tree-note">Bezpośrednia zawartość wybranego folderu.</p>
             {desktop && <button type="button" className="secondary-button sidebar-choose" disabled={locked} onClick={onChoose}>
-                <FolderTree size={16}/>Zmień folder
+                <FolderPlus size={17}/>Zmień folder
             </button>}
         </div>
         <div className="sidebar-guide"><span className="sidebar-section-label">JAK TO DZIAŁA</span>
-            <div><ScanLine size={15}/><span>Zeskanuj folder</span></div><div><Workflow size={15}/><span>Przeanalizuj zawartość</span></div>
+            <div><ScanLine size={15}/><span>Zeskanuj folder</span></div><div><Sparkles size={15}/><span>Przeanalizuj zawartość</span></div>
             <div><CheckCheck size={15}/><span>Sprawdź propozycje</span></div>
         </div>
         <div className="sidebar-bottom"><DesktopAnalysisControls/>

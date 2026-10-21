@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {isTauri} from '@tauri-apps/api/core'
 import {open} from '@tauri-apps/plugin-dialog'
-import {ArrowRight, ChevronRight, CircleAlert, FolderOpen, Images, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
+import {ArrowRight, CircleAlert, FolderOpen, Images, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
 import * as m from 'motion/react-m'
 import {ScanSummary} from './scanning/ScanSummary'
 import {ScanProgress} from './scanning/ScanProgress'
@@ -14,6 +14,7 @@ import {Icon} from './ui/Icon'
 import {OrganizationPanel} from './organization/OrganizationPanel'
 import {rejectionLabel} from './scanning/rejectionLabels'
 import {ExplorerSidebar} from './workspace/ExplorerSidebar'
+import {WorkspaceHeader} from './workspace/WorkspaceHeader'
 import {storedFolder} from './workspace/state'
 import type {WorkspaceView} from './workspace/state'
 import './App.css'
@@ -85,14 +86,8 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         <ExplorerSidebar folder={catalogFolder} total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}
             onChoose={() => void handleChooseFolder()} desktop={desktop} locked={locked}/>
         <main className="workspace-main">
-            <header className="workspace-topbar"><nav aria-label="Lokalizacja w aplikacji"><span>Twoja przestrzeń</span><ChevronRight size={14}/>
-                <strong>{view === 'catalog' ? 'Katalog obrazów' : 'Analiza i propozycje'}</strong></nav><span className="local-badge"><span/>Lokalnie i prywatnie</span></header>
             <div className="workspace-content">
-                <section className="workspace-heading"><div><p className="eyebrow">{view === 'catalog' ? 'MNIEJ CHAOSU. WIĘCEJ KONTEKSTU.' : 'OD PLIKÓW DO SENSOWNYCH NAZW.'}</p>
-                    <h1>{view === 'catalog' ? 'Każdy obraz. Swoje miejsce.' : 'Sprawdź propozycje dla swoich obrazów.'}</h1>
-                    <p>{view === 'catalog' ? 'Zajrzyj do folderu. Wybierz obraz i odkryj jego szczegóły.' : 'Uruchom analizę, a potem przejrzyj i zatwierdź proponowane nazwy oraz kategorie.'}</p></div>
-                    <span className="workspace-edition">SCREENSORT<br/><strong>LOCAL EXPLORER</strong></span>
-                </section>
+                <WorkspaceHeader view={view} folder={catalogFolder} total={catalogPage?.totalFiles ?? null} onAnalyze={() => navigate('organization')}/>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}
