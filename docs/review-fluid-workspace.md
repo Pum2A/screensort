@@ -40,11 +40,30 @@ Nie jest to test pobrania i instalacji na prywatnym profilu właściciela.
 z `App.tsx`. Nawigacja prowadzi do biblioteki albo analizy/przeglądu. Zachowano
 obie zamontowane sekcje — przełączenie nie gubi roboczego formularza.
 
-Zmieniono wspólne tokeny, typografię, odstępy, sidebar, selektor folderu, galerię,
-inspektor, analizę, plan eksportu, modale i ekran startu. Główna przestrzeń jest
-jasna; ciemna nawigacja, fioletowe zaznaczenie, zielony sukces, bursztynowe
-ostrzeżenie i czerwony błąd mają różne role. Miniatury są większymi kartami z
-`object-fit: contain`, nie przyciętymi kołami. Paginacja i lazy loading pozostają.
+Pierwszy wariant z ciemnym sidebarem został odrzucony. Zatrzymano budowanie wydania
+0.2.4 przed publikacją; dotychczasowy kanał aktualizacji nie został podmieniony.
+Kolejny wariant odnosi się do wskazanego przez właściciela
+[Revolut FREE UI Kit — Marvilo](https://www.figma.com/community/file/1372290114400007730/revolut-free-ui-kit-by-marvilo).
+Obejrzano publiczny podgląd i powiększoną okładkę na stronie Figmy; nie pobierano
+plików źródłowych, logo, ilustracji ani fontów z zestawu. To adaptacja stylu, nie
+odtworzenie komponentów z dokładnymi pomiarami z Figmy. Zestaw na stronie opisano
+jako CC BY 4.0; autor referencji: Marvilo — UI / UX Resources.
+
+Zmiana dotyczy nie tylko gradientu: górna nawigacja zastępuje boczny panel,
+aktywna zakładka jest czarną pigułką, przyciski mają spójne kształty, a szybkie
+działania — okrągłe pola ikon z podpisami. Duża liczba pokazuje rzeczywisty stan
+katalogu, nie wynik analizy ani sztuczną statystykę. Desktop ma kompaktowy układ
+licznika i działań, mały ekran układa je pionowo. Galeria ma białą powierzchnię,
+delikatne obramowania i wyraźny stan zaznaczenia. Fiolet jest akcentem; treść i
+formularze pozostają neutralne. Zielony sukces, bursztynowe ostrzeżenie i czerwony
+błąd zachowują odrębne znaczenia. Paginacja, lazy loading i `object-fit: contain`
+pozostają bez zmian.
+
+Do review tej korekty: `WorkspaceNavigation.tsx` (zastąpił `ExplorerSidebar.tsx`),
+`WorkspaceHeader.tsx`, połączenie akcji w `App.tsx`, `App.css`, tokeny `index.css`,
+style galerii, startu i kontrolki aktualizacji. Szybkie działania korzystają z
+istniejących funkcji aplikacji — nie dodają nowych endpointów ani logiki modeli.
+Ta korekta nadal jest propozycją do weryfikacji, nie zatwierdzonym wydaniem.
 
 Przejścia nagłówka, inspektora i modali używają istniejącego Motion z `LazyMotion`
 i małym `domAnimation`. Hover/press i krótkie wejścia zmieniają głównie transform
@@ -59,7 +78,7 @@ ikony; Tailwind pozostaje dla utilities, a układy mają pliki CSS komponentów.
 Przy audycie zależności znaleziono podatności developerskiego Vite 8.3.0;
 zaktualizowano do 8.3.3, bez wymuszonego `npm audit fix` i bez zmiany głównej wersji.
 
-Koszt bibliotek nie jest zerowy: lokalny build to około 484 kB JS / 154 kB gzip,
+Koszt bibliotek nie jest zerowy: lokalny build to około 482 kB JS / 154 kB gzip,
 wobec wcześniejszych około 427 kB / 133 kB gzip. Nie ładujemy już fontu retro;
 typografia jest systemowa i nie pobiera fontów z sieci. To dane builda, nie benchmark.
 
@@ -81,6 +100,8 @@ Do ręcznej kontroli: `npm run workspace:preview` w `frontend`, port 5184.
 w tym scenariuszu to atrapy, bez pobierania i instalacji. Zapis na dysk i kontrola
 wersji przez sieć wymagają zainstalowanego desktopu, nie fixture.
 Zrzuty z weryfikacji są lokalnie w `.release/ui-fluid-20261021`, poza Gitem.
+`kit-workspace.jpg` przedstawia korektę na podstawie referencji, wcześniejsze
+`catalog.jpg` i `startup.jpg` dotyczą odrzuconego wariantu.
 
 Dokumentacja użyta przy implementacji: [React Effects](https://react.dev/learn/synchronizing-with-effects),
 [Motion accessibility](https://motion.dev/docs/react-accessibility),
