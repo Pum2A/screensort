@@ -15,8 +15,6 @@ public interface FileRecordRepository extends JpaRepository<FileRecordEntity, Lo
   Optional<FileRecordEntity> findByAllowedRootAndRelativePath(
       AllowedRootEntity allowedRoot, String relativePath);
 
-  List<FileRecordEntity> findAllByAllowedRootOrderByRelativePathAsc(AllowedRootEntity allowedRoot);
-
   Page<FileRecordEntity> findAllByAllowedRootOrderByRelativePathAsc(
       AllowedRootEntity allowedRoot, Pageable pageable);
 
