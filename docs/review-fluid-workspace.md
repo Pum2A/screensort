@@ -40,9 +40,11 @@ Nie jest to test pobrania i instalacji na prywatnym profilu właściciela.
 z `App.tsx`. Nawigacja prowadzi do biblioteki albo analizy/przeglądu. Zachowano
 obie zamontowane sekcje — przełączenie nie gubi roboczego formularza.
 
-Pierwszy wariant z ciemnym sidebarem został odrzucony. Zatrzymano budowanie wydania
-0.2.4 przed publikacją; dotychczasowy kanał aktualizacji nie został podmieniony.
-Kolejny wariant odnosi się do wskazanego przez właściciela
+Pierwszy wariant z ciemnym sidebarem został odrzucony. Budowanie wydania
+0.2.4 wstrzymano przed publikacją; dotychczasowy kanał aktualizacji nie został
+wtedy podmieniony. Właściciel zatwierdził korektę 2026-10-21 i wydał 0.2.4
+wraz z przeglądem niezawodności backendu; kanał `updates-preview` wskazuje
+teraz 0.2.4. Kolejny wariant odnosi się do wskazanego przez właściciela
 [Revolut FREE UI Kit — Marvilo](https://www.figma.com/community/file/1372290114400007730/revolut-free-ui-kit-by-marvilo).
 Obejrzano publiczny podgląd i powiększoną okładkę na stronie Figmy; nie pobierano
 plików źródłowych, logo, ilustracji ani fontów z zestawu. To adaptacja stylu, nie
@@ -68,7 +70,7 @@ Do review tej korekty: `WorkspaceNavigation.tsx` (zastąpił `ExplorerSidebar.ts
 `WorkspaceHeader.tsx`, uproszczone wywołanie w `App.tsx`, `App.css`, tokeny `index.css`,
 style galerii, analizy, eksportu, startu i kontrolki aktualizacji. Usunięto tylko
 duplikaty działań — nie dodano nowych endpointów ani logiki modeli.
-Ta korekta nadal jest propozycją do weryfikacji, nie zatwierdzonym wydaniem.
+Korekta została zatwierdzona przez właściciela i wydana w 0.2.4.
 
 Przejścia nagłówka, inspektora i modali używają istniejącego Motion z `LazyMotion`
 i małym `domAnimation`. Hover/press i krótkie wejścia zmieniają głównie transform

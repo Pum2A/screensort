@@ -5,8 +5,12 @@ To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt
 
 Aktualizacja 0.2.4: kontrola wersji startuje w natywnym procesie przy każdym
 uruchomieniu, a UI ma przebudowaną bibliotekę, analizę, start i ustawienia.
+Wydanie 0.2.4 zostało opublikowane 2026-10-21 w kanale `updates-preview`
+repozytorium `Pum2A/screensort-releases`, razem z poprawkami niezawodności
+backendu.
 Przegląd kodu i weryfikacji: [review-fluid-workspace.md](review-fluid-workspace.md).
-Publikacja instalatora jest osobnym workflow; sam stan gałęzi nie oznacza, że
+Przegląd niezawodności backendu: [review-backend-quality.md](review-backend-quality.md).
+Publikacja instalatora jest osobnym workflow: sam stan gałęzi nie oznacza, że
 wersja jest już dostępna w kanale aktualizacji.
 
 ## Co stało się po PR

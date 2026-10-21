@@ -5,6 +5,9 @@ To przegląd kodu, nie deklaracja gotowości produkcyjnej i nie audyt
 bezpieczeństwa. Frontend, serwis Python, CI/CD i dokumentacja mają osobne
 luki, opisane na końcu.
 
+Poprawki z tego przeglądu wydano razem z przebudowanym interfejsem jako
+**0.2.4 preview** w kanale `updates-preview` (2026-10-21).
+
 Przegląd szukał czterech rzeczy: wycieku danych prywatnych, błędów, które
 wyglądają jak awaria serwera, brakujących zabezpieczeń współbieżnych i miejsc,
 gdzie koszt rośnie z liczbą plików.
