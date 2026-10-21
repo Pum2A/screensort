@@ -50,6 +50,13 @@ public class BatchController {
     return store.items(id, page);
   }
 
+  @GetMapping("/{id}/plan")
+  public ReviewStore.PlanPage plan(@PathVariable UUID id, @RequestParam(defaultValue = "0") int page) {
+    if (page < 0 || page > 1_000_000) throw new AnalysisException(400, "Nieprawidłowa strona.");
+    find(id);
+    return store.plan(id, page);
+  }
+
   @PostMapping("/{id}/control")
   public BatchStore.Job control(@PathVariable UUID id, @RequestBody Action request) {
     find(id);

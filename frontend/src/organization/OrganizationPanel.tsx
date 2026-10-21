@@ -1,17 +1,19 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {ArrowRight, Check, CircleAlert, Info, Layers3, LoaderCircle, Pause, Play, ScanLine, Sparkles} from 'lucide-react'
+import {ArrowRight, Check, CircleAlert, FolderTree, Info, Layers3, LoaderCircle, Pause, Play, ScanLine, Sparkles} from 'lucide-react'
 import {useAnalysisReady} from '../desktop/readiness'
 import {batchItems, controlBatch, latestBatch, readBatch, startBatch} from './api'
 import type {Batch, BatchItem, BatchPage} from './api'
 import {ReviewQueue} from './review/ReviewQueue'
+import {OrganizationPlanPreview} from './OrganizationPlanPreview'
 import './OrganizationPanel.css'
 import {useUpdateBlocker} from '../desktop/updates/context'
 
 const statuses = {RUNNING: 'Analiza w toku', PAUSED: 'Wstrzymano — postęp zachowany', COMPLETED: 'Analiza zakończona', CANCELLED: 'Zadanie anulowane'}
 
-type Props = {folderPath: string; fileCount: number; scanning: boolean; onEditingChange?: (editing: boolean) => void}
+type Props = {folderPath: string; fileCount: number; scanning: boolean; onEditingChange?: (editing: boolean) => void;
+    onExportingChange?: (busy: boolean) => void}
 
-export function OrganizationPanel({folderPath, fileCount, scanning, onEditingChange}: Props) {
+export function OrganizationPanel({folderPath, fileCount, scanning, onEditingChange, onExportingChange}: Props) {
     const ready = useAnalysisReady()
     const [job, setJob] = useState<Batch | null>(null)
     const [items, setItems] = useState<BatchPage | null>(null)
@@ -20,6 +22,8 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
     const [error, setError] = useState<string | null>(null)
     const [working, setWorking] = useState(false)
     const [editingReview, setEditingReview] = useState(false)
+    const [planOpen, setPlanOpen] = useState(false)
+    const [exporting, setExporting] = useState(false)
     const [ocr, setOcr] = useState(true)
     const [visual, setVisual] = useState(true)
     const abort = useRef<AbortController | null>(null)
@@ -27,6 +31,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
     const reportEditing = useCallback((editing: boolean) => {
         setEditingReview(editing); onEditingChange?.(editing)
     }, [onEditingChange])
+    const reportExporting = useCallback((busy: boolean) => {setExporting(busy); onExportingChange?.(busy)}, [onExportingChange])
     useEffect(() => () => onEditingChange?.(false), [onEditingChange])
 
     useEffect(() => {
@@ -58,7 +63,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
             const next = kind === 'START' ? await startBatch(folderPath, ocr, visual, signal) : await controlBatch(job!.id, kind, signal)
             if (signal.aborted) return
             abort.current?.abort(); setJob(next)
-            if (kind === 'START') {setItems(null); setPage(0)}
+            if (kind === 'START') {setItems(null); setPage(0); setPlanOpen(false)}
             setRefresh(value => value + 1)
         } catch (cause) {
             if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Nie udało się zlecić zadania.')
@@ -76,7 +81,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
     const paused = job?.status === 'PAUSED'
     const finished = job ? job.completed + job.failed : 0
     const remaining = job ? Math.max(0, job.total - finished) : fileCount
-    const blocked = !ready || scanning || running || working || editingReview || fileCount === 0
+    const blocked = !ready || scanning || running || working || editingReview || exporting || fileCount === 0
     return <section className="organization-panel" aria-labelledby="organize-title">
         <div className="organization-flow" aria-label="Przebieg pracy"><span data-done={fileCount > 0}><ScanLine size={14}/>Katalog<Check size={12}/></span><ArrowRight size={13}/>
             <span data-active={running}><Sparkles size={14}/>Analiza</span><ArrowRight size={13}/><span data-active={!!job && !running}><Layers3 size={14}/>Twoje decyzje</span></div>
@@ -105,8 +110,12 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
                 {paused && !ready && <p className="batch-resume-hint">Zachowano {finished} z {job.total} wyników. Po uruchomieniu silnika kliknij „Wznów analizę”.</p>}
             </div>
             <div className="review-section-heading"><div><span className="eyebrow">PROPOZYCJE DO TWOJEJ WERYFIKACJI</span><h3>Wybierz obraz. Nadaj mu kontekst.</h3></div>
-                <details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Nazwy pochodzą obecnie z opisu wizualnego, a kategorie z prostych reguł OCR i opisu. To nie jest jeszcze wspólna interpretacja. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details></div>
-            {items ? <ReviewQueue key={job.id + ':' + page} batchId={job.id} items={items.items} disabled={scanning} onSaved={reviewed} onEditingChange={reportEditing}/>
+                <div className="review-section-actions"><details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Nazwy pochodzą obecnie z opisu wizualnego, a kategorie z prostych reguł OCR i opisu. To nie jest jeszcze wspólna interpretacja. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details>
+                    {job.status === 'COMPLETED' && <button type="button" className="secondary-button" disabled={editingReview || working || exporting}
+                        aria-expanded={planOpen} onClick={() => setPlanOpen(value => !value)}><FolderTree size={16}/>{planOpen ? 'Ukryj plan' : 'Zapisz i uporządkuj'}</button>}</div></div>
+            {planOpen && <OrganizationPlanPreview batchId={job.id} revision={refresh} disabled={editingReview || working || scanning || !!running}
+                onClose={() => setPlanOpen(false)} onBusyChange={reportExporting}/>}
+            {items ? <ReviewQueue key={job.id + ':' + page} batchId={job.id} items={items.items} disabled={scanning || exporting} onSaved={reviewed} onEditingChange={reportEditing}/>
                 : <p className="inline-loading" role="status"><LoaderCircle size={17} className="spin"/>Wczytujemy propozycje…</p>}
             <nav className="catalog-pagination" aria-label="Strony propozycji"><span className="page-range">Kategorie i liczniki dotyczą tej strony propozycji.</span><div className="page-controls">
                 <button className="icon-button" aria-label="Poprzednie propozycje" disabled={page === 0 || !items || working || editingReview} onClick={() => {setItems(null); setPage(value => value - 1)}}><IconLeft/></button>

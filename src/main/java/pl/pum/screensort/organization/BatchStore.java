@@ -136,4 +136,9 @@ public class BatchStore {
   public ReviewStore.Page items(UUID id, int page) {
     return reviews.page(id, page);
   }
+
+  @Transactional(readOnly = true)
+  public ReviewStore.PlanPage plan(UUID id, int page) {
+    return reviews.plan(id, page);
+  }
 }

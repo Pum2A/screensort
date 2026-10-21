@@ -23,7 +23,7 @@ function EngineFixture({scenario}: {scenario: string}) {
 }
 
 export function WorkspacePreview({scenario, mobile, onConflict}: {scenario: string; mobile: boolean; onConflict: () => void}) {
-    const modes = [['catalog', 'Katalog'], ['paused', 'Pauza 7/94'], ['startup', 'Start aplikacji'], ['engine', 'Pobieranie silnika'], ['warmup', 'Ładowanie modeli'], ['engine-error', 'Błąd silnika']]
+    const modes = [['catalog', 'Katalog'], ['organized', 'Porządkowanie'], ['paused', 'Pauza 7/94'], ['startup', 'Start aplikacji'], ['engine', 'Pobieranie silnika'], ['warmup', 'Ładowanie modeli'], ['engine-error', 'Błąd silnika']]
     return <MotionProvider><div className="fixture-toolbar" style={{display: 'flex', flexWrap: 'wrap', gap: '5px 15px', alignItems: 'center', background: '#fff5d9', color: '#816523', borderBottom: '1px solid #e4d7af', padding: '8px 14px', font: '11px Segoe UI, sans-serif'}}>
         <strong>PODGLĄD UI · DANE FIKCYJNE</strong>{modes.map(([mode, label]) => <a key={mode} href={'?scenario=' + mode}>{label}</a>)}<a href="?mobile=1">Telefon 390 px</a><button onClick={onConflict}>Symuluj konflikt #1</button><span>Brak połączenia z prywatną bazą i modelami.</span></div>
         {mobile ? <iframe title="ScreenSort na telefonie" src="?frame=1" style={{display: 'block', width: 390, maxWidth: '100%', height: 1100, margin: '20px auto', border: '1px solid #d8dfcf'}}/>

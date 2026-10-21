@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {batchItems, startBatch} from '../src/organization/api.js'
+import {batchItems, organizationPlan, startBatch} from '../src/organization/api.js'
 import {rejectionLabel} from '../src/scanning/rejectionLabels.js'
 
 test('analyze all sends the folder and options, not visible gallery IDs', async () => {
@@ -25,6 +25,16 @@ test('pages batch results without requesting all items', async () => {
         return new Response(JSON.stringify({items: [], hasNext: false}))
     }
     try { assert.equal((await batchItems('job', 2, new AbortController().signal)).hasNext, false) }
+    finally { globalThis.fetch = original }
+})
+
+test('loads one page of the read-only organization plan for a batch', async () => {
+    const original = globalThis.fetch
+    globalThis.fetch = async url => {
+        assert.equal(url, '/api/organization/batches/job/plan?page=3')
+        return new Response(JSON.stringify({files: [], pageNumber: 3, pageSize: 50, totalFiles: 120, hasNext: false}))
+    }
+    try { assert.equal((await organizationPlan('job', 3, new AbortController().signal)).totalFiles, 120) }
     finally { globalThis.fetch = original }
 })
 
