@@ -3,6 +3,10 @@
 .update-settings:hover { background: #f4f1ff; border-color: #cbbdeb; }
 .update-settings[data-phase="UP_TO_DATE"] { color: #48816c; }
 .update-settings[data-phase="ERROR"] { color: #a06721; border-color: #f0ddb9; }
+.workspace-hero .update-settings { border-color: transparent; background: #ffffff26; color: white; }
+.workspace-hero .update-settings:hover { background: #ffffff40; }
+.workspace-hero .update-settings[data-phase="ERROR"] { background: #fff0f3; color: #b32540; }
+.workspace-hero .update-dot { background: white; }
 .update-dot { width: 6px; height: 6px; border-radius: 50%; background: #a18aec; }
 .app-update-toast { position: fixed; right: 22px; bottom: 22px; z-index: 26; display: flex; align-items: flex-start; gap: 13px; width: min(370px, calc(100vw - 36px)); padding: 20px; background: white; border: 1px solid #dfd5f4; border-radius: 20px; box-shadow: 0 15px 60px #2c204320; color: #5c418b; animation: view-enter 260ms var(--motion-ease); }
 .app-update-toast > div { flex: 1; }

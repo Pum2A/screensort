@@ -4,13 +4,13 @@
 
 :root {
     font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    font-size: 16px; color: #181924; background: #f7f8fc;
+    font-size: 16px; color: #191c1f; background: #f3f4f5;
     font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
     --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
     /* Compatibility for display-font references in existing inspector components. */
     --font-retro: var(--font-display);
-    --accent: #5b46ed; --border: #e6e8f0; --muted: #6b6d7e;
-    --surface: #fff; --background: #f7f8fc; --selected: #eeebff; --text: #181924;
+    --accent: #4f16d8; --border: #e8e9eb; --muted: #64686d;
+    --surface: #fff; --background: #f3f4f5; --selected: #eee8ff; --text: #191c1f;
     --success: #147d58; --danger: #ce334d; --warning: #9c6514;
     --motion-duration: 240ms; --motion-ease: cubic-bezier(.22, 1, .36, 1); --thumbnail-size: 116px;
 }

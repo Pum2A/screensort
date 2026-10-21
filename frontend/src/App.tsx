@@ -13,7 +13,7 @@ import type {CatalogPage} from './catalog/types'
 import {Icon} from './ui/Icon'
 import {OrganizationPanel} from './organization/OrganizationPanel'
 import {rejectionLabel} from './scanning/rejectionLabels'
-import {ExplorerSidebar} from './workspace/ExplorerSidebar'
+import {WorkspaceNavigation} from './workspace/WorkspaceNavigation'
 import {WorkspaceHeader} from './workspace/WorkspaceHeader'
 import {storedFolder} from './workspace/state'
 import type {WorkspaceView} from './workspace/state'
@@ -83,11 +83,12 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const rangeEnd = catalogPage && rangeStart > 0 ? rangeStart + catalogPage.files.length - 1 : 0
 
     return <div className="app-shell">
-        <ExplorerSidebar folder={catalogFolder} total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}
-            onChoose={() => void handleChooseFolder()} desktop={desktop} locked={locked}/>
+        <WorkspaceNavigation total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}/>
         <main className="workspace-main">
             <div className="workspace-content">
-                <WorkspaceHeader view={view} folder={catalogFolder} total={catalogPage?.totalFiles ?? null} onAnalyze={() => navigate('organization')}/>
+                <WorkspaceHeader view={view} folder={catalogFolder} total={catalogPage?.totalFiles ?? null} onAnalyze={() => navigate('organization')}
+                    onChoose={() => {if (desktop) void handleChooseFolder(); else document.getElementById('folder-path')?.focus()}}
+                    onScan={() => {setError(null); void scan.start(folderPath)}} locked={locked} canScan={Boolean(folderPath.trim())} scanning={scan.busy}/>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}
