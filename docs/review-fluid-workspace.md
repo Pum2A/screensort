@@ -65,7 +65,9 @@ typografia jest systemowa i nie pobiera fontów z sieci. To dane builda, nie ben
 
 ## Weryfikacja
 
-- 64/64 testy frontendu, lint, build i typowanie scenariuszy preview.
+- 65/65 testów frontendu, lint, build i typowanie scenariuszy preview; nowy test
+  pilnuje kontrastu co najmniej 4.5:1 dla głównego i pomocniczego tekstu na obu
+  podstawowych powierzchniach. Nie jest to pełny audyt dostępności wszystkich widoków.
 - 23/23 testy Rusta, również pakiety, bridge i ograniczenia updatera.
 - `npm audit`: 0 zgłoszonych podatności w zablokowanym zestawie zależności.
 - Ręcznie w przeglądarce: wybór obrazu, podgląd, Escape, przełączanie widoków,

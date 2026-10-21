@@ -21,7 +21,7 @@
 .startup-steps strong { display: block; font-size: 13px; font-weight: 600; color: var(--text); }
 .startup-steps small { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
 .startup-wait { display: grid; gap: 7px; border-top: 1px solid var(--border); padding-top: 19px; margin-top: 17px; font-size: 11px; color: var(--muted); }
-.waiting-time { color: #9a90a9; font-size: 11px; font-variant-numeric: tabular-nums; }
+.waiting-time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .startup-private { display: flex; gap: 7px; align-items: center; color: var(--muted); font-size: 10px; margin: 24px 0 0; }
 .workspace-modal { width: min(640px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: hidden; border: 1px solid #e1daeb; border-radius: 25px; background: var(--surface); color: var(--text); box-shadow: 0 24px 100px #25193430; }
 .workspace-modal[open] { display: flex; flex-direction: column; }

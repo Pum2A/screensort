@@ -9,7 +9,7 @@
     --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
     /* Compatibility for display-font references in existing inspector components. */
     --font-retro: var(--font-display);
-    --accent: #5b46ed; --border: #e6e8f0; --muted: #747687;
+    --accent: #5b46ed; --border: #e6e8f0; --muted: #6b6d7e;
     --surface: #fff; --background: #f7f8fc; --selected: #eeebff; --text: #181924;
     --success: #147d58; --danger: #ce334d; --warning: #9c6514;
     --motion-duration: 240ms; --motion-ease: cubic-bezier(.22, 1, .36, 1); --thumbnail-size: 116px;

@@ -91,7 +91,7 @@ button:disabled { opacity: .45; }
 .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); flex-shrink: 0; transition: background 180ms, transform 180ms; }
 .icon-button:hover:not(:disabled) { background: var(--selected); }
 .icon-button:active:not(:disabled) { transform: scale(.94); }
-.app-footer { display: flex; justify-content: space-between; gap: 18px; color: #8c8b9a; font-size: 10px; padding: 23px 0 8px; border-top: 1px solid var(--border); margin-top: 16px; }
+.app-footer { display: flex; justify-content: space-between; gap: 18px; color: var(--muted); font-size: 10px; padding: 23px 0 8px; border-top: 1px solid var(--border); margin-top: 16px; }
 .app-footer span:first-child { display: flex; align-items: center; gap: 7px; }
 .scan-progress { margin-top: 18px; padding: 20px; background: white; border: 1px solid var(--border); border-radius: 18px; }
 .scan-progress-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--accent); font-size: 13px; }
