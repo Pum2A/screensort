@@ -10,6 +10,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.AnalysisException;
@@ -17,6 +19,8 @@ import pl.pum.screensort.analysis.result.SavedAnalysis;
 
 @Service
 public class AnalysisJobManager {
+  private static final Logger log = LoggerFactory.getLogger(AnalysisJobManager.class);
+
   private final AnalysisProcessor processor;
   private final ExecutorService worker = Executors.newSingleThreadExecutor();
   private final Map<UUID, AnalysisJob> jobs = new LinkedHashMap<>();
@@ -45,6 +49,12 @@ public class AnalysisJobManager {
       var saved = processor.process(fileId, ocr, visual, null, () -> update(id, SAVING, null, null));
       update(id, COMPLETED, saved, null);
     } catch (RuntimeException e) {
+      // Oczekiwane błędy analizy (zmiana pliku, brak silnika) trafiają do statusu zadania.
+      if (e instanceof AnalysisException) {
+        log.warn("Image analysis stopped: job={} file={} reason={}", id, fileId, e.getMessage());
+      } else {
+        log.error("Image analysis failed: job={} file={}", id, fileId, e);
+      }
       String message = e instanceof AnalysisException ? e.getMessage()
           : "Analiza lub zapis wyniku nie powiodły się. Oryginał pozostaje bez zmian.";
       update(id, FAILED, null, message);

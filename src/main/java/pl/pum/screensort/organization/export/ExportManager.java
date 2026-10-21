@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -20,6 +22,8 @@ import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 @Service
 public class ExportManager {
+  private static final Logger log = LoggerFactory.getLogger(ExportManager.class);
+
   private final ExportStore store;
   private final BatchStore batches;
   private final OrganizedFileCopier copier;
@@ -94,6 +98,7 @@ public class ExportManager {
       }
       store.finish(id, "INTERRUPTED", "Kopiowanie zostało przerwane. Zapisane kopie pozostały w folderze wynikowym.");
     } catch (RuntimeException error) {
+      log.error("Organized copy failed: export={}", id, error);
       store.finish(id, "INTERRUPTED", "Nie udało się dokończyć kopiowania. Zapisane kopie pozostały w folderze wynikowym.");
     } finally { active.set(false); }
   }
