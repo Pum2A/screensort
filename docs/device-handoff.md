@@ -653,7 +653,9 @@ Stronicowanie katalogu jest podłączone od PostgreSQL-a do Reacta:
   efektu ignoruje odpowiedzi wcześniejszych żądań.
 
 Stary endpoint `GET /api/catalog/files` pozostaje dostępny, ale React już go
-nie używa. Wynik skanu i mapa z `KnownFilesReader` nadal obejmują cały skanowany
+nie używa. Od 2026-10-21 ma limit 1000 rekordów: powyżej tego zwraca 400
+z wskazaniem `/api/catalog/page`, zamiast wczytywać cały katalog do pamięci.
+Wynik skanu i mapa z `KnownFilesReader` nadal obejmują cały skanowany
 folder; nie ograniczamy ich do strony UI. Ta zmiana nie wymaga migracji.
 
 Poprzednia weryfikacja paginacji: dwie strony po jednym pliku, pusta strona

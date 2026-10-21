@@ -59,14 +59,20 @@ public class ExportStore {
     return ids.isEmpty() ? Optional.empty() : find(ids.getFirst());
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public Optional<Item> next(UUID id) {
-    return jdbc.query("""
-        select * from organization_export_item where export_id = ? and status = 'PENDING' order by file_id limit 1
+    var pending = jdbc.query("""
+        select * from organization_export_item where export_id = ? and status = 'PENDING' order by file_id limit 1 for update
         """, (row, index) -> new Item(row.getLong("file_id"), row.getString("source_folder"),
         row.getString("relative_path"), row.getString("original_name"), row.getLong("size_bytes"),
         row.getString("source_sha256"), row.getString("approved_name"), row.getString("category"),
-        row.getLong("naming_revision"), row.getLong("review_revision")), id).stream().findFirst();
+        row.getLong("naming_revision"), row.getLong("review_revision")), id);
+    if (pending.isEmpty()) return Optional.empty();
+    var item = pending.getFirst();
+    // Zajęcie pliku w tej samej transakcji: drugi worker nie wypisze tego samego pliku.
+    jdbc.update("update organization_export_item set status = 'RUNNING' where export_id = ? and file_id = ?",
+        id, item.fileId());
+    return Optional.of(item);
   }
 
   @Transactional(readOnly = true)
@@ -107,6 +113,7 @@ public class ExportStore {
           message = 'Kopiowanie zostało przerwane. Zapisane kopie pozostały w folderze wynikowym.'
         where status = 'RUNNING'
         """);
+    jdbc.update("update organization_export_item set status = 'PENDING' where status = 'RUNNING'");
   }
 
   @Transactional(readOnly = true)

@@ -10,6 +10,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
 import java.awt.image.BufferedImage;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.FileTime;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.zip.CRC32;
 import javax.imageio.ImageIO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -71,6 +73,50 @@ class ImageScannerTest {
       assertEquals(1, result.rejected().size());
       assertEquals(RejectionReason.UNREADABLE_IMAGE, result.rejected().getFirst().reason());
       assertEquals(new ScanSummary(0, 0, 0, 1), result.summary());
+    }
+  }
+
+  @Test
+  void rejectsGifContentBehindPngName(@TempDir Path folder) throws Exception {
+    Path path = folder.resolve("mislabelled.png");
+    assertTrue(
+        ImageIO.write(
+            new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB), "gif", path.toFile()));
+
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
+      AllowedRoot allowedRoot = new ScanFolderValidator().validate(folder);
+
+      ScanResult result = scanner.scan(allowedRoot, Map.of());
+
+      // Podgląd obsługuje PNG i JPEG, więc GIF pod nazwą .png nie wchodzi do katalogu.
+      assertEquals(0, result.accepted().size());
+      assertEquals(1, result.rejected().size());
+      assertEquals(RejectionReason.UNREADABLE_IMAGE, result.rejected().getFirst().reason());
+    }
+  }
+
+  @Test
+  void rejectsImageBeyondPreviewLimitsWithoutDecodingIt(@TempDir Path folder) throws Exception {
+    Path path = folder.resolve("huge.png");
+    writeImage(path, 2);
+    byte[] png = Files.readAllBytes(path);
+    ByteBuffer.wrap(png).putInt(16, 100_000).putInt(20, 100_000);
+    CRC32 crc = new CRC32();
+    crc.update(png, 12, 17);
+    ByteBuffer.wrap(png).putInt(29, (int) crc.getValue());
+    Files.write(path, png);
+
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
+      AllowedRoot allowedRoot = new ScanFolderValidator().validate(folder);
+
+      ScanResult result = scanner.scan(allowedRoot, Map.of());
+
+      // Nagłówek deklaruje 10 mln pikseli: skan odrzuca plik, zanim cokolwiek zdekoduje.
+      assertEquals(0, result.accepted().size());
+      assertEquals(1, result.rejected().size());
+      assertEquals(RejectionReason.UNREADABLE_IMAGE, result.rejected().getFirst().reason());
     }
   }
 

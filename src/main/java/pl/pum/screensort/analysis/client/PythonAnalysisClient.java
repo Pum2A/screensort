@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
@@ -19,6 +20,7 @@ public class PythonAnalysisClient {
   private final RestClient.Builder builder;
   private volatile Endpoint endpoint;
   private final JsonMapper json;
+  private HttpClient http;
   private record Endpoint(RestClient client, String token) {}
 
   public PythonAnalysisClient(RestClient.Builder builder, JsonMapper json,
@@ -39,11 +41,26 @@ public class PythonAnalysisClient {
         || !token.matches("[A-Za-z0-9_-]{43,128}")) {
       throw new IllegalArgumentException("Analysis service must use IPv4 loopback");
     }
-    var http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
+    var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
         .followRedirects(HttpClient.Redirect.NEVER).build();
-    var factory = new JdkClientHttpRequestFactory(http);
+    var factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(135));
+    var previous = http;
+    http = client;
     endpoint = new Endpoint(builder.clone().baseUrl(url).requestFactory(factory).build(), token);
+    // Każdy HttpClient trzyma wątek selektora i pulę wątków. Poprzedni musi zostać zamknięty.
+    if (previous != null) previous.close();
+  }
+
+  /** Tylko do testów: aktualnie używany klient HTTP. */
+  HttpClient currentHttpClient() { return http; }
+
+  @PreDestroy
+  synchronized void close() {
+    if (http != null) {
+      http.close();
+      http = null;
+    }
   }
 
   public AnalysisResult analyze(byte[] data, String mediaType, boolean ocr, boolean visual) {
