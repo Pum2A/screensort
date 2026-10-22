@@ -2,6 +2,7 @@ import {useRef, useState} from 'react'
 import {AnimatePresence} from 'motion/react'
 import App from '../../src/App.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
+import {QueryProvider} from '../../src/shared/QueryProvider.js'
 import {Modal} from '../../src/ui/Modal.js'
 import {StartupScreen} from '../../src/desktop/StartupScreen.js'
 import {AnalysisEngineContent} from '../../src/desktop/packages/AnalysisEngineContent.js'
@@ -37,10 +38,10 @@ function EngineFixture({scenario}: {scenario: string}) {
 
 export function WorkspacePreview({scenario, mobile, onConflict}: {scenario: string; mobile: boolean; onConflict: () => void}) {
     const modes = [['catalog', 'Katalog'], ['organized', 'Porządkowanie'], ['paused', 'Pauza 7/94'], ['startup', 'Start aplikacji'], ['engine', 'Pobieranie silnika'], ['warmup', 'Ładowanie modeli'], ['engine-error', 'Błąd silnika'], ['updates', 'Aktualizacje']]
-    return <MotionProvider><FixtureUpdates scenario={scenario}><div className="fixture-toolbar" style={{display: 'flex', flexWrap: 'wrap', gap: '5px 15px', alignItems: 'center', background: '#fff5d9', color: '#816523', borderBottom: '1px solid #e4d7af', padding: '8px 14px', font: '11px Segoe UI, sans-serif'}}>
+    return <QueryProvider><MotionProvider><FixtureUpdates scenario={scenario}><div className="fixture-toolbar" style={{display: 'flex', flexWrap: 'wrap', gap: '5px 15px', alignItems: 'center', background: '#fff5d9', color: '#816523', borderBottom: '1px solid #e4d7af', padding: '8px 14px', font: '11px Segoe UI, sans-serif'}}>
         <strong>PODGLĄD UI · DANE FIKCYJNE</strong>{modes.map(([mode, label]) => <a key={mode} href={'?scenario=' + mode}>{label}</a>)}<a href="?mobile=1">Telefon 390 px</a><button onClick={onConflict}>Symuluj konflikt #1</button><span>Brak połączenia z prywatną bazą i modelami.</span></div>
         {mobile ? <iframe title="ScreenSort na telefonie" src="?frame=1" style={{display: 'block', width: 390, maxWidth: '100%', height: 1100, margin: '20px auto', border: '1px solid #d8dfcf'}}/>
             : scenario === 'startup' ? <StartupScreen status={{phase: 'Uruchamiamy backend i sprawdzamy migracje…', backendReady: false, analysisReady: false, analysisStarting: false, error: null}}/>
                 : ['engine', 'warmup', 'engine-error'].includes(scenario) ? <EngineFixture scenario={scenario}/> : <App initialFolder="synthetic-fixture"/>}
-    </FixtureUpdates></MotionProvider>
+    </FixtureUpdates></MotionProvider></QueryProvider>
 }
