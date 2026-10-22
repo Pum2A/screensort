@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
-import {fetchRejections, ScanApiError, startScan} from './api.js'
+import {ApiError} from '../shared/http.js'
+import {fetchRejections, startScan} from './api.js'
 import {observeScanJob} from './polling.js'
 import {isFinished} from './types.js'
 import type {ScanJob, ScanRejections} from './types.js'
@@ -53,8 +54,8 @@ export function useScanJob(onCompleted: (job: ScanJob) => void) {
     }
 
     function reportTrackingError(cause: unknown) {
-        setLost(cause instanceof ScanApiError && cause.status === 404)
-        setError(cause instanceof ScanApiError ? cause.message
+        setLost(cause instanceof ApiError && cause.status === 404)
+        setError(cause instanceof ApiError ? cause.message
             : 'Utracono połączenie z backendem. Skan może nadal działać. Wznów sprawdzanie tego samego zadania.')
     }
 
@@ -75,7 +76,7 @@ export function useScanJob(onCompleted: (job: ScanJob) => void) {
         } catch (cause) {
             if (!controller.signal.aborted) {
                 if (receivedId) reportTrackingError(cause)
-                else setError(cause instanceof ScanApiError ? cause.message
+                else setError(cause instanceof ApiError ? cause.message
                     : 'Nie otrzymano ID zadania. Skan mógł już ruszyć — sprawdź backend przed ponownym startem.')
             }
         } finally { finishOperation(controller) }

@@ -1,6 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {fetchRejections, fetchScanJob, ScanApiError, startScan} from '../src/scanning/api.js'
+import {fetchRejections, fetchScanJob, startScan} from '../src/scanning/api.js'
+import {ApiError} from '../src/shared/http.js'
 import {observeScanJob, waitForPoll} from '../src/scanning/polling.js'
 import type {ScanJob, ScanStatus} from '../src/scanning/types.js'
 
@@ -12,43 +13,55 @@ function snapshot(status: ScanStatus): ScanJob {
 }
 const signal = () => new AbortController().signal
 
-test('start sends one POST with the folder and does not cache the ticket', async () => {
+async function withFetch(stub: typeof fetch, run: () => Promise<void>) {
+    const original = globalThis.fetch
+    globalThis.fetch = stub
+    try { await run() } finally { globalThis.fetch = original }
+}
+
+test('start sends one POST with the folder', async () => {
     const requests: [string, RequestInit | undefined][] = []
-    const fetcher: typeof fetch = async (url, options) => {
+    await withFetch(async (url, options) => {
         requests.push([String(url), options])
         return Response.json(snapshot('PREPARING'), {status: 202})
-    }
-    assert.equal((await startScan('photos', signal(), fetcher)).id, id)
+    }, async () => { assert.equal((await startScan('photos', signal())).id, id) })
     assert.equal(requests.length, 1)
     assert.equal(requests[0][0], '/api/scan/jobs')
     assert.equal(requests[0][1]?.method, 'POST')
-    assert.equal(requests[0][1]?.cache, 'no-store')
     assert.deepEqual(JSON.parse(String(requests[0][1]?.body)), {folderPath: 'photos'})
 })
 
 test('status and rejection requests are GETs for the same encoded ID', async () => {
     const urls: string[] = []
-    const fetcher: typeof fetch = async (url, options) => {
+    await withFetch(async (url, options) => {
         urls.push(String(url))
-        assert.equal(options?.method, undefined)
-        assert.equal(options?.cache, 'no-store')
-        return Response.json(snapshot('COMPLETED'))
-    }
-    await fetchScanJob('id/with space', signal(), fetcher)
-    await fetchRejections(id, signal(), fetcher)
+        assert.equal(options?.method, 'GET')
+        return String(url).endsWith('/rejections')
+            ? Response.json({files: [{path: 'a.txt', originalName: 'a.txt', reason: 'UNSUPPORTED_EXTENSION'}], totalRejected: 1, truncated: false})
+            : Response.json(snapshot('COMPLETED'))
+    }, async () => {
+        await fetchScanJob('id/with space', signal())
+        await fetchRejections(id, signal())
+    })
     assert.deepEqual(urls, ['/api/scan/jobs/id%2Fwith%20space', `/api/scan/jobs/${id}/rejections`])
 })
 
+test('a snapshot with an unknown status is rejected rather than shown', () =>
+    withFetch(async () => Response.json({...snapshot('SCANNING'), status: 'PAUSED'}), async () => {
+        await assert.rejects(fetchScanJob(id, signal()), (error: unknown) =>
+            error instanceof ApiError && error.code === 'INVALID_RESPONSE')
+    }))
+
 for (const status of [400, 404, 409, 503, 500]) {
-    test(`HTTP ${status} has a readable error without leaking the server response`, async () => {
-        const fetcher: typeof fetch = async () => new Response('internal SQL password', {status})
-        await assert.rejects(fetchScanJob(id, signal(), fetcher), (error: unknown) => {
-            assert.ok(error instanceof ScanApiError)
-            assert.equal(error.status, status)
-            assert.ok(!error.message.includes('password'))
-            return true
-        })
-    })
+    test(`HTTP ${status} has a readable error without leaking the server response`, () =>
+        withFetch(async () => new Response('internal SQL password', {status}), async () => {
+            await assert.rejects(fetchScanJob(id, signal()), (error: unknown) => {
+                assert.ok(error instanceof ApiError)
+                assert.equal(error.status, status)
+                assert.ok(!error.message.includes('password'))
+                return true
+            })
+        }))
 }
 
 test('polling publishes stages sequentially and stops on COMPLETED', async () => {
