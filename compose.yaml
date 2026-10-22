@@ -2,10 +2,12 @@ name: screensort
 
 services:
   postgres:
-    image: 'postgres:latest'
+    # Same major version as the Testcontainers tests; `latest` can jump a major version.
+    image: 'postgres:18.6'
     environment:
       - 'POSTGRES_DB=screensort'
-      - 'POSTGRES_PASSWORD=screensort'
+      - 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-screensort}'
       - 'POSTGRES_USER=screensort'
     ports:
-      - '5432'
+      # Loopback only, random host port: a dev database must not be reachable from the LAN.
+      - '127.0.0.1::5432'
