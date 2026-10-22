@@ -1,65 +1,69 @@
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useState} from 'react'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Check, CircleAlert, Copy, LoaderCircle, RefreshCw} from 'lucide-react'
 import {useUpdateBlocker} from '../../desktop/updates/context.js'
-import {exportIssues, latestExport, readExport, startExport} from './api.js'
-import type {ExportIssues, ExportJob} from './api.js'
+import {exportIssues, exportKeys, latestExport, startExport} from './api.js'
+
+const POLL_MS = 800
 
 type Props = {batchId: string; destinationFolder: string; totalApproved: number; disabled: boolean;
     onBusyChange: (busy: boolean) => void}
 
 export function OrganizationExport({batchId, destinationFolder, totalApproved, disabled, onBusyChange}: Props) {
-    const [job, setJob] = useState<ExportJob | null>(null)
-    const [issues, setIssues] = useState<ExportIssues | null>(null)
+    const queryClient = useQueryClient()
     const [issuePage, setIssuePage] = useState(0)
-    const [checking, setChecking] = useState(true)
-    const [requesting, setRequesting] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [refresh, setRefresh] = useState(0)
-    const request = useRef(false)
+
+    // Only one export runs per batch, so polling "latest" follows the same job the old per-ID loop did.
+    const jobQuery = useQuery({
+        queryKey: exportKeys.latest(batchId),
+        queryFn: ({signal}) => latestExport(batchId, signal),
+        refetchInterval: query =>
+            query.state.status !== 'error' && query.state.data?.status === 'RUNNING' ? POLL_MS : false,
+        refetchIntervalInBackground: true,
+    })
+    const job = jobQuery.data ?? null
+    const issuesQuery = useQuery({
+        queryKey: exportKeys.issues(job?.id ?? '', issuePage),
+        queryFn: ({signal}) => exportIssues(job?.id ?? '', issuePage, signal),
+        enabled: job !== null && job.status !== 'RUNNING' && job.failed > 0,
+    })
+    const start = useMutation({
+        mutationFn: () => startExport(batchId, destinationFolder),
+        onSuccess: created => {
+            setIssuePage(0)
+            queryClient.setQueryData(exportKeys.latest(batchId), created)
+        },
+    })
+
+    const checking = jobQuery.isPending
+    const requesting = start.isPending
     const busy = requesting || job?.status === 'RUNNING'
     useUpdateBlocker(busy, 'Poczekaj na zakończenie zapisywania uporządkowanych kopii przed restartem.')
     useEffect(() => {onBusyChange(busy)}, [busy, onBusyChange])
     useEffect(() => () => onBusyChange(false), [onBusyChange])
 
-    useEffect(() => {
-        const controller = new AbortController()
-        let timer: ReturnType<typeof setTimeout> | undefined
-        async function load(id?: string) {
-            try {
-                const current = id ? await readExport(id, controller.signal) : await latestExport(batchId, controller.signal)
-                if (controller.signal.aborted) return
-                setJob(current); setChecking(false); setError(null)
-                if (current?.status === 'RUNNING') timer = setTimeout(() => void load(current.id), 800)
-                else if (current && current.failed > 0) {
-                    const failures = await exportIssues(current.id, issuePage, controller.signal)
-                    if (!controller.signal.aborted) setIssues(failures)
-                }
-            } catch (cause) {
-                if (!controller.signal.aborted) {
-                    setError(cause instanceof Error ? cause.message : 'Nie udało się pobrać stanu kopiowania.')
-                    setChecking(false)
-                }
-            }
-        }
-        void load()
-        return () => {controller.abort(); clearTimeout(timer)}
-    }, [batchId, refresh, issuePage])
-
-    async function save() {
-        if (request.current || disabled || busy || checking || !destinationFolder.trim() || totalApproved === 0) return
-        request.current = true; setRequesting(true); setError(null)
-        try {
-            const created = await startExport(batchId, destinationFolder)
-            setJob(created); setIssues(null); setIssuePage(0); setRefresh(value => value + 1)
-        } catch (cause) {setError(cause instanceof Error ? cause.message : 'Nie udało się rozpocząć kopiowania.')}
-        finally {request.current = false; setRequesting(false)}
+    function save() {
+        // React re-renders between discrete clicks, so isPending already blocks a second POST.
+        if (start.isPending || disabled || busy || checking || !destinationFolder.trim() || totalApproved === 0) return
+        start.mutate()
     }
 
+    function refreshState() {
+        start.reset()
+        void queryClient.invalidateQueries({queryKey: exportKeys.latest(batchId)})
+        // The job key is a prefix of every issues page of that job.
+        if (job) void queryClient.invalidateQueries({queryKey: exportKeys.job(job.id)})
+    }
+
+    const issues = issuesQuery.data ?? null
+    // A later successful load replaces a failed start, as the old loop's setError(null) did.
+    const startError = start.error && start.submittedAt >= jobQuery.dataUpdatedAt ? start.error.message : null
+    const error = startError ?? jobQuery.error?.message ?? issuesQuery.error?.message ?? null
     const finished = job ? job.copied + job.failed : 0
     return <div className="organization-export">
         <div className="organization-export-action"><div><strong>Gotowe do zapisania?</strong>
             <p>Utworzymy osobny folder ScreenSort i skopiujemy do niego zatwierdzone obrazy według kategorii. Oryginały zostaną na miejscu.</p></div>
-            <button type="button" className="primary-button" onClick={() => void save()}
+            <button type="button" className="primary-button" onClick={save}
                 disabled={disabled || busy || checking || !destinationFolder.trim() || totalApproved === 0}>
                 {busy || checking ? <LoaderCircle size={17} className="spin"/> : <Copy size={17}/>}
                 {busy ? 'Zapisujemy kopie…' : checking ? 'Sprawdzamy zadanie…' : 'Zapisz uporządkowaną kopię'}
@@ -74,7 +78,7 @@ export function OrganizationExport({batchId, destinationFolder, totalApproved, d
             {job.message && <p>{job.message}</p>}
         </div>}
         {error && <div className="feedback feedback-error" role="alert"><CircleAlert size={17}/><div><p>{error}</p>
-            <button type="button" className="text-button" onClick={() => setRefresh(value => value + 1)}><RefreshCw size={14}/>Odśwież stan</button></div></div>}
+            <button type="button" className="text-button" onClick={refreshState}><RefreshCw size={14}/>Odśwież stan</button></div></div>}
         {!!issues?.items.length && <details className="organization-export-issues"><summary>Sprawdź pominięte pliki ({job?.failed ?? 0})</summary>
             <ul>{issues.items.map((issue, index) => <li key={index}><strong>{issue.originalName}</strong><span>{issue.message}</span></li>)}</ul>
             <div className="button-row"><button type="button" className="text-button" disabled={issuePage === 0} onClick={() => setIssuePage(value => value - 1)}>Poprzednie</button>
