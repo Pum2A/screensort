@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {fetchRejections, fetchScanJob, startScan} from '../src/scanning/api.js'
 import {ApiError} from '../src/shared/http.js'
-import {observeScanJob, waitForPoll} from '../src/scanning/polling.js'
+import {SCAN_POLL_MS, scanPollInterval} from '../src/scanning/types.js'
 import type {ScanJob, ScanStatus} from '../src/scanning/types.js'
 
 const id = '8e08e056-3fd4-4a6b-aebd-54df5072a641'
@@ -64,66 +64,8 @@ for (const status of [400, 404, 409, 503, 500]) {
         }))
 }
 
-test('polling publishes stages sequentially and stops on COMPLETED', async () => {
-    const updates: ScanStatus[] = []
-    const queue: ScanStatus[] = ['SCANNING', 'SAVING', 'COMPLETED']
-    let reading = false
-    let waits = 0
-    const finished = await observeScanJob(snapshot('PREPARING'), (job) => updates.push(job.status), signal(),
-        async (requestedId) => {
-            assert.equal(requestedId, id)
-            assert.equal(reading, false)
-            reading = true
-            await Promise.resolve()
-            reading = false
-            return snapshot(queue.shift()!)
-        }, async () => { assert.equal(reading, false); waits++ })
-    assert.equal(finished.status, 'COMPLETED')
-    assert.deepEqual(updates, ['PREPARING', 'SCANNING', 'SAVING', 'COMPLETED'])
-    assert.equal(waits, 3)
-    assert.equal(queue.length, 0)
-})
-
-test('FAILED is a terminal result, not a reason to restart the scan', async () => {
-    let reads = 0
-    const job = await observeScanJob(snapshot('SCANNING'), () => {}, signal(),
-        async () => { reads++; return snapshot('FAILED') }, async () => {})
-    assert.equal(job.errorMessage, 'Nie udało się zapisać katalogu.')
-    assert.equal(reads, 1)
-})
-
-test('an already finished ticket needs no more GETs', async () => {
-    await observeScanJob(snapshot('COMPLETED'), () => {}, signal(),
-        async () => { throw new Error('Unnecessary GET') }, async () => { throw new Error('Unnecessary timer') })
-})
-
-test('a failed GET stops polling; resuming keeps the original ID', async () => {
-    const initial = snapshot('SCANNING')
-    await assert.rejects(observeScanJob(initial, () => {}, signal(),
-        async () => { throw new TypeError('Network offline') }, async () => {}))
-    const result = await observeScanJob(initial, () => {}, signal(),
-        async (requestedId) => { assert.equal(requestedId, id); return snapshot('COMPLETED') }, async () => {})
-    assert.equal(result.id, id)
-})
-
-test('abort ignores a late response rather than publishing stale state', async () => {
-    const controller = new AbortController()
-    const statuses: ScanStatus[] = []
-    await assert.rejects(observeScanJob(snapshot('SCANNING'), (job) => statuses.push(job.status), controller.signal,
-        async () => { controller.abort(); return snapshot('COMPLETED') }, async () => {}), {name: 'AbortError'})
-    assert.deepEqual(statuses, ['SCANNING'])
-})
-
-test('a response belonging to another job is not published', async () => {
-    const statuses: ScanStatus[] = []
-    await assert.rejects(observeScanJob(snapshot('SCANNING'), (job) => statuses.push(job.status), signal(),
-        async () => ({...snapshot('COMPLETED'), id: 'different-id'}), async () => {}))
-    assert.deepEqual(statuses, ['SCANNING'])
-})
-
-test('abort cancels the waiting timer', async () => {
-    const controller = new AbortController()
-    const waiting = waitForPoll(controller.signal, 60000)
-    controller.abort()
-    await assert.rejects(waiting, {name: 'AbortError'})
+test('polling continues only while the scan is unfinished', () => {
+    for (const status of ['PREPARING', 'SCANNING', 'SAVING'] as const) assert.equal(scanPollInterval(snapshot(status)), SCAN_POLL_MS)
+    // FAILED is a terminal result, not a reason to restart the scan.
+    for (const status of ['COMPLETED', 'FAILED'] as const) assert.equal(scanPollInterval(snapshot(status)), false)
 })

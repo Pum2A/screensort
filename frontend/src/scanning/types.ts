@@ -31,6 +31,13 @@ export type ScanStatus = z.infer<typeof scanStatusSchema>
 export type ScanJob = z.infer<typeof scanJobSchema>
 export type ScanRejections = z.infer<typeof scanRejectionsSchema>
 
+export const SCAN_POLL_MS = 1000
+
 export function isFinished(job: ScanJob): boolean {
     return job.status === 'COMPLETED' || job.status === 'FAILED'
+}
+
+// COMPLETED and FAILED are terminal: polling stops instead of restarting the scan.
+export function scanPollInterval(job: ScanJob): number | false {
+    return isFinished(job) ? false : SCAN_POLL_MS
 }
