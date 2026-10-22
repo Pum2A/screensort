@@ -1,1 +1,1 @@
-"""Local visual inference; HTTP integration is still a separate step."""
+"""Local visual inference (Florence-2 captioning)."""
