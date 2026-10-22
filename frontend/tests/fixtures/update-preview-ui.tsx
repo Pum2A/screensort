@@ -1,8 +1,8 @@
 import {useState} from 'react'
-import {MotionProvider} from '../../src/ui/MotionProvider'
-import {AppUpdates} from '../../src/desktop/updates/context'
-import {UpdatePrompt} from '../../src/desktop/updates/UpdatePrompt'
-import type {UpdateStatus} from '../../src/desktop/updates/state'
+import {MotionProvider} from '../../src/ui/MotionProvider.js'
+import {AppUpdates} from '../../src/desktop/updates/context.js'
+import {UpdatePrompt} from '../../src/desktop/updates/UpdatePrompt.js'
+import type {UpdateStatus} from '../../src/desktop/updates/state.js'
 
 export function UpdateFixture() {
     const [phase, setPhase] = useState<UpdateStatus['phase']>('AVAILABLE')

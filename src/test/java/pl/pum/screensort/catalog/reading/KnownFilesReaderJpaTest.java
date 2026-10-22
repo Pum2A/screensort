@@ -88,7 +88,6 @@ class KnownFilesReaderJpaTest {
     KnownFile photo = new KnownFile("photo.png", 2048L, modifiedAt, "a".repeat(64));
     KnownFile nestedPhoto = new KnownFile(nestedPath, 4096L, modifiedAt, "b".repeat(64));
 
-    System.out.println("Known files from database: " + result);
     assertThat(result)
         .containsExactlyInAnyOrderEntriesOf(Map.of("photo.png", photo, nestedPath, nestedPhoto));
     assertThatThrownBy(() -> result.put("extra.png", photo))

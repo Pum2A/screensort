@@ -1,9 +1,9 @@
 // Manual UI verification: real React components, fictional in-memory API, no models or user DB.
 import {createRoot} from 'react-dom/client'
-import type {CatalogFile} from '../../src/catalog/types'
-import type {Batch, BatchItem} from '../../src/organization/api'
-import type {ExportJob} from '../../src/organization/export/api'
-import {WorkspacePreview} from './workspace-preview-ui'
+import type {CatalogFile} from '../../src/catalog/types.js'
+import type {Batch, BatchItem} from '../../src/organization/api.js'
+import type {ExportJob} from '../../src/organization/export/api.js'
+import {WorkspacePreview} from './workspace-preview-ui.js'
 import '../../src/index.css'
 import '../../src/App.css'
 import '../../src/desktop/DesktopStartup.css'
@@ -89,7 +89,8 @@ window.fetch = async (input, options) => {
         const row = rows[Number(naming[1]) - 1]
         if (method === 'PUT') {const body = JSON.parse(String(options?.body)); row.approvedName = body.name; row.namingRevision++}
         return Response.json({fileId: row.fileId, originalName: row.originalName, analysisId: row.analysisId, sourceSha256: row.sourceSha256,
-            matchesCatalog: true, suggestedName: row.proposedName, approvedName: row.approvedName, revision: row.namingRevision, approvedAt: row.approvedName ? date : null})
+            proposedName: row.proposedName, analysisMatchesCatalog: true, approvedName: row.approvedName,
+            approvedAt: row.approvedName ? date : null, approvalMatchesCatalog: row.approvedName !== null, revision: row.namingRevision})
     }
     const review = url.pathname.match(/\/items\/(\d+)\/review$/)
     if (review) {

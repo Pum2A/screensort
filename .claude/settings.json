@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "model": "opusplan",
+  "effortLevel": "medium",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "haiku",
+    "ANTHROPIC_SMALL_FAST_MODEL": "haiku"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git show*)",
+      "Bash(./mvnw -q test -Dtest=*)",
+      "Bash(./mvnw -q -DskipTests compile*)",
+      "Bash(./mvnw -q -DskipTests test-compile*)",
+      "Bash(npm run lint*)",
+      "Bash(npm test*)",
+      "Bash(npm run check:previews*)",
+      "Bash(npx tsc -p tsconfig.tests.json*)",
+      "Bash(npx --no-install oxlint *)",
+      "Bash(node --test .test-output/tests/*)",
+      "Bash(cargo fmt --manifest-path frontend/src-tauri/Cargo.toml*)",
+      "Bash(cargo check --manifest-path frontend/src-tauri/Cargo.toml*)",
+      "Bash(cargo test --locked --manifest-path frontend/src-tauri/Cargo.toml --lib*)",
+      "Bash(uv run --no-sync pytest*)",
+      "Bash(uv run --no-sync ruff check*)"
+    ],
+    "deny": [
+      "Read(./.git/**)",
+      "Read(**/node_modules/**)",
+      "Read(**/target/**)",
+      "Read(**/dist/**)",
+      "Read(**/build/**)",
+      "Read(**/.venv/**)",
+      "Read(**/venv/**)",
+      "Read(**/__pycache__/**)",
+      "Read(**/.pytest_cache/**)",
+      "Read(**/.ruff_cache/**)",
+      "Read(**/.test-output/**)",
+      "Read(./.release/**)",
+      "Read(./frontend/src-tauri/runtime/**)",
+      "Read(./frontend/src-tauri/gen/**)",
+      "Read(./analysis-service/models/**)",
+      "Read(./output/**)",
+      "Read(./tmp/**)",
+      "Read(./.idea/**)",
+      "Read(./.github/modernize/**)",
+      "Read(./.codex-remote-attachments/**)",
+      "Read(**/*.lock)",
+      "Read(**/package-lock.json)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/application-local.yml)",
+      "Read(**/application-local.yaml)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/format-changed-file.mjs\"",
+            "timeout": 60,
+            "statusMessage": "Formatting changed file"
+          }
+        ]
+      }
+    ]
+  }
+}

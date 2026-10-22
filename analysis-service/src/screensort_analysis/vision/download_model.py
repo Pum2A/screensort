@@ -27,10 +27,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Download pinned Florence data files.")
     parser.add_argument("--model-cache", type=Path, default=Path("models"))
     args = parser.parse_args()
-    snapshot = download_model(args.model_cache.resolve())
+    download_model(args.model_cache.resolve())
     print(f"Model: {MODEL_ID}")
     print(f"Revision: {MODEL_REVISION}")
-    print(f"Local snapshot: {snapshot}")
+    print("Snapshot downloaded.")
 
 
 if __name__ == "__main__":

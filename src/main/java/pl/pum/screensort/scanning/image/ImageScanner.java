@@ -158,6 +158,7 @@ public class ImageScanner {
       long fileSizeBytes = Files.size(path);
       return fileSizeBytes <= MAX_FILE_SIZE_BYTES;
     } catch (IOException exception) {
+      log.debug("File size read failed: {}", exception.getClass().getSimpleName());
       return false;
     }
   }
@@ -185,7 +186,10 @@ public class ImageScanner {
       } finally {
         reader.dispose();
       }
-    } catch (IOException exception) {
+    } catch (IOException | RuntimeException exception) {
+      // Czytniki ImageIO potrafią rzucić np. IndexOutOfBoundsException na uszkodzonym nagłówku.
+      // Jeden zły plik nie może przerwać całego skanu.
+      log.debug("Image header read failed: {}", exception.getClass().getSimpleName());
       return false;
     }
   }

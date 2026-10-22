@@ -1,23 +1,24 @@
 import {useEffect, useState} from 'react'
 import {isTauri} from '@tauri-apps/api/core'
 import {open} from '@tauri-apps/plugin-dialog'
-import {ArrowRight, ChevronRight, CircleAlert, FolderOpen, Images, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
+import {ArrowRight, CircleAlert, FolderOpen, Images, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
 import * as m from 'motion/react-m'
-import {ScanSummary} from './scanning/ScanSummary'
-import {ScanProgress} from './scanning/ScanProgress'
-import {useScanJob} from './scanning/useScanJob'
-import {CatalogGallery} from './catalog/CatalogGallery'
-import {fetchCatalog} from './catalog/api'
-import {folderName} from './catalog/format'
-import type {CatalogPage} from './catalog/types'
-import {Icon} from './ui/Icon'
-import {OrganizationPanel} from './organization/OrganizationPanel'
-import {rejectionLabel} from './scanning/rejectionLabels'
-import {ExplorerSidebar} from './workspace/ExplorerSidebar'
-import {storedFolder} from './workspace/state'
-import type {WorkspaceView} from './workspace/state'
+import {ScanSummary} from './scanning/ScanSummary.js'
+import {ScanProgress} from './scanning/ScanProgress.js'
+import {useScanJob} from './scanning/useScanJob.js'
+import {CatalogGallery} from './catalog/CatalogGallery.js'
+import {fetchCatalog} from './catalog/api.js'
+import {folderName} from './catalog/format.js'
+import type {CatalogPage} from './catalog/types.js'
+import {Icon} from './ui/Icon.js'
+import {OrganizationPanel} from './organization/OrganizationPanel.js'
+import {rejectionLabel} from './scanning/rejectionLabels.js'
+import {WorkspaceNavigation} from './workspace/WorkspaceNavigation.js'
+import {WorkspaceHeader} from './workspace/WorkspaceHeader.js'
+import {storedFolder} from './workspace/state.js'
+import type {WorkspaceView} from './workspace/state.js'
 import './App.css'
-import {useUpdateBlocker} from './desktop/updates/context'
+import {useUpdateBlocker} from './desktop/updates/context.js'
 
 const CATALOG_PAGE_SIZE = 24
 
@@ -82,17 +83,10 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const rangeEnd = catalogPage && rangeStart > 0 ? rangeStart + catalogPage.files.length - 1 : 0
 
     return <div className="app-shell">
-        <ExplorerSidebar folder={catalogFolder} total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}
-            onChoose={() => void handleChooseFolder()} desktop={desktop} locked={locked}/>
+        <WorkspaceNavigation total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}/>
         <main className="workspace-main">
-            <header className="workspace-topbar"><nav aria-label="Lokalizacja w aplikacji"><span>Twoja przestrzeń</span><ChevronRight size={14}/>
-                <strong>{view === 'catalog' ? 'Katalog obrazów' : 'Analiza i propozycje'}</strong></nav><span className="local-badge"><span/>Lokalnie i prywatnie</span></header>
             <div className="workspace-content">
-                <section className="workspace-heading"><div><p className="eyebrow">{view === 'catalog' ? 'MNIEJ CHAOSU. WIĘCEJ KONTEKSTU.' : 'OD PLIKÓW DO SENSOWNYCH NAZW.'}</p>
-                    <h1>{view === 'catalog' ? 'Każdy obraz. Swoje miejsce.' : 'Sprawdź propozycje dla swoich obrazów.'}</h1>
-                    <p>{view === 'catalog' ? 'Zajrzyj do folderu. Wybierz obraz i odkryj jego szczegóły.' : 'Uruchom analizę, a potem przejrzyj i zatwierdź proponowane nazwy oraz kategorie.'}</p></div>
-                    <span className="workspace-edition">SCREENSORT<br/><strong>LOCAL EXPLORER</strong></span>
-                </section>
+                <WorkspaceHeader view={view}/>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}

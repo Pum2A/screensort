@@ -65,3 +65,8 @@ tmp/
 .commandcode/
 output/code-review/
 output/video/
+output/pdf/
+node_modules/
+
+# Local analysis test set (downloaded images, never committed)
+testset/

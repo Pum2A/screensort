@@ -10,9 +10,11 @@
     min-height: 44px;
     padding: 9px 10px;
     border: 0;
-    border-radius: 7px;
-    background: var(--background);
-    color: var(--accent);
+    border-radius: 10px;
+    background: var(--soft);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 550;
     text-align: left;
     transition: background-color 160ms ease;
 }

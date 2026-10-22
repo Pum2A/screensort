@@ -1,9 +1,9 @@
 import {useContext, useRef, useState} from 'react'
 import {AnimatePresence} from 'motion/react'
 import {ChevronRight, CircleAlert, Cpu, LoaderCircle} from 'lucide-react'
-import {DesktopRuntime} from './runtimeContext'
-import {AiPackagePanel} from './packages/AiPackagePanel'
-import {Modal} from '../ui/Modal'
+import {DesktopRuntime} from './runtimeContext.js'
+import {AiPackagePanel} from './packages/AiPackagePanel.js'
+import {Modal} from '../ui/Modal.js'
 
 export function DesktopAnalysisControls() {
     const runtime = useContext(DesktopRuntime)

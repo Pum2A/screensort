@@ -1,12 +1,13 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import type {FormEvent} from 'react'
 import {Check, ChevronRight, CircleAlert, LoaderCircle, RotateCcw, SkipForward} from 'lucide-react'
-import {CatalogImage} from '../../catalog/CatalogImage'
-import {fileNameProblem} from '../../naming/fileNameRules'
-import type {BatchItem} from '../api'
-import {readReview, saveReview} from './api'
-import {categoryLabels, draftChanged, draftFor, isCategory, reviewImageUrl, reviewWrite, serverChanged} from './state'
-import {ReviewEvidence} from './ReviewEvidence'
+import {CatalogImage} from '../../catalog/CatalogImage.js'
+import {fileNameProblem} from '../../naming/fileNameRules.js'
+import type {BatchItem} from '../api.js'
+import {readReview, saveReview} from './api.js'
+import {categoryLabels, draftChanged, draftFor, isCategory, reviewImageUrl, reviewWrite, serverChanged} from './state.js'
+import {ReviewEvidence} from './ReviewEvidence.js'
+import styles from './ReviewEditor.module.css'
 
 export type EditingState = {dirty: boolean; saving: boolean}
 type Props = {batchId: string; item: BatchItem; disabled: boolean; onSaved: (item: BatchItem) => void;
@@ -63,16 +64,16 @@ export function ReviewEditor({batchId, item, disabled, onSaved, onStateChange, o
     }
 
     const src = reviewImageUrl(item, 'preview')
-    return <section className="min-w-0 rounded-xl border border-stone-200 bg-white p-4 sm:p-5" aria-label={`Decyzja dla ${item.originalName}`}>
-        <span className="eyebrow mb-3 text-xs">TWOJA DECYZJA</span>
-        <div className="mb-4 overflow-hidden rounded-lg bg-stone-100"><CatalogImage key={src} src={src} name={item.originalName} preview/></div>
-        <p className="break-all text-sm text-stone-600">Oryginał: {item.originalName}</p>
-        <p className="my-2 text-xs leading-relaxed text-stone-500">Propozycja to punkt wyjścia. Popraw nazwę i kategorię, jeśli nie oddają kontekstu. Oryginał pozostaje bez zmian.</p>
+    return <section className={styles.editor} aria-label={`Decyzja dla ${item.originalName}`}>
+        <header className={styles.heading}><h4>Nazwa i kategoria</h4><span>Twoja decyzja przed zapisaniem kopii</span></header>
+        <div className={styles.preview}><CatalogImage key={src} src={src} name={item.originalName} preview/></div>
+        <p className={styles.original}><span>Oryginalna nazwa</span>{item.originalName}</p>
+        <p className={styles.hint}>Sprawdź propozycję i popraw ją, jeśli nie oddaje zawartości obrazu.</p>
         {item.analysisId != null && <ReviewEvidence key={item.analysisId} fileId={item.fileId} analysisId={item.analysisId} sourceHash={item.sourceSha256}/>}
         {changed && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Wynik lub decyzja zmieniły się na serwerze. Edycji nie nadpisano. Wczytaj aktualny formularz.</p>}
         {!item.analysisMatchesCatalog && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Ta analiza nie odpowiada aktualnym danym katalogu. Zeskanuj i przeanalizuj obraz ponownie.</p>}
         {item.review && !item.review.matchesCatalog && <p className="text-sm text-amber-900">Poprzednia decyzja wymaga ponownego zatwierdzenia.</p>}
-        <form onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void submit('APPROVED') }}>
+        <form className={styles.form} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void submit('APPROVED') }}>
             <label className="mb-1 block font-semibold" htmlFor={nameId}>Nazwa pliku</label>
             <input id={nameId} value={draft.name} disabled={locked} maxLength={255} autoComplete="off"
                 className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"

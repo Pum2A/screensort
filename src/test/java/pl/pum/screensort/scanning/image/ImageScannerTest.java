@@ -37,6 +37,26 @@ import pl.pum.screensort.scanning.result.ScanSummary;
 class ImageScannerTest {
 
   @Test
+  void corruptImageHeaderRejectsOnlyThatFileAndKeepsScanning(@TempDir Path folder) throws Exception {
+    writeImage(folder.resolve("good.png"), 2);
+    byte[] pngSignature = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+    byte[] corrupt = new byte[64];
+    java.util.Arrays.fill(corrupt, (byte) 0xFF);
+    System.arraycopy(pngSignature, 0, corrupt, 0, pngSignature.length);
+    Files.write(folder.resolve("corrupt.png"), corrupt);
+
+    try (ExecutorService workers = Executors.newFixedThreadPool(2)) {
+      ImageScanner scanner = new ImageScanner(new FileHasher(), workers);
+
+      ScanResult result = scanner.scan(new ScanFolderValidator().validate(folder), Map.of());
+
+      assertEquals(1, result.accepted().size());
+      assertEquals(1, result.rejected().size());
+      assertEquals(RejectionReason.UNREADABLE_IMAGE, result.rejected().getFirst().reason());
+    }
+  }
+
+  @Test
   void findsSupportedImagesAndRejectsUnsupportedFile(@TempDir Path folder) throws Exception {
     writeImage(folder.resolve("first.png"), 2);
     writeImage(folder.resolve("second.png"), 3);

@@ -101,6 +101,6 @@ public class ScanRestController {
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<String> handleValidation(MethodArgumentNotValidException e) {
     return ResponseEntity.badRequest()
-        .body(e.getBindingResult().getFieldError().getDefaultMessage());
+        .body(e.getBindingResult().getAllErrors().getFirst().getDefaultMessage());
   }
 }

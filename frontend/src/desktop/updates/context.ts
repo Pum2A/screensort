@@ -1,5 +1,5 @@
 import {createContext, useContext, useEffect, useId} from 'react'
-import type {UpdateStatus} from './state'
+import type {UpdateStatus} from './state.js'
 
 export type UpdateContextValue = {status: UpdateStatus; error: string | null; reasons: string[]
     setBlocker: (id: string, reason: string | null) => void

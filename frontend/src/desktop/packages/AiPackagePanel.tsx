@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {invoke} from '@tauri-apps/api/core'
-import {AnalysisEngineContent} from './AnalysisEngineContent'
-import type {PackageStatus} from './state'
+import {AnalysisEngineContent} from './AnalysisEngineContent.js'
+import type {PackageStatus} from './state.js'
 
 export function AiPackagePanel({starting, ready = false, onStart}: {starting: boolean; ready?: boolean; onStart: () => void}) {
     const [status, setStatus] = useState<PackageStatus | null>(null)

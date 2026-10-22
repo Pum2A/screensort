@@ -1,6 +1,6 @@
 import {useId, useRef, useState} from 'react'
 import type {ReactNode} from 'react'
-import {Icon} from './Icon'
+import {Icon} from './Icon.js'
 import styles from './AnimatedBranch.module.css'
 
 type Props = {label: string, children: ReactNode, icon?: ReactNode, defaultOpen?: boolean}

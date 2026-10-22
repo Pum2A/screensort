@@ -29,26 +29,8 @@ class CatalogEntityJpaTest {
   @Autowired private AllowedRootRepository allowedRootRepository;
   @Autowired private FileRecordRepository fileRecordRepository;
 
-  private static void printTableHeader(String title) {
-    System.out.println();
-    System.out.println("=== " + title + " ===");
-    System.out.printf("%-20s | %-35s | %-35s | %s%n", "FIELD", "EXPECTED", "ACTUAL", "RESULT");
-    System.out.println("-".repeat(105));
-  }
-
-  private static void printComparison(String field, Object expected, Object actual) {
-    String result = Objects.equals(expected, actual) ? "OK" : "MISMATCH";
-    System.out.printf(
-        "%-20s | %-35s | %-35s | %s%n",
-        field, formatTableCell(expected), formatTableCell(actual), result);
-  }
-
-  private static String formatTableCell(Object value) {
-    String text = String.valueOf(value);
-    if (text.length() <= 35) {
-      return text;
-    }
-    return text.substring(0, 16) + "..." + text.substring(text.length() - 16);
+  private static void assertField(String field, Object expected, Object actual) {
+    assertThat(actual).as(field).isEqualTo(expected);
   }
 
   @Test
@@ -72,12 +54,11 @@ class CatalogEntityJpaTest {
 
     AllowedRootEntity loaded = found.orElseThrow();
 
-    printTableHeader("AllowedRootRepository findByCanonicalPath");
-    printComparison("id", savedId, loaded.getId());
-    printComparison("canonicalPath", canonicalPath, loaded.getCanonicalPath());
-    printComparison("recursiveScan", false, loaded.isRecursiveScan());
-    printComparison("createdAt", now, loaded.getCreatedAt());
-    printComparison("updatedAt", now, loaded.getUpdatedAt());
+    assertField("id", savedId, loaded.getId());
+    assertField("canonicalPath", canonicalPath, loaded.getCanonicalPath());
+    assertField("recursiveScan", false, loaded.isRecursiveScan());
+    assertField("createdAt", now, loaded.getCreatedAt());
+    assertField("updatedAt", now, loaded.getUpdatedAt());
 
     assertThat(loaded.getId()).isEqualTo(savedId);
     assertThat(loaded.getCanonicalPath()).isEqualTo(canonicalPath);
@@ -127,18 +108,17 @@ class CatalogEntityJpaTest {
     Long loadedRootId = loadedRoot.getId();
     String loadedRootPath = loadedRoot.getCanonicalPath();
 
-    printTableHeader("FileRecordRepository findByAllowedRootAndRelativePath");
-    printComparison("id", savedFileId, loaded.getId());
-    printComparison("relativePath", "holidays\\photo.png", loaded.getRelativePath());
-    printComparison("originalName", "photo.png", loaded.getOriginalName());
-    printComparison("extension", "png", loaded.getExtension());
-    printComparison("sizeBytes", 2048L, loaded.getSizeBytes());
-    printComparison("lastModifiedAt", lastModifiedAt, loaded.getLastModifiedAt());
-    printComparison("sha256", sha256, loaded.getSha256());
-    printComparison("firstDiscoveredAt", scanTime, loaded.getFirstDiscoveredAt());
-    printComparison("lastSeenAt", scanTime, loaded.getLastSeenAt());
-    printComparison("allowedRoot.id", savedRootId, loadedRootId);
-    printComparison("allowedRoot.path", canonicalPath, loadedRootPath);
+    assertField("id", savedFileId, loaded.getId());
+    assertField("relativePath", "holidays\\photo.png", loaded.getRelativePath());
+    assertField("originalName", "photo.png", loaded.getOriginalName());
+    assertField("extension", "png", loaded.getExtension());
+    assertField("sizeBytes", 2048L, loaded.getSizeBytes());
+    assertField("lastModifiedAt", lastModifiedAt, loaded.getLastModifiedAt());
+    assertField("sha256", sha256, loaded.getSha256());
+    assertField("firstDiscoveredAt", scanTime, loaded.getFirstDiscoveredAt());
+    assertField("lastSeenAt", scanTime, loaded.getLastSeenAt());
+    assertField("allowedRoot.id", savedRootId, loadedRootId);
+    assertField("allowedRoot.path", canonicalPath, loadedRootPath);
 
     assertThat(loaded.getRelativePath()).isEqualTo("holidays\\photo.png");
     assertThat(loaded.getOriginalName()).isEqualTo("photo.png");
@@ -153,14 +133,14 @@ class CatalogEntityJpaTest {
 
     Optional<FileRecordEntity> missingPath =
         fileRecordRepository.findByAllowedRootAndRelativePath(allowedRoot, "holidays\\missing.png");
-    printComparison("missing path exists", false, missingPath.isPresent());
+    assertField("missing path exists", false, missingPath.isPresent());
     assertThat(missingPath).isEmpty();
 
     AllowedRootEntity otherRoot =
         allowedRootRepository.save(new AllowedRootEntity("C:\\Test\\Other", false, scanTime));
     Optional<FileRecordEntity> missingRoot =
         fileRecordRepository.findByAllowedRootAndRelativePath(otherRoot, "holidays\\photo.png");
-    printComparison("other root has file", false, missingRoot.isPresent());
+    assertField("other root has file", false, missingRoot.isPresent());
     assertThat(missingRoot).isEmpty();
   }
 }

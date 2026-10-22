@@ -6,6 +6,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.AccessDeniedException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Queue;
@@ -116,6 +119,23 @@ class ScanJobManagerTest {
         .thenThrow(new IOException("failed read"));
     assertThrows(IOException.class, () -> jobs.scanAndSave(folder));
     assertDoesNotThrow(() -> jobs.start(folder));
+  }
+
+  @Test
+  void synchronousFailureDoesNotRethrowPrivatePaths() throws Exception {
+    String privatePath = "C:/Users/owner/Pictures/private.png";
+    when(workflow.scanAndSave(eq(folder), any(ScanProgressListener.class)))
+        .thenThrow(new NoSuchFileException(privatePath))
+        .thenThrow(new UncheckedIOException(new AccessDeniedException(privatePath)));
+
+    IOException io = assertThrows(IOException.class, () -> jobs.scanAndSave(folder));
+    IllegalStateException runtime = assertThrows(IllegalStateException.class, () -> jobs.scanAndSave(folder));
+
+    for (Throwable thrown : List.of(io, runtime)) {
+      for (Throwable current = thrown; current != null; current = current.getCause()) {
+        assertFalse(String.valueOf(current.getMessage()).contains("private.png"));
+      }
+    }
   }
 
   @Test

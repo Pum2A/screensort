@@ -8,7 +8,7 @@ test('copying sends one batch and selected destination; the backend owns the app
         assert.equal(url, '/api/organization/batches/batch/exports')
         assert.equal(options?.method, 'POST')
         assert.deepEqual(JSON.parse(String(options?.body)), {destinationFolder: 'D:\\Test-output'})
-        return Response.json({id: 'export', status: 'RUNNING', total: 120}, {status: 202})
+        return Response.json({id: 'export', batchId: 'batch', status: 'RUNNING', outputFolder: 'Test-output/ScreenSort', total: 120, copied: 0, failed: 0, message: null, createdAt: '2026-10-20T10:00:00Z'}, {status: 202})
     }
     try {assert.equal((await startExport('batch', 'D:\\Test-output')).total, 120)}
     finally {globalThis.fetch = original}
@@ -18,9 +18,9 @@ test('reopening progress reads the saved job and pages issues without starting a
     const original = globalThis.fetch
     const urls: string[] = []
     globalThis.fetch = async (url, options) => {
-        urls.push(String(url)); assert.equal(options?.method, undefined)
+        urls.push(String(url)); assert.equal(options?.method, 'GET')
         if (String(url).endsWith('/latest')) return new Response(null, {status: 404})
-        return Response.json(String(url).includes('/issues') ? {items: [], hasNext: false} : {id: 'saved-export'})
+        return Response.json(String(url).includes('/issues') ? {items: [], hasNext: false} : {id: 'saved-export', batchId: 'batch', status: 'COMPLETED', outputFolder: 'Test-output/ScreenSort', total: 3, copied: 0, failed: 0, message: null, createdAt: '2026-10-20T10:00:00Z'})
     }
     const signal = new AbortController().signal
     try {

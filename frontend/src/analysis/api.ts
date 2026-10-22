@@ -1,33 +1,30 @@
-import {backendFetch} from '../desktop/transport.js'
+import {requestJson, requestJsonOrNull} from '../shared/http.js'
+import type {ErrorMessages} from '../shared/http.js'
+import {analysisJobSchema, savedAnalysisSchema} from './types.js'
 import type {AnalysisJob, SavedAnalysis} from './types.js'
 
-async function checked<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-        const messages: Record<number, string> = {
-            400: 'Wybierz obraz i co najmniej jeden rodzaj analizy.',
-            409: 'Inna analiza jest już w toku. Poczekaj na jej zakończenie.',
-            503: 'Silnik analizy jest zajęty lub niedostępny. Spróbuj ponownie później.',
-        }
-        throw new Error(messages[response.status] ?? 'Nie udało się pobrać poprawnej odpowiedzi analizy.')
-    }
-    return await response.json() as T
+const messages: ErrorMessages = {
+    byStatus: {
+        400: 'Wybierz obraz i co najmniej jeden rodzaj analizy.',
+        409: 'Inna analiza jest już w toku. Poczekaj na jej zakończenie.',
+        503: 'Silnik analizy jest zajęty lub niedostępny. Spróbuj ponownie później.',
+    },
+    fallback: 'Nie udało się pobrać poprawnej odpowiedzi analizy.',
 }
 
-export async function startAnalysis(fileId: number, ocr: boolean, visual: boolean, signal: AbortSignal): Promise<AnalysisJob> {
-    return checked<AnalysisJob>(await backendFetch('/api/analysis/jobs', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, signal,
-        body: JSON.stringify({fileId, ocr, visual}),
-    }))
+export const analysisKeys = {
+    latest: (fileId: number) => ['analysis', 'latest', fileId] as const,
+    job: (id: string) => ['analysis', 'job', id] as const,
 }
 
-export async function findAnalysisJob(id: string, signal: AbortSignal): Promise<AnalysisJob | null> {
-    const response = await backendFetch(`/api/analysis/jobs/${encodeURIComponent(id)}`, {signal})
-    if (response.status === 404) return null
-    return checked<AnalysisJob>(response)
+export function startAnalysis(fileId: number, ocr: boolean, visual: boolean, signal?: AbortSignal): Promise<AnalysisJob> {
+    return requestJson('/api/analysis/jobs', analysisJobSchema, messages, {method: 'POST', signal, body: {fileId, ocr, visual}})
 }
 
-export async function latestAnalysis(fileId: number, signal: AbortSignal): Promise<SavedAnalysis | null> {
-    const response = await backendFetch(`/api/catalog/files/${fileId}/analysis`, {signal})
-    if (response.status === 404) return null
-    return checked<SavedAnalysis>(response)
+export function findAnalysisJob(id: string, signal?: AbortSignal): Promise<AnalysisJob | null> {
+    return requestJsonOrNull(`/api/analysis/jobs/${encodeURIComponent(id)}`, analysisJobSchema, messages, {signal})
+}
+
+export function latestAnalysis(fileId: number, signal?: AbortSignal): Promise<SavedAnalysis | null> {
+    return requestJsonOrNull(`/api/catalog/files/${fileId}/analysis`, savedAnalysisSchema, messages, {signal})
 }

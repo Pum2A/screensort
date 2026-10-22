@@ -1,8 +1,9 @@
 // Manual UI fixture only. Not an application entry point; no real DB, models or user files.
 import {createRoot} from 'react-dom/client'
-import {OrganizationPanel} from '../../src/organization/OrganizationPanel'
-import {MotionProvider} from '../../src/ui/MotionProvider'
-import type {BatchItem} from '../../src/organization/api'
+import {OrganizationPanel} from '../../src/organization/OrganizationPanel.js'
+import {MotionProvider} from '../../src/ui/MotionProvider.js'
+import {QueryProvider} from '../../src/shared/QueryProvider.js'
+import type {BatchItem} from '../../src/organization/api.js'
 import '../../src/index.css'
 import '../../src/App.css'
 
@@ -41,7 +42,7 @@ window.fetch = async (input, options) => {
 
 const root = createRoot(document.getElementById('root')!)
 const mobile = new URLSearchParams(location.search).has('mobile')
-root.render(<MotionProvider>{mobile ? <main style={{padding: 20}}>
+root.render(<QueryProvider><MotionProvider>{mobile ? <main style={{padding: 20}}>
     <p>Test UI · telefon 390 px · dane fikcyjne · <a href="review-preview.html">Widok desktopowy</a></p>
     <iframe title="Formularz na telefonie" src="review-preview.html?frame=1" style={{width: 390, height: 1100, border: '1px solid #ccc'}}/>
 </main> : <main className="app-shell">
@@ -50,4 +51,4 @@ root.render(<MotionProvider>{mobile ? <main style={{padding: 20}}>
     <button className="secondary-button" onClick={() => { rows = rows.map(item => ({...item,
         namingRevision: item.namingRevision + 1, approvedName: 'zmiana_z_innego_okna.png'})) }}>Symuluj zmianę w drugim oknie</button>
     <OrganizationPanel folderPath="synthetic-fixture" fileCount={3} scanning={false}/>
-</main>}</MotionProvider>)
+</main>}</MotionProvider></QueryProvider>)

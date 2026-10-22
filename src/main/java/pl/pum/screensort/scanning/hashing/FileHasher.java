@@ -8,10 +8,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FileHasher {
+  private static final Logger log = LoggerFactory.getLogger(FileHasher.class);
   private static final int HASH_BUFFER_SIZE_BYTES = 64 * 1024;
 
   public Optional<String> hash(Path path) {
@@ -28,6 +31,8 @@ public class FileHasher {
       String hex = HexFormat.of().formatHex(hashed);
       return Optional.of(hex); // udało się → pudełko z hashem
     } catch (IOException | NoSuchAlgorithmException e) {
+      // Typ wyjątku zamiast komunikatu: komunikaty IO zawierają ścieżkę pliku.
+      log.debug("File hashing failed: {}", e.getClass().getSimpleName());
       return Optional.empty(); // błąd → puste pudełko
     }
   }

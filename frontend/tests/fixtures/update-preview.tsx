@@ -1,5 +1,5 @@
 import {createRoot} from 'react-dom/client'
-import {UpdateFixture} from './update-preview-ui'
+import {UpdateFixture} from './update-preview-ui.js'
 import '../../src/index.css'
 import '../../src/App.css'
 import '../../src/desktop/DesktopStartup.css'

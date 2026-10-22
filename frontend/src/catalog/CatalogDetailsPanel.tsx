@@ -1,26 +1,28 @@
-import {CatalogImage} from './CatalogImage'
-import {imageUrl} from './api'
-import {formatDate, formatSize} from './format'
-import type {CatalogFile} from './types'
-import {AnimatedBranch} from '../ui/AnimatedBranch'
-import {Icon} from '../ui/Icon'
+import {CatalogImage} from './CatalogImage.js'
+import {imageUrl} from './api.js'
+import {formatDate, formatSize} from './format.js'
+import type {CatalogFile} from './types.js'
+import {AnimatedBranch} from '../ui/AnimatedBranch.js'
+import {Icon} from '../ui/Icon.js'
 import styles from './CatalogDetailsPanel.module.css'
-import {AnalysisPanel} from '../analysis/AnalysisPanel'
+import {AnalysisPanel} from '../analysis/AnalysisPanel.js'
 
 export function CatalogDetailsPanel({file, onPreview}: {file: CatalogFile, onPreview: (trigger: HTMLButtonElement) => void}) {
     const src = imageUrl(file, 'thumbnail')
     return <aside className={styles.panel} aria-label={`Szczegóły: ${file.originalName}`}>
-        <header className={styles.heading}><h3>Wybrany obraz</h3><span>Dane z katalogu</span></header>
+        <header className={styles.heading}><h3>Szczegóły obrazu</h3><span>Dane z ostatniego skanu</span></header>
         <div className={styles.body}>
             <div className={styles.selected}>
-                <div className={styles.thumbnail}><CatalogImage key={src} src={src} name=""/></div>
+                <button type="button" className={styles.thumbnail} aria-label="Powiększ obraz" onClick={event => onPreview(event.currentTarget)}>
+                    <CatalogImage key={src} src={src} name=""/>
+                    <span className={styles.previewLabel}><Icon name="zoom"/>Otwórz podgląd</span>
+                </button>
                 <div className={styles.description}><p className={styles.name} title={file.originalName}>{file.originalName}</p>
                     <p className={styles.muted}>{file.extension.toUpperCase()} · {formatSize(file.sizeBytes)}</p>
-                    <button type="button" className="text-button" onClick={event => onPreview(event.currentTarget)}><Icon name="zoom"/>Powiększ obraz</button>
                 </div>
             </div>
             <div className={styles.tree}>
-                <AnimatedBranch label="Analiza obrazu" icon={<Icon name="eye"/>} defaultOpen>
+                <AnimatedBranch label="Analiza obrazu" icon={<Icon name="eye"/>}>
                     <AnalysisPanel key={file.id} fileId={file.id}/>
                 </AnimatedBranch>
                 <AnimatedBranch label="Plik" icon={<Icon name="image"/>} defaultOpen>

@@ -68,6 +68,7 @@ jobs:
           cache-dependency-glob: analysis-service/uv.lock
       - run: uv sync --locked --extra vision --group dev --python 3.14
       - run: uv run --no-sync ruff check .
+      - run: uv run --no-sync ruff format --check .
       - run: uv run --no-sync pytest
         env:
           HF_HUB_OFFLINE: '1'

@@ -9,7 +9,7 @@ test('analyze all sends the folder and options, not visible gallery IDs', async 
     globalThis.fetch = async (url, init) => {
         assert.equal(url, '/api/organization/batches')
         body = JSON.parse(init?.body as string)
-        return new Response(JSON.stringify({id: 'batch', total: 120}), {status: 202})
+        return new Response(JSON.stringify({id: 'batch', folderPath: 'demo-images', status: 'RUNNING', ocr: true, visual: false, total: 120, completed: 0, failed: 0, processing: 0, createdAt: '2026-10-20T10:00:00Z'}), {status: 202})
     }
     try {
         const job = await startBatch('demo-images', true, false, new AbortController().signal)

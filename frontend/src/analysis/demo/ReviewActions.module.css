@@ -1,7 +1,0 @@
-.review { padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--border); }
-.review label { display: block; margin-bottom: 8px; }
-.review input { width: 100%; min-height: 44px; min-width: 0; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); }
-.review input[aria-invalid="true"] { border-color: var(--danger); }
-.review button { width: 100%; margin-top: 10px; }
-.hint { margin: 10px 0 0; color: var(--muted); font-size: 17px; }
-.error { margin: 8px 0 0; color: var(--danger); font-size: 18px; }

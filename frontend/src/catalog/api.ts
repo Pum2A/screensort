@@ -1,11 +1,15 @@
-import type {CatalogFile, CatalogPage} from './types'
-import {backendFetch} from '../desktop/transport'
+import {requestJson} from '../shared/http.js'
+import type {ErrorMessages} from '../shared/http.js'
+import {catalogPageSchema} from './types.js'
+import type {CatalogFile, CatalogPage} from './types.js'
 
-export async function fetchCatalog(folderPath: string, pageNumber: number, pageSize: number): Promise<CatalogPage> {
+const messages: ErrorMessages = {
+    fallback: 'Nie udało się pobrać katalogu. Sprawdź folder i działanie backendu.',
+}
+
+export function fetchCatalog(folderPath: string, pageNumber: number, pageSize: number, signal?: AbortSignal): Promise<CatalogPage> {
     const query = new URLSearchParams({folderPath, pageNumber: pageNumber.toString(), pageSize: pageSize.toString()})
-    const response = await backendFetch(`/api/catalog/page?${query}`)
-    if (!response.ok) throw new Error(`Catalog request failed (HTTP ${response.status})`)
-    return await response.json() as CatalogPage
+    return requestJson(`/api/catalog/page?${query}`, catalogPageSchema, messages, {signal})
 }
 
 export function imageUrl(file: CatalogFile, size: 'thumbnail' | 'preview'): string {

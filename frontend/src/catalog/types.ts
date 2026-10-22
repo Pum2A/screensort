@@ -1,21 +1,27 @@
-export type CatalogFile = {
-    id: number
-    allowedRootId: number
-    sourceFolder: string
-    relativePath: string
-    originalName: string
-    extension: string
-    sizeBytes: number
-    lastModifiedAt: string
-    sha256: string
-    firstDiscoveredAt: string
-    lastSeenAt: string
-}
+import {z} from 'zod'
 
-export type CatalogPage = {
-    files: CatalogFile[]
-    pageNumber: number
-    pageSize: number
-    totalFiles: number
-    hasNext: boolean
-}
+// Mirrors CatalogFileDto in Java. Instants arrive as ISO-8601 strings.
+export const catalogFileSchema = z.object({
+    id: z.number().int(),
+    allowedRootId: z.number().int(),
+    sourceFolder: z.string(),
+    relativePath: z.string(),
+    originalName: z.string(),
+    extension: z.string(),
+    sizeBytes: z.number().int(),
+    lastModifiedAt: z.string(),
+    sha256: z.string(),
+    firstDiscoveredAt: z.string(),
+    lastSeenAt: z.string(),
+})
+
+export const catalogPageSchema = z.object({
+    files: z.array(catalogFileSchema),
+    pageNumber: z.number().int(),
+    pageSize: z.number().int(),
+    totalFiles: z.number().int(),
+    hasNext: z.boolean(),
+})
+
+export type CatalogFile = z.infer<typeof catalogFileSchema>
+export type CatalogPage = z.infer<typeof catalogPageSchema>

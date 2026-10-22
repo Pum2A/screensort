@@ -1,60 +1,72 @@
-import {useEffect, useId, useRef, useState} from 'react'
+import {useId, useRef, useState} from 'react'
 import type {FormEvent} from 'react'
-import {approveNaming, readNaming} from './api'
-import {fileNameProblem} from './fileNameRules'
-import type {NamingReview} from './types'
-import {formatDate} from '../catalog/format'
-import {Icon} from '../ui/Icon'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {approveNaming, namingKeys, readNaming} from './api.js'
+import {fileNameProblem} from './fileNameRules.js'
+import type {NamingReview} from './types.js'
+import {formatDate} from '../catalog/format.js'
+import {Icon} from '../ui/Icon.js'
 import styles from './NamingPanel.module.css'
-import {useUpdateBlocker} from '../desktop/updates/context'
+import {useUpdateBlocker} from '../desktop/updates/context.js'
+
+function savedOrProposed(review: NamingReview): string {
+    return review.approvalMatchesCatalog ? review.approvedName ?? '' : review.proposedName ?? ''
+}
+
+// An edit belongs to one version of the server data; a newer version starts from its own name again.
+function versionKey(review: NamingReview): string {
+    return `${review.fileId}:${review.analysisId}:${review.revision}`
+}
 
 export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boolean}) {
-    const [review, setReview] = useState<NamingReview | null>(null)
-    const [name, setName] = useState('')
-    const [loading, setLoading] = useState(true)
-    const [saving, setSaving] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [refresh, setRefresh] = useState(0)
-    const controller = useRef<AbortController | null>(null)
+    const queryClient = useQueryClient()
+    const reviewQuery = useQuery({
+        queryKey: namingKeys.review(fileId),
+        queryFn: ({signal}) => readNaming(fileId, signal),
+    })
+    const approve = useMutation({
+        mutationFn: ({review, name}: {review: NamingReview, name: string}) => approveNaming(review, name),
+        onSuccess: next => {
+            queryClient.setQueryData(namingKeys.review(next.fileId), next)
+            setEdit(null)
+        },
+    })
+    const [edit, setEdit] = useState<{version: string, name: string} | null>(null)
     const submitting = useRef(false)
     const inputId = useId()
     const feedbackId = useId()
 
-    useEffect(() => {
-        const abort = new AbortController()
-        controller.current = abort
-        readNaming(fileId, abort.signal).then(next => {
-            if (abort.signal.aborted) return
-            setReview(next)
-            setName(next.approvalMatchesCatalog ? next.approvedName ?? '' : next.proposedName ?? '')
-        }).catch(cause => {
-            if (!abort.signal.aborted) setError(cause instanceof Error ? cause.message : 'Nie udało się odczytać propozycji.')
-        }).finally(() => { if (!abort.signal.aborted) setLoading(false) })
-        return () => abort.abort()
-    }, [fileId, refresh])
+    const review = reviewQuery.data ?? null
+    const baseName = review ? savedOrProposed(review) : ''
+    const name = review && edit?.version === versionKey(review) ? edit.name : baseName
+    const loading = reviewQuery.isFetching
+    const saving = approve.isPending
+    const failure = approve.error ?? reviewQuery.error
+    const error = failure ? failure.message : null
 
     const problem = review ? fileNameProblem(name, review.originalName) : null
     const locked = disabled || loading || saving || !review?.analysisMatchesCatalog
     const alreadySaved = review?.approvalMatchesCatalog && name === review.approvedName
-    const baseName = review?.approvalMatchesCatalog ? review.approvedName ?? '' : review?.proposedName ?? ''
     useUpdateBlocker(saving || Boolean(review && name !== baseName), 'Zapisz edytowaną nazwę obrazu przed restartem.')
 
-    async function submit(event: FormEvent<HTMLFormElement>) {
+    function changeName(next: string) {
+        if (!review) return
+        setEdit({version: versionKey(review), name: next})
+        approve.reset()
+    }
+
+    function submit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
-        const signal = controller.current?.signal
-        if (!review || !signal || signal.aborted || locked || problem || submitting.current || alreadySaved) return
+        // The ref blocks a second click in the same tick, before React re-renders the disabled button.
+        if (!review || locked || problem || submitting.current || alreadySaved) return
         submitting.current = true
-        setSaving(true)
-        setError(null)
-        try {
-            const next = await approveNaming(review, name, signal)
-            if (!signal.aborted) { setReview(next); setName(next.approvedName ?? '') }
-        } catch (cause) {
-            if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Nie udało się zapisać decyzji.')
-        } finally {
-            submitting.current = false
-            if (!signal.aborted) setSaving(false)
-        }
+        approve.mutate({review, name}, {onSettled: () => { submitting.current = false }})
+    }
+
+    function reload() {
+        approve.reset()
+        setEdit(null)
+        void reviewQuery.refetch()
     }
 
     return <section className={styles.panel} aria-label="Propozycja nazwy">
@@ -66,19 +78,17 @@ export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boole
             {!review.analysisMatchesCatalog && <p className={styles.warning}>Analiza dotyczy starszej wersji pliku. Przeanalizuj aktualny obraz przed zatwierdzeniem.</p>}
             {!review.proposedName && review.analysisMatchesCatalog && <p className={styles.hint}>Brakuje opisu do utworzenia nazwy. Wpisz własną albo uruchom analizę wizualną.</p>}
             {review.approvedName && !review.approvalMatchesCatalog && <p className={styles.warning}>Poprzednia decyzja „{review.approvedName}” dotyczy innej zawartości pliku.</p>}
-            <form onSubmit={event => void submit(event)}>
+            <form onSubmit={submit}>
                 <label htmlFor={inputId}>Nazwa do zatwierdzenia</label>
                 <input id={inputId} value={name} disabled={locked} maxLength={255} autoComplete="off"
                     aria-invalid={Boolean(problem && name)} aria-describedby={feedbackId}
-                    onChange={event => { setName(event.target.value); setError(null) }}/>
+                    onChange={event => changeName(event.target.value)}/>
                 <p id={feedbackId} className={problem && name ? styles.error : styles.hint}>
                     {problem && name ? problem : 'Zachowaj rozszerzenie. Zapisujemy decyzję, nie zmieniamy pliku.'}
                 </p>
                 <div className={styles.actions}>
-                    {review.proposedName && <button type="button" className="text-button"
-                        disabled={locked || name === review.proposedName} onClick={() => { setName(review.proposedName!); setError(null) }}>
-                        Użyj propozycji
-                    </button>}
+                    {review.proposedName && <ProposalButton proposed={review.proposedName} current={name}
+                        disabled={locked} onUse={changeName}/>}
                     <button type="submit" className="primary-button" disabled={locked || Boolean(problem) || alreadySaved}>
                         <Icon name={saving ? 'refresh' : 'check'} className={saving ? 'spin' : ''}/>
                         {saving ? 'Zapisujemy…' : alreadySaved ? 'Nazwa zatwierdzona' : 'Zatwierdź nazwę'}
@@ -91,7 +101,17 @@ export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boole
         </>}
         {error && <div className={styles.warning} role="alert"><p>{error}</p>
             <button type="button" className="text-button" disabled={disabled || loading || saving}
-                onClick={() => { setLoading(true); setError(null); setRefresh(value => value + 1) }}>Wczytaj aktualną decyzję</button>
+                onClick={reload}>Wczytaj aktualną decyzję</button>
         </div>}
     </section>
+}
+
+// A separate component receives the proposal as a non-null prop, so no "!" assertion is needed.
+function ProposalButton({proposed, current, disabled, onUse}: {
+    proposed: string, current: string, disabled: boolean, onUse: (name: string) => void,
+}) {
+    return <button type="button" className="text-button" disabled={disabled || current === proposed}
+        onClick={() => onUse(proposed)}>
+        Użyj propozycji
+    </button>
 }

@@ -1,18 +1,15 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import type {ReactNode} from 'react'
 import {invoke} from '@tauri-apps/api/core'
-import {isDesktop} from '../transport'
-import {AppUpdates} from './context'
-import type {UpdateStatus} from './state'
-import {installationBlocker} from './state'
-import {UpdatePrompt} from './UpdatePrompt'
-import './updates.css'
+import {isDesktop} from '../transport.js'
+import {AppUpdates} from './context.js'
+import type {UpdateStatus} from './state.js'
+import {installationBlocker, updatePending} from './state.js'
 
 export function UpdateProvider({children}: {children: ReactNode}) {
     const [status, setStatus] = useState<UpdateStatus>({phase: 'CHECKING', currentVersion: '', version: null, notes: null, downloadedBytes: 0, totalBytes: null, error: null})
     const [error, setError] = useState<string | null>(null)
     const [blockers, setBlockers] = useState<Record<string, string>>({})
-    const started = useRef(false)
     const pending = useRef(false)
     const setBlocker = useCallback((id: string, reason: string | null) => {
         setBlockers(current => {
@@ -22,21 +19,24 @@ export function UpdateProvider({children}: {children: ReactNode}) {
         })
     }, [])
     useEffect(() => {
-        if (!isDesktop() || started.current) return
-        started.current = true
-        // Owned by the native state; StrictMode must not launch a second check.
-        void invoke<UpdateStatus>('check_app_update').then(setStatus).catch(() => setStatus(current => ({...current, phase: 'ERROR', error: 'Sprawdzanie aktualizacji jest chwilowo niedostępne. Katalog nadal działa.'})))
-    }, [])
-    useEffect(() => {
-        if (!isDesktop() || !['CHECKING', 'DOWNLOADING', 'INSTALLING'].includes(status.phase)) return
+        if (!isDesktop() || !updatePending(status.phase)) return
         let stopped = false
-        let timer: ReturnType<typeof setTimeout>
+        let timer: ReturnType<typeof setTimeout> | undefined
         async function poll() {
-            try {const next = await invoke<UpdateStatus>('app_update_status'); if (!stopped) setStatus(next)} catch { /* The operation's request reports the error. */ }
+            try {
+                // The native process starts the check, independently of React mounting.
+                const next = await invoke<UpdateStatus>('app_update_status')
+                if (!stopped) setStatus(next)
+                if (!updatePending(next.phase)) return
+            } catch {
+                // A bridge failure must not leave a permanent 'checking' indicator.
+                if (!stopped) setStatus(current => ({...current, phase: 'ERROR', error: 'Nie udało się odczytać stanu aktualizacji. Katalog nadal działa.'}))
+                return
+            }
             if (!stopped) timer = setTimeout(() => void poll(), 750)
         }
-        timer = setTimeout(() => void poll(), 750)
-        return () => {stopped = true; clearTimeout(timer)}
+        void poll()
+        return () => {stopped = true; if (timer !== undefined) clearTimeout(timer)}
     }, [status.phase])
 
     async function operation(command: 'check_app_update' | 'download_app_update' | 'install_app_update' | 'restart_after_update_error') {
@@ -57,6 +57,6 @@ export function UpdateProvider({children}: {children: ReactNode}) {
     return <AppUpdates.Provider value={{status, error, reasons: Object.values(blockers), setBlocker,
         check: () => void operation('check_app_update'), download: () => void operation('download_app_update'),
         install: () => void operation('install_app_update'), restart: () => void operation('restart_after_update_error')}}>
-        {children}<UpdatePrompt/>
+        {children}
     </AppUpdates.Provider>
 }

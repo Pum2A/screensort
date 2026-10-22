@@ -1,4 +1,4 @@
-import type {ScanJob} from './types'
+import type {ScanJob} from './types.js'
 
 const stages = ['PREPARING', 'SCANNING', 'SAVING', 'COMPLETED'] as const
 const labels = ['Przygotowanie', 'Sprawdzanie plików', 'Zapis do bazy', 'Gotowe']

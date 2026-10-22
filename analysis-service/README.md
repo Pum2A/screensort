@@ -257,18 +257,16 @@ health w cache HTTP, aby przyszła kontrola procesu nie pokazywała starego wyni
 
 ## Kolejne małe kroki — do wspólnego napisania
 
-1. Przenieść istniejący wynik częściowy do uzgodnionego kontraktu HTTP:
-   ograniczone bajty i opcje → status/wynik/błąd OCR i wizji, hash i wersje.
-2. Dodać kontrolę dostępu dla Javy, limity wejścia, bezpieczny odczyt obrazu
-   i ograniczenie współbieżności. Loopback sam w sobie nie jest autoryzacją.
-3. OCR już działa samodzielnie; rozszerzyć ocenę jakości o opisane przykłady
+Kontrakt HTTP, token dla Javy, limity wejścia, bezpieczny odczyt obrazu,
+ograniczenie współbieżności oraz klient Javy i zadanie analizy już istnieją
+(opisane wyżej). Pozostają:
+
+1. OCR już działa samodzielnie; rozszerzyć ocenę jakości o opisane przykłady
    polskich i angielskich zrzutów, zanim uznamy go za gotowy dla całego katalogu.
-4. Florence jest uruchomiony; rozszerzyć próbę o opisany zbiór zrzutów i
+2. Florence jest uruchomiony; rozszerzyć próbę o opisany zbiór zrzutów i
    porównać trafność krótkiego oraz szczegółowego opisu. Składać modele przez lifespan;
    `/ready` powinien odzwierciedlać rzeczywiście dostępne możliwości.
-5. Podłączyć klienta w Javie oraz osobne zadanie analizy; potem prawdziwy wynik
-   w React. Nie przerabiać `ScanJob` na zadanie analizy.
-6. Dodać opcjonalny backend NVIDIA/CUDA z CPU jako obsługiwanym wariantem.
+3. Dodać opcjonalny backend NVIDIA/CUDA z CPU jako obsługiwanym wariantem.
    Zgodność sterownika, bibliotek i modelu musi być sprawdzona w praktyce.
 
 Nie tworzymy pustych `domain`, `infrastructure`, `utils` ani `shared` na zapas.
@@ -276,8 +274,8 @@ Obecne `image`, `ocr` i `vision` wynikają z funkcji, która rzeczywiście powst
 Python nie dostanie repozytoriów JPA ani dostępu do bazy katalogu. Nie przyjmuje
 dowolnych ścieżek, nie skanuje dysku i nie zmienia oryginalnych plików.
 
-Nie dodano jeszcze autoryzacji, limitu uploadu HTTP, kolejki, analizy przez API,
-kontenerowego wdrożenia ani automatycznego startu z Tauri.
+Nie ma kolejki zadań ani kontenerowego wdrożenia. Proces uruchamia Tauri,
+a autoryzacja, limity uploadu i analiza przez API są opisane wyżej.
 Limity dekodera nie ograniczają całej pamięci procesu: raw bytes, RGB, bufory
 pomocnicze i modele mają własny koszt. Limit 40 mln pikseli jest początkową
 polityką, nie wynikiem pomiaru maksymalnego bezpiecznego RAM dla każdej maszyny.

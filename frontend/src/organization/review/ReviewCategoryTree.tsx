@@ -1,7 +1,7 @@
 import {CheckCheck, Code2, FileText, Folder, FolderTree, Gamepad2, Image, Images, MessageCircleQuestion} from 'lucide-react'
-import type {BatchItem} from '../api'
-import {effectiveCategory} from './filters'
-import {categoryLabels} from './state'
+import type {BatchItem} from '../api.js'
+import {effectiveCategory} from './filters.js'
+import {categoryLabels} from './state.js'
 
 const icons = {PROGRAMMING: Code2, DOCUMENTS: FileText, GAMES: Gamepad2, PHOTOGRAPHS: Image, OTHER: Folder, REVIEW: MessageCircleQuestion}
 
