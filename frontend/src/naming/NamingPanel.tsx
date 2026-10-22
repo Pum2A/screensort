@@ -1,12 +1,12 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import type {FormEvent} from 'react'
-import {approveNaming, readNaming} from './api'
-import {fileNameProblem} from './fileNameRules'
-import type {NamingReview} from './types'
-import {formatDate} from '../catalog/format'
-import {Icon} from '../ui/Icon'
+import {approveNaming, readNaming} from './api.js'
+import {fileNameProblem} from './fileNameRules.js'
+import type {NamingReview} from './types.js'
+import {formatDate} from '../catalog/format.js'
+import {Icon} from '../ui/Icon.js'
 import styles from './NamingPanel.module.css'
-import {useUpdateBlocker} from '../desktop/updates/context'
+import {useUpdateBlocker} from '../desktop/updates/context.js'
 
 export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boolean}) {
     const [review, setReview] = useState<NamingReview | null>(null)

@@ -1,9 +1,9 @@
 import {useEffect, useState} from 'react'
 import {Check, CircleAlert, Database, FolderOpen, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
 import * as m from 'motion/react-m'
-import type {DesktopStatus} from './status'
-import {elapsedLabel, startupStep} from './status'
-import {UpdatePrompt} from './updates/UpdatePrompt'
+import type {DesktopStatus} from './status.js'
+import {elapsedLabel, startupStep} from './status.js'
+import {UpdatePrompt} from './updates/UpdatePrompt.js'
 
 export function WaitingTime({active = true}: {active?: boolean}) {
     const [elapsed, setElapsed] = useState(0)

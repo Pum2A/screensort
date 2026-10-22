@@ -1,12 +1,12 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import type {FormEvent} from 'react'
 import {Check, ChevronRight, CircleAlert, LoaderCircle, RotateCcw, SkipForward} from 'lucide-react'
-import {CatalogImage} from '../../catalog/CatalogImage'
-import {fileNameProblem} from '../../naming/fileNameRules'
-import type {BatchItem} from '../api'
-import {readReview, saveReview} from './api'
-import {categoryLabels, draftChanged, draftFor, isCategory, reviewImageUrl, reviewWrite, serverChanged} from './state'
-import {ReviewEvidence} from './ReviewEvidence'
+import {CatalogImage} from '../../catalog/CatalogImage.js'
+import {fileNameProblem} from '../../naming/fileNameRules.js'
+import type {BatchItem} from '../api.js'
+import {readReview, saveReview} from './api.js'
+import {categoryLabels, draftChanged, draftFor, isCategory, reviewImageUrl, reviewWrite, serverChanged} from './state.js'
+import {ReviewEvidence} from './ReviewEvidence.js'
 import styles from './ReviewEditor.module.css'
 
 export type EditingState = {dirty: boolean; saving: boolean}

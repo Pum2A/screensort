@@ -1,8 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
 import {Check, CircleAlert, Copy, LoaderCircle, RefreshCw} from 'lucide-react'
-import {useUpdateBlocker} from '../../desktop/updates/context'
-import {exportIssues, latestExport, readExport, startExport} from './api'
-import type {ExportIssues, ExportJob} from './api'
+import {useUpdateBlocker} from '../../desktop/updates/context.js'
+import {exportIssues, latestExport, readExport, startExport} from './api.js'
+import type {ExportIssues, ExportJob} from './api.js'
 
 type Props = {batchId: string; destinationFolder: string; totalApproved: number; disabled: boolean;
     onBusyChange: (busy: boolean) => void}

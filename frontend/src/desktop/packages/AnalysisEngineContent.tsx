@@ -1,7 +1,7 @@
 import {Check, CheckCircle2, Cpu, Download, FolderArchive, HardDrive, LoaderCircle, Play, ShieldCheck, Type, X} from 'lucide-react'
-import {WaitingTime} from '../StartupScreen'
-import {hasAiPackage, packagePercent, packagePhase, packageSize} from './state'
-import type {PackageStatus} from './state'
+import {WaitingTime} from '../StartupScreen.js'
+import {hasAiPackage, packagePercent, packagePhase, packageSize} from './state.js'
+import type {PackageStatus} from './state.js'
 
 type Props = {status: PackageStatus | null; starting: boolean; ready: boolean; error: string | null;
     requesting: boolean; onStart: () => void; onInstall: (id: string, fromFile: boolean) => void; onCancel: () => void}

@@ -1,4 +1,4 @@
-import type {ScanSummaryData} from './types'
+import type {ScanSummaryData} from './types.js'
 
 type ScanSummaryProps = {
     summary: ScanSummaryData

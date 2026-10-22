@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import type {ReactNode} from 'react'
 import {invoke} from '@tauri-apps/api/core'
-import {isDesktop} from '../transport'
-import {AppUpdates} from './context'
-import type {UpdateStatus} from './state'
-import {installationBlocker, updatePending} from './state'
+import {isDesktop} from '../transport.js'
+import {AppUpdates} from './context.js'
+import type {UpdateStatus} from './state.js'
+import {installationBlocker, updatePending} from './state.js'
 
 export function UpdateProvider({children}: {children: ReactNode}) {
     const [status, setStatus] = useState<UpdateStatus>({phase: 'CHECKING', currentVersion: '', version: null, notes: null, downloadedBytes: 0, totalBytes: null, error: null})

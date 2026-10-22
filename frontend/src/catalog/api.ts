@@ -1,5 +1,5 @@
-import type {CatalogFile, CatalogPage} from './types'
-import {backendFetch} from '../desktop/transport'
+import type {CatalogFile, CatalogPage} from './types.js'
+import {backendFetch} from '../desktop/transport.js'
 
 export async function fetchCatalog(folderPath: string, pageNumber: number, pageSize: number): Promise<CatalogPage> {
     const query = new URLSearchParams({folderPath, pageNumber: pageNumber.toString(), pageSize: pageSize.toString()})

@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {ArrowRight, Check, CircleAlert, FolderTree, Info, Layers3, LoaderCircle, Pause, Play, ScanLine, Sparkles} from 'lucide-react'
-import {useAnalysisReady} from '../desktop/readiness'
-import {batchItems, controlBatch, latestBatch, readBatch, startBatch} from './api'
-import type {Batch, BatchItem, BatchPage} from './api'
-import {ReviewQueue} from './review/ReviewQueue'
-import {OrganizationPlanPreview} from './OrganizationPlanPreview'
+import {useAnalysisReady} from '../desktop/readiness.js'
+import {batchItems, controlBatch, latestBatch, readBatch, startBatch} from './api.js'
+import type {Batch, BatchItem, BatchPage} from './api.js'
+import {ReviewQueue} from './review/ReviewQueue.js'
+import {OrganizationPlanPreview} from './OrganizationPlanPreview.js'
 import './OrganizationPanel.css'
-import {useUpdateBlocker} from '../desktop/updates/context'
+import {useUpdateBlocker} from '../desktop/updates/context.js'
 
 const statuses = {RUNNING: 'Analiza w toku', PAUSED: 'Wstrzymano — postęp zachowany', COMPLETED: 'Analiza zakończona', CANCELLED: 'Zadanie anulowane'}
 

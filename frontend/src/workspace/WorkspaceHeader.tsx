@@ -1,6 +1,6 @@
 import {LockKeyhole} from 'lucide-react'
-import {UpdatePrompt} from '../desktop/updates/UpdatePrompt'
-import type {WorkspaceView} from './state'
+import {UpdatePrompt} from '../desktop/updates/UpdatePrompt.js'
+import type {WorkspaceView} from './state.js'
 
 export function WorkspaceHeader({view}: {view: WorkspaceView}) {
     return <header className="workspace-header">

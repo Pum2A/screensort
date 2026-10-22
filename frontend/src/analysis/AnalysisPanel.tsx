@@ -1,12 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {findAnalysisJob, latestAnalysis, startAnalysis} from './api'
-import type {AnalysisJob, SavedAnalysis} from './types'
-import {Icon} from '../ui/Icon'
-import {formatDate} from '../catalog/format'
+import {findAnalysisJob, latestAnalysis, startAnalysis} from './api.js'
+import type {AnalysisJob, SavedAnalysis} from './types.js'
+import {Icon} from '../ui/Icon.js'
+import {formatDate} from '../catalog/format.js'
 import styles from './AnalysisPanel.module.css'
-import {useAnalysisReady} from '../desktop/readiness'
-import {NamingPanel} from '../naming/NamingPanel'
-import {useUpdateBlocker} from '../desktop/updates/context'
+import {useAnalysisReady} from '../desktop/readiness.js'
+import {NamingPanel} from '../naming/NamingPanel.js'
+import {useUpdateBlocker} from '../desktop/updates/context.js'
 
 const labels = {PREPARING: 'Sprawdzamy oryginał…', ANALYZING: 'OCR i analiza wizualna…',
     SAVING: 'Zapisujemy wynik…', COMPLETED: 'Wynik zapisany', FAILED: 'Analiza nie powiodła się'}

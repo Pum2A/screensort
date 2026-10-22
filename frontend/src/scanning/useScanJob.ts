@@ -1,8 +1,8 @@
 import {useEffect, useRef, useState} from 'react'
-import {fetchRejections, ScanApiError, startScan} from './api'
-import {observeScanJob} from './polling'
-import {isFinished} from './types'
-import type {ScanJob, ScanRejections} from './types'
+import {fetchRejections, ScanApiError, startScan} from './api.js'
+import {observeScanJob} from './polling.js'
+import {isFinished} from './types.js'
+import type {ScanJob, ScanRejections} from './types.js'
 
 export function useScanJob(onCompleted: (job: ScanJob) => void) {
     const [job, setJob] = useState<ScanJob | null>(null)

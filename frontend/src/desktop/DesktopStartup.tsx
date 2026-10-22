@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react'
 import type {ReactNode} from 'react'
 import {invoke} from '@tauri-apps/api/core'
-import {isDesktop} from './transport'
-import {AnalysisReadiness} from './readiness'
-import {DesktopRuntime} from './runtimeContext'
-import {StartupScreen} from './StartupScreen'
-import type {DesktopStatus} from './status'
+import {isDesktop} from './transport.js'
+import {AnalysisReadiness} from './readiness.js'
+import {DesktopRuntime} from './runtimeContext.js'
+import {StartupScreen} from './StartupScreen.js'
+import type {DesktopStatus} from './status.js'
 import './DesktopStartup.css'
 
 export function DesktopStartup({children}: {children: ReactNode}) {

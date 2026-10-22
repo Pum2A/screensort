@@ -1,12 +1,12 @@
 import {useContext, useRef, useState} from 'react'
 import {AnimatePresence} from 'motion/react'
 import {ArrowDownToLine, Check, CircleAlert, Download, LoaderCircle, RefreshCw, RotateCw, X} from 'lucide-react'
-import {Modal} from '../../ui/Modal'
-import {AppUpdates} from './context'
-import type {UpdateContextValue} from './context'
-import {installationBlocker, updateLabel, updatePending, updatePercent} from './state'
-import {Tooltip} from '../../ui/Tooltip'
-import {packageSize} from '../packages/state'
+import {Modal} from '../../ui/Modal.js'
+import {AppUpdates} from './context.js'
+import type {UpdateContextValue} from './context.js'
+import {installationBlocker, updateLabel, updatePending, updatePercent} from './state.js'
+import {Tooltip} from '../../ui/Tooltip.js'
+import {packageSize} from '../packages/state.js'
 import './updates.css'
 
 export function UpdateDetails({context}: {context: UpdateContextValue}) {

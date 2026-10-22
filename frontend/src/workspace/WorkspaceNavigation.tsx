@@ -1,6 +1,6 @@
 import {Images, ScanLine, Sparkles} from 'lucide-react'
-import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls'
-import type {WorkspaceView} from './state'
+import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls.js'
+import type {WorkspaceView} from './state.js'
 
 type Props = {total: number | null; view: WorkspaceView; onView: (view: WorkspaceView) => void}
 

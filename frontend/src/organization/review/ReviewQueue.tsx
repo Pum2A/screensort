@@ -1,13 +1,13 @@
 import {useCallback, useState} from 'react'
 import {CheckCircle2, CircleAlert, Image, Search, SkipForward} from 'lucide-react'
 import * as m from 'motion/react-m'
-import {CatalogImage} from '../../catalog/CatalogImage'
-import type {BatchItem} from '../api'
-import {ReviewEditor} from './ReviewEditor'
-import type {EditingState} from './ReviewEditor'
-import {reviewImageUrl, reviewLabel} from './state'
-import {filterReviewPage} from './filters'
-import {ReviewCategoryTree} from './ReviewCategoryTree'
+import {CatalogImage} from '../../catalog/CatalogImage.js'
+import type {BatchItem} from '../api.js'
+import {ReviewEditor} from './ReviewEditor.js'
+import type {EditingState} from './ReviewEditor.js'
+import {reviewImageUrl, reviewLabel} from './state.js'
+import {filterReviewPage} from './filters.js'
+import {ReviewCategoryTree} from './ReviewCategoryTree.js'
 
 type Props = {batchId: string; items: BatchItem[]; disabled: boolean;
     onSaved: (item: BatchItem) => void; onEditingChange: (editing: boolean) => void}

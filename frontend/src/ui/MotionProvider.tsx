@@ -1,6 +1,6 @@
 import {LazyMotion, MotionConfig, domAnimation, useReducedMotion} from 'motion/react'
 import type {ReactNode} from 'react'
-import {TooltipProvider} from './Tooltip'
+import {TooltipProvider} from './Tooltip.js'
 
 // Small animation feature set. No drag/physics/graph engine in the initial bundle.
 export function MotionProvider({children}: {children: ReactNode}) {

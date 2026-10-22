@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
-import {Icon} from '../ui/Icon'
+import {Icon} from '../ui/Icon.js'
 import './CatalogImage.css'
-import {desktopImage, isDesktop} from '../desktop/transport'
+import {desktopImage, isDesktop} from '../desktop/transport.js'
 
 // Rodzic nadaje key=src: inny obraz dostaje świeży stan ładowania i błędu.
 export function CatalogImage({src, name, preview = false}: {src: string, name: string, preview?: boolean}) {

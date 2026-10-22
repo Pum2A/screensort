@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {CircleAlert, LoaderCircle} from 'lucide-react'
-import {latestAnalysis} from '../../analysis/api'
-import type {SavedAnalysis} from '../../analysis/types'
+import {latestAnalysis} from '../../analysis/api.js'
+import type {SavedAnalysis} from '../../analysis/types.js'
 
 /** Lazy, read-only evidence. Never display a newer/older analysis as this proposal's evidence. */
 export function ReviewEvidence({fileId, analysisId, sourceHash}: {fileId: number; analysisId: number; sourceHash: string}) {

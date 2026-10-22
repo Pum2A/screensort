@@ -1,11 +1,11 @@
-import {CatalogImage} from './CatalogImage'
-import {imageUrl} from './api'
-import {formatDate, formatSize} from './format'
-import type {CatalogFile} from './types'
-import {AnimatedBranch} from '../ui/AnimatedBranch'
-import {Icon} from '../ui/Icon'
+import {CatalogImage} from './CatalogImage.js'
+import {imageUrl} from './api.js'
+import {formatDate, formatSize} from './format.js'
+import type {CatalogFile} from './types.js'
+import {AnimatedBranch} from '../ui/AnimatedBranch.js'
+import {Icon} from '../ui/Icon.js'
 import styles from './CatalogDetailsPanel.module.css'
-import {AnalysisPanel} from '../analysis/AnalysisPanel'
+import {AnalysisPanel} from '../analysis/AnalysisPanel.js'
 
 export function CatalogDetailsPanel({file, onPreview}: {file: CatalogFile, onPreview: (trigger: HTMLButtonElement) => void}) {
     const src = imageUrl(file, 'thumbnail')
