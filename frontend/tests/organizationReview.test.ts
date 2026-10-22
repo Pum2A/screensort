@@ -70,7 +70,7 @@ test('PUT saves a decision and GET explicitly reloads the current database form'
             assert.equal(init?.method, 'PUT')
             assert.equal(new Headers(init?.headers).get('Content-Type'), 'application/json')
             assert.deepEqual(JSON.parse(init?.body as string), request)
-        } else { assert.equal(init?.method, undefined); assert.equal(init?.body, undefined) }
+        } else { assert.equal(init?.method, 'GET'); assert.equal(init?.body, undefined) }
         return Response.json({...item, namingRevision: 1})
     }
     try {

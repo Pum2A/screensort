@@ -1,6 +1,7 @@
-import {useCallback, useEffect, useRef, useState} from 'react'
-import {findAnalysisJob, latestAnalysis, startAnalysis} from './api.js'
-import type {AnalysisJob, SavedAnalysis} from './types.js'
+import {useEffect, useState} from 'react'
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
+import {analysisKeys, findAnalysisJob, latestAnalysis, startAnalysis} from './api.js'
+import {isFinished} from './types.js'
 import {Icon} from '../ui/Icon.js'
 import {formatDate} from '../catalog/format.js'
 import styles from './AnalysisPanel.module.css'
@@ -8,82 +9,79 @@ import {useAnalysisReady} from '../desktop/readiness.js'
 import {NamingPanel} from '../naming/NamingPanel.js'
 import {useUpdateBlocker} from '../desktop/updates/context.js'
 
+const POLL_MS = 800
 const labels = {PREPARING: 'Sprawdzamy oryginał…', ANALYZING: 'OCR i analiza wizualna…',
     SAVING: 'Zapisujemy wynik…', COMPLETED: 'Wynik zapisany', FAILED: 'Analiza nie powiodła się'}
 
+// sessionStorage lets a running job survive a page reload. It is optional: the backend stays the source of truth.
+function storageKey(fileId: number): string {
+    return `screensort.analysis.job.${fileId}`
+}
+
+function rememberedJob(fileId: number): string | null {
+    try { return sessionStorage.getItem(storageKey(fileId)) } catch { return null }
+}
+
+function remember(fileId: number, id: string | null): void {
+    try { if (id) sessionStorage.setItem(storageKey(fileId), id); else sessionStorage.removeItem(storageKey(fileId)) }
+    catch { /* Preferences are optional. */ }
+}
+
+// The parent renders this panel with key={fileId}, so all state below belongs to one image.
 export function AnalysisPanel({fileId}: {fileId: number}) {
     const analysisReady = useAnalysisReady()
-    const [saved, setSaved] = useState<SavedAnalysis | null>(null)
-    const [job, setJob] = useState<AnalysisJob | null>(null)
-    const [error, setError] = useState<string | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [starting, setStarting] = useState(false)
+    const queryClient = useQueryClient()
     const [ocr, setOcr] = useState(true)
     const [visual, setVisual] = useState(true)
-    const controller = useRef<AbortController | null>(null)
-    const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const busy = starting || (job !== null && job.status !== 'COMPLETED' && job.status !== 'FAILED')
-    useUpdateBlocker(busy, 'Poczekaj na zakończenie analizy wybranego obrazu przed restartem.')
-    const key = `screensort.analysis.job.${fileId}`
+    const [jobId, setJobId] = useState(() => rememberedJob(fileId))
 
-    const remember = useCallback((id: string | null) => {
-        try { if (id) sessionStorage.setItem(key, id); else sessionStorage.removeItem(key) }
-        catch { /* Preferences are optional; the backend remains the source of truth. */ }
-    }, [key])
+    const savedQuery = useQuery({
+        queryKey: analysisKeys.latest(fileId),
+        queryFn: ({signal}) => latestAnalysis(fileId, signal),
+    })
+    const jobQuery = useQuery({
+        queryKey: analysisKeys.job(jobId ?? ''),
+        queryFn: ({signal}) => findAnalysisJob(jobId ?? '', signal),
+        enabled: jobId !== null,
+        // Poll until the job is final. Query stops the timer on its own when the panel unmounts.
+        refetchInterval: query => {
+            if (query.state.status === 'error') return false
+            const job = query.state.data
+            return job === undefined || (job !== null && !isFinished(job)) ? POLL_MS : false
+        },
+    })
+    const start = useMutation({
+        mutationFn: () => startAnalysis(fileId, ocr, visual),
+        onSuccess: next => {
+            remember(fileId, next.id)
+            queryClient.setQueryData(analysisKeys.job(next.id), next)
+            setJobId(next.id)
+        },
+    })
 
-    const poll = useCallback(async function check(id: string, signal: AbortSignal) {
-        try {
-            const next = await findAnalysisJob(id, signal)
-            if (signal.aborted) return
-            if (!next) {
-                const latest = await latestAnalysis(fileId, signal)
-                if (!signal.aborted) { remember(null); setJob(null); setSaved(latest) }
-                return
-            }
-            setJob(next)
-            if (next.status === 'COMPLETED' || next.status === 'FAILED') {
-                remember(null)
-                if (next.analysis) setSaved(next.analysis)
-                if (next.errorMessage) setError(next.errorMessage)
-                return
-            }
-            timer.current = setTimeout(() => void check(id, signal), 800)
-        } catch (cause) {
-            if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Utracono połączenie z analizą.')
-        }
-    }, [fileId, remember])
-
+    // React to the backend's answer about the job: this syncs the cache and sessionStorage, not React state.
+    const jobAnswer = jobQuery.data
     useEffect(() => {
-        const abort = new AbortController()
-        controller.current = abort
-        async function load() {
-            try {
-                const result = await latestAnalysis(fileId, abort.signal)
-                if (!abort.signal.aborted) setSaved(result)
-                let id: string | null = null
-                try { id = sessionStorage.getItem(key) } catch { /* Optional. */ }
-                if (id && !abort.signal.aborted) await poll(id, abort.signal)
-            } catch {
-                if (!abort.signal.aborted) setError('Nie udało się odczytać zapisanej analizy.')
-            } finally { if (!abort.signal.aborted) setLoading(false) }
+        if (jobAnswer === undefined) return
+        if (jobAnswer === null) {
+            // The job expired on the backend (404); the saved analysis is the truth.
+            remember(fileId, null)
+            void queryClient.invalidateQueries({queryKey: analysisKeys.latest(fileId)})
+        } else if (isFinished(jobAnswer)) {
+            remember(fileId, null)
+            if (jobAnswer.analysis) queryClient.setQueryData(analysisKeys.latest(fileId), jobAnswer.analysis)
         }
-        void load()
-        return () => { abort.abort(); if (timer.current) clearTimeout(timer.current) }
-    }, [fileId, key, poll])
+    }, [jobAnswer, fileId, queryClient])
 
-    async function start() {
-        const signal = controller.current?.signal
-        if (!signal || busy) return
-        setStarting(true); setError(null)
-        try {
-            const next = await startAnalysis(fileId, ocr, visual, signal)
-            if (signal.aborted) return
-            setJob(next); remember(next.id)
-            void poll(next.id, signal)
-        } catch (cause) {
-            if (!signal.aborted) setError(cause instanceof Error ? cause.message : 'Nie udało się rozpocząć analizy.')
-        } finally { if (!signal.aborted) setStarting(false) }
-    }
+    const saved = savedQuery.data ?? null
+    const job = jobAnswer ?? null
+    const busy = start.isPending || (job !== null && !isFinished(job))
+    const loading = savedQuery.isPending
+    const error = start.error?.message
+        ?? (job?.status === 'FAILED' ? job.errorMessage : null)
+        ?? jobQuery.error?.message
+        ?? (savedQuery.error ? 'Nie udało się odczytać zapisanej analizy.' : null)
+    useUpdateBlocker(busy, 'Poczekaj na zakończenie analizy wybranego obrazu przed restartem.')
 
     return <div className={styles.panel}>
         <p className={styles.hint}>Lokalne modele analizują oryginał tylko do odczytu. Wynik zapisujemy w Twojej bazie.</p>
@@ -91,7 +89,8 @@ export function AnalysisPanel({fileId}: {fileId: number}) {
             <label><input type="checkbox" checked={ocr} disabled={busy} onChange={event => setOcr(event.target.checked)}/>Tekst OCR</label>
             <label><input type="checkbox" checked={visual} disabled={busy} onChange={event => setVisual(event.target.checked)}/>Opis obrazu</label>
         </div>
-        <button type="button" className="primary-button" disabled={!analysisReady || loading || busy || (!ocr && !visual)} onClick={() => void start()}>
+        <button type="button" className="primary-button" disabled={!analysisReady || loading || busy || (!ocr && !visual)}
+            onClick={() => start.mutate()}>
             <Icon name={busy ? 'refresh' : 'eye'} className={busy ? 'spin' : ''}/>
             {busy ? 'Analizujemy…' : saved ? 'Analizuj ponownie' : 'Analizuj obraz'}
         </button>
@@ -99,9 +98,9 @@ export function AnalysisPanel({fileId}: {fileId: number}) {
         {loading && <p role="status">Odczytujemy zapisane wyniki…</p>}
         {job && <p role="status">{labels[job.status]}</p>}
         {error && <div className={styles.error} role="alert"><p>{error}</p>
-            {job && busy && <button type="button" className="text-button" onClick={() => {
-                setError(null); if (controller.current) void poll(job.id, controller.current.signal)
-            }}>Wznów sprawdzanie</button>}
+            {job && busy && <button type="button" className="text-button" onClick={() => void jobQuery.refetch()}>
+                Wznów sprawdzanie
+            </button>}
         </div>}
         {saved && <div className={styles.results}>
             <p className={styles.hint}>Zapisano: {formatDate(saved.analyzedAt)}</p>

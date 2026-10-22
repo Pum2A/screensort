@@ -89,7 +89,8 @@ window.fetch = async (input, options) => {
         const row = rows[Number(naming[1]) - 1]
         if (method === 'PUT') {const body = JSON.parse(String(options?.body)); row.approvedName = body.name; row.namingRevision++}
         return Response.json({fileId: row.fileId, originalName: row.originalName, analysisId: row.analysisId, sourceSha256: row.sourceSha256,
-            matchesCatalog: true, suggestedName: row.proposedName, approvedName: row.approvedName, revision: row.namingRevision, approvedAt: row.approvedName ? date : null})
+            proposedName: row.proposedName, analysisMatchesCatalog: true, approvedName: row.approvedName,
+            approvedAt: row.approvedName ? date : null, approvalMatchesCatalog: row.approvedName !== null, revision: row.namingRevision})
     }
     const review = url.pathname.match(/\/items\/(\d+)\/review$/)
     if (review) {
