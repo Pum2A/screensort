@@ -24,7 +24,7 @@ During development, Vite proxies `/api` to Spring Boot at
 ## Saved catalog
 
 `catalog/api.ts`, called by `App.tsx`, reads `GET /api/catalog/page` with `folderPath`, `pageNumber` and
-`pageSize`. The default page size is 50. The response contains `files`,
+`pageSize`. The default page size is 24. The response contains `files`,
 `pageNumber`, `pageSize`, `totalFiles` and `hasNext`; React keeps one page object
 and derives its file list instead of storing a second copy.
 
@@ -44,7 +44,7 @@ a database table. Pagination does not start a scan or change source images.
 `catalog/CatalogGallery.tsx` renders the current page as compact tiles. Selection
 stores only `selectedId`; the selected file is derived from this page.
 `CatalogImage.tsx` loads lazy thumbnails by record ID, not by arbitrary paths.
-`ImageDetailsPanel.tsx` requests the larger preview only after selection and
+`ImageDetailsDialog.tsx` requests the larger preview only after selection and
 shows metadata from the last scan. Escape / the close button restore focus to
 the selected tile. Technical details remain available in a disclosure section.
 
@@ -65,14 +65,15 @@ changes only the development proxy, not production/Tauri API routing.
 ```powershell
 npm.cmd run lint
 npm.cmd run build
+npm.cmd test
 ```
 
 To exercise both navigation buttons with the two demo records, temporarily
 change `CATALOG_PAGE_SIZE` in `App.tsx` to 1, then reload the UI and move forward
-and back. Restore 50 before committing. This checks saved records and requires
+and back. Restore 24 before committing. This checks saved records and requires
 no new scan if the demo folder is already cataloged.
 
-This is a development shell, not a distributable installer yet. Bundling and
-launching Java, routing production API requests, and replacing the Docker-only
-database dependency for end users are separate upcoming steps. Tauri bundling is
-disabled until those pieces work together.
+The release build is a Windows NSIS installer built by Tauri (`bundle.active` in
+`src-tauri/tauri.conf.json`). The Rust shell starts a private PostgreSQL, the Java
+backend and the optional analysis service; the WebView only calls the allow-listed
+`backend_request` / `backend_image` commands. Docker is needed only for development.
