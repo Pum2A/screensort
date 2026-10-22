@@ -15,7 +15,7 @@ It also supports resumable whole-folder analysis with preliminary category/name
 proposals. Categories currently use explicit keyword rules, not a new trained classifier.
 Optional AI packages can be downloaded from inside the app. The new folder review
 queue lets you edit names/categories, approve or skip images and persist decisions.
-Preview 0.2.3 also creates organized copies of explicitly approved images in
+Since preview 0.2.3 it also creates organized copies of explicitly approved images in
 category folders, verifies their source content against the approved SHA-256 and
 preserves originals and existing destination files. In-app updates are available;
 older installers do not gain source changes without an update.
@@ -213,8 +213,8 @@ are not available yet. See the [contextual analysis plan](docs/plan-contextual-a
 - [Python analysis service setup](analysis-service/README.md)
 
 The Windows installer runs without a separately installed JDK, Python, Node or
-Docker. Building it still requires developer tools. Core 0.2.3 is published in the
-[distribution repository](https://github.com/Pum2A/screensort-releases/releases/tag/v0.2.3-preview).
+Docker. Building it still requires developer tools. Core 0.2.5 is published in the
+[distribution repository](https://github.com/Pum2A/screensort-releases/releases/tag/v0.2.5-preview).
 Its updater signature is not a Windows Authenticode certificate. The installer
 still bundles the core runtimes and offline WebView installer; clean-VM validation
 remains separate from the isolated startup checks. Binary

@@ -1,7 +1,14 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-21. Bieżący etap źródłowy: **0.2.4 preview**.
+Sprawdzone 2026-10-22. Bieżący etap źródłowy: **0.2.5 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Aktualizacja 0.2.5: wydanie niezawodności i prywatności, bez nowych funkcji.
+Uszkodzony obraz nie przerywa już skanu, logi błędów zadań nie zawierają ścieżek
+plików, a frontend sprawdza każdą odpowiedź backendu schematem Zod i odpytuje
+zadania przez TanStack Query (także przy zminimalizowanym oknie).
+Wydanie 0.2.5 zostało opublikowane 2026-10-22 w kanale `updates-preview`
+repozytorium `Pum2A/screensort-releases`.
 
 Aktualizacja 0.2.4: kontrola wersji startuje w natywnym procesie przy każdym
 uruchomieniu, a UI ma przebudowaną bibliotekę, analizę, start i ustawienia.
