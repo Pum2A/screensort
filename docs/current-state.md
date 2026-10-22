@@ -34,7 +34,7 @@ z Dockera. Skan dotyczy bezpośrednich wpisów wybranego folderu, nie rekursji p
 
 | Obszar | Działa | Ważna granica |
 | --- | --- | --- |
-| Skanowanie | Walidacja, bounded workers, SHA strumieniowo, mapa znanych plików | Rozmiar i data pozwalają pominąć pracę, ale nie dowodzą identyczności bajtów |
+| Skanowanie | Walidacja, bounded workers, SHA strumieniowo, mapa znanych plików, format i wymiary obrazu z nagłówka | Rozmiar i data pozwalają pominąć pracę, ale nie dowodzą identyczności bajtów |
 | Katalog | Trwałe rekordy, paginacja, miniatury po ID i większy podgląd | Wyszukiwanie frontendu filtruje bieżącą stronę, nie cały katalog |
 | OCR i wizja | RapidOCR i Florence-2-base-ft CPU, osobne wyniki i błędy | Nie ma wyboru innych modeli ani GPU; caption nie gwarantuje rozpoznania gry/obiektu |
 | Analiza folderu | Checkpointy, pauza, wznowienie, odzyskanie po restarcie | Ponowny job nie ma wersjonowanego cache inferencji |
@@ -84,6 +84,16 @@ jako `INTERRUPTED`; następny eksport tworzy nowy folder, nie uzupełnia poprzed
 Nagłe zabicie procesu może zostawić `.part`. Brakuje kontroli wymaganej pojemności
 przed kopiowaniem; błędy zapisu są obsługiwane w trakcie pracy.
 
+## Przegląd niezawodności backendu
+
+Przegląd kodu backendu z 2026-10-21 poprawił cztery rzeczy: wyciek ścieżek
+i hashów do konsoli, odpowiedź HTTP 500 zamiast 409 przy wznowieniu analizy
+folderu, wyciek wątków klienta HTTP do Pythona oraz brak blokady pliku przy
+eksporcie. Skan rozpoznaje obraz z nagłówka, więc nie dekoduje go w całości,
+a eksport zajmuje plik w tej samej transakcji, która go wybiera. Dokładny
+zakres, zmienione zachowanie i lista braków, które zostały w backlogu:
+[review-backend-quality.md](review-backend-quality.md).
+
 ## Co sprawdzono w tej synchronizacji
 
 - CI po scaleniu `f12e5f7`: Java, frontend, Python i Windows desktop — sukces.
@@ -95,6 +105,10 @@ przed kopiowaniem; błędy zapisu są obsługiwane w trakcie pracy.
 - Java lokalnie: 17/17 testów `ReviewJpaTest`, `OrganizedFileCopierTest`,
   `DesktopUpdateReadinessTest`, na izolowanej bazie PostgreSQL i testowych plikach.
 - Potwierdzono opublikowane wydanie 0.2.3 i manifest kanału `updates-preview`.
+- Przegląd niezawodności backendu: 167/167 testów jednostkowych i 25/25 testów
+  bazodanowych (PostgreSQL 18.6 przez Testcontainers), w tym pełny przepływ
+  eksportu HTTP → PostgreSQL → dysk. Nowa migracja `V9` została zastosowana
+  na świeżej bazie.
 
 To nie jest świeży benchmark modeli ani ręczny test całego interfejsu. Nie
 zmieniano prywatnej bazy, zdjęć ani zainstalowanego programu. Serwer fixture

@@ -2,6 +2,12 @@
 
 Ten dokument jest **planem do omówienia, nie implementacją**. Stan kodu i diagramy obecnej architektury opisuje [mapa architektury](diagramy-architektury.md). Wersja do telefonu: [PDF](../output/pdf/screensort-plan-wydajnosc.pdf).
 
+Status na 2026-10-21: dwie pozycje z tabeli „Gdzie może znikać czas obecnego
+skanu" zostały zamknięte — rozpoznawanie obrazu czyta nagłówek zamiast
+dekodować plik, a odczyt katalogu bez paginacji ma limit 1000 rekordów.
+Pozostałe pozycje (zapis katalogu, głęboka paginacja) są w backlogu
+przeglądu: [review-backend-quality.md](review-backend-quality.md).
+
 ## Najbliższy sensowny etap
 
 Proponowany następny widoczny dla użytkownika fragment to **katalog podobny do eksploratora plików**: siatka miniatur, wybór jednego zdjęcia, większy podgląd i panel metadanych. Dopiero na takiej podstawie łatwo będzie później pokazać OCR, tagi, propozycję nazwy i decyzję użytkownika.

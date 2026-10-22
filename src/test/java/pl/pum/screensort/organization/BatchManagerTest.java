@@ -10,12 +10,28 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 class BatchManagerTest {
+  @Test void resumeReportsConflictWhenTheDatabaseAlreadyRunsAnotherBatch() {
+    var store = mock(BatchStore.class);
+    var processor = mock(AnalysisProcessor.class);
+    var folders = mock(ScanFolderValidator.class);
+    var id = UUID.randomUUID();
+    // Unikalny indeks ux_analysis_batch_active nie dopuszcza drugiego aktywnego batchu.
+    when(store.resume(id)).thenThrow(new DataIntegrityViolationException("ux_analysis_batch_active"));
+    var manager = new BatchManager(store, processor, folders);
+    try {
+      assertThatThrownBy(() -> manager.resume(id))
+          .isInstanceOfSatisfying(AnalysisException.class,
+              error -> assertThat(error.status()).isEqualTo(409));
+    } finally { manager.stop(); }
+  }
+
   @Test void unavailableEnginePausesInsteadOfFailingThousandsOfFiles() throws Exception {
     var store = mock(BatchStore.class);
     var processor = mock(AnalysisProcessor.class);

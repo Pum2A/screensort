@@ -16,6 +16,8 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
@@ -29,8 +31,13 @@ import pl.pum.screensort.scanning.result.ScanSummary;
 
 @Service
 public class ImageScanner {
+  private static final Logger log = LoggerFactory.getLogger(ImageScanner.class);
   private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
   private static final int MAX_IN_FLIGHT = 4;
+  private static final Set<String> SUPPORTED_IMAGE_FORMATS = Set.of("png", "jpeg", "jpg");
+  // Limity zgodne z podglądem: poza nimi pliku nie da się bezpiecznie pokazać.
+  private static final long MAX_SOURCE_PIXELS = 40_000_000;
+  private static final int MAX_SOURCE_EDGE = 20_000;
 
   private final FileHasher hasher;
   private final ExecutorService scanWorkers;
@@ -102,11 +109,11 @@ public class ImageScanner {
             case RESCANNED -> rescannedImages++;
             case UNCHANGED -> unchangedImages++;
           }
-          System.out.println("Accepted: " + image.path());
+          // Ścieżki i nazwy plików nie trafiają do logu: aplikacja jest local-first.
         } else if (outcome instanceof FileOutcome.Rejected rejectedOutcome) {
           RejectedFile file = rejectedOutcome.file();
           rejected.add(file);
-          System.out.println("Rejected: " + file.reason());
+          log.debug("Rejected file: {}", file.reason());
         }
         // Tylko wątek odbierający gotowe wyniki publikuje postęp, nie workery plików.
         onProgress.accept(
@@ -124,9 +131,8 @@ public class ImageScanner {
     }
 
     long scanNanos = System.nanoTime() - scanStartedAt;
-    System.out.printf(
-        Locale.ROOT,
-        "Scan timing: total=%.3f ms; imageReadSum=%.3f ms (%d calls); hashSum=%.3f ms (%d calls)%n",
+    log.debug(
+        "Scan timing: total={} ms; imageReadSum={} ms ({} calls); hashSum={} ms ({} calls)",
         scanNanos / 1_000_000.0,
         timing.imageReadNanos / 1_000_000.0,
         timing.imageReadCount,
@@ -135,11 +141,8 @@ public class ImageScanner {
 
     ScanSummary summary =
         new ScanSummary(newImages, rescannedImages, unchangedImages, rejected.size());
-    System.out.printf(
-        "Scan summary: new=%d; rescanned=%d; unchanged=%d; rejected=%d%n",
-        summary.newImages(),
-        summary.rescannedImages(),
-        summary.unchangedImages(),
+    log.debug("Scan summary: new={}; rescanned={}; unchanged={}; rejected={}",
+        summary.newImages(), summary.rescannedImages(), summary.unchangedImages(),
         summary.rejectedFiles());
     return new ScanResult(allowedRoot, accepted, rejected, summary);
   }
@@ -160,8 +163,28 @@ public class ImageScanner {
   }
 
   private boolean isReadableImage(Path path) {
-    try {
-      return ImageIO.read(path.toFile()) != null;
+    try (var images = ImageIO.createImageInputStream(path.toFile())) {
+      if (images == null) {
+        return false;
+      }
+      var readers = ImageIO.getImageReaders(images);
+      if (!readers.hasNext()) {
+        return false;
+      }
+      var reader = readers.next();
+      try {
+        reader.setInput(images, true, true);
+        if (!SUPPORTED_IMAGE_FORMATS.contains(reader.getFormatName().toLowerCase(Locale.ROOT))) {
+          return false;
+        }
+        // Wymiary z nagłówka. Pełne dekodowanie zajmowałoby setki megabajtów RAM na plik.
+        int width = reader.getWidth(0);
+        int height = reader.getHeight(0);
+        return width > 0 && height > 0 && width <= MAX_SOURCE_EDGE && height <= MAX_SOURCE_EDGE
+            && (long) width * height <= MAX_SOURCE_PIXELS;
+      } finally {
+        reader.dispose();
+      }
     } catch (IOException exception) {
       return false;
     }

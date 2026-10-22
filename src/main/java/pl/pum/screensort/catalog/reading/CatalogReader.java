@@ -20,6 +20,9 @@ import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
 @Service
 public class CatalogReader {
+  // Odczyt bez paginacji jest wygodny tylko dla małych folderów.
+  static final int MAX_UNPAGINATED_FILES = 1000;
+
   private final ScanFolderValidator scanFolderValidator;
   private final AllowedRootRepository allowedRootRepository;
   private final FileRecordRepository fileRecordRepository;
@@ -81,10 +84,20 @@ public class CatalogReader {
       return List.of();
     }
 
+    // Odczyt bez paginacji służy tylko małym folderom. Duży katalog czytamy stronami.
+    Page<FileRecordEntity> filePage =
+        fileRecordRepository.findAllByAllowedRootOrderByRelativePathAsc(
+            root.get(), PageRequest.of(0, MAX_UNPAGINATED_FILES + 1));
+    if (filePage.getContent().size() > MAX_UNPAGINATED_FILES) {
+      throw new CatalogTooLargeException(
+          "Katalog ma więcej niż "
+              + MAX_UNPAGINATED_FILES
+              + " obrazów. Użyj endpointu /api/catalog/page.");
+    }
+
     List<CatalogFileDto> result = new ArrayList<>();
 
-    for (FileRecordEntity file :
-        fileRecordRepository.findAllByAllowedRootOrderByRelativePathAsc(root.get())) {
+    for (FileRecordEntity file : filePage.getContent()) {
       result.add(CatalogFileDto.from(file));
     }
 

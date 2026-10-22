@@ -1,6 +1,7 @@
 package pl.pum.screensort.catalog.api;
 
 import java.io.IOException;
+import java.nio.file.InvalidPathException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import pl.pum.screensort.catalog.dto.CatalogFileDto;
 import pl.pum.screensort.catalog.dto.CatalogPageDto;
 import pl.pum.screensort.catalog.reading.CatalogReader;
+import pl.pum.screensort.catalog.reading.CatalogTooLargeException;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
 @RestController
@@ -44,6 +46,16 @@ public class CatalogRestController {
 
   @ExceptionHandler(InvalidScanFolderException.class)
   public ResponseEntity<String> handleInvalidFolder(InvalidScanFolderException e) {
+    return ResponseEntity.badRequest().body(e.getMessage());
+  }
+
+  @ExceptionHandler(InvalidPathException.class)
+  public ResponseEntity<String> handleInvalidPath(InvalidPathException e) {
+    return ResponseEntity.badRequest().body("Nieprawidłowa ścieżka folderu.");
+  }
+
+  @ExceptionHandler(CatalogTooLargeException.class)
+  public ResponseEntity<String> handleTooLargeCatalog(CatalogTooLargeException e) {
     return ResponseEntity.badRequest().body(e.getMessage());
   }
 }
