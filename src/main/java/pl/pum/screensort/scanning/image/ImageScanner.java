@@ -186,7 +186,9 @@ public class ImageScanner {
       } finally {
         reader.dispose();
       }
-    } catch (IOException exception) {
+    } catch (IOException | RuntimeException exception) {
+      // Czytniki ImageIO potrafią rzucić np. IndexOutOfBoundsException na uszkodzonym nagłówku.
+      // Jeden zły plik nie może przerwać całego skanu.
       log.debug("Image header read failed: {}", exception.getClass().getSimpleName());
       return false;
     }

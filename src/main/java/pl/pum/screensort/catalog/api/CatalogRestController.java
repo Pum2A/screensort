@@ -1,6 +1,8 @@
 package pl.pum.screensort.catalog.api;
 
 import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.nio.file.InvalidPathException;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,8 @@ import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
 
 @RestController
 public class CatalogRestController {
+  private static final Logger log = LoggerFactory.getLogger(CatalogRestController.class);
+
   private final CatalogReader catalogReader;
 
   public CatalogRestController(CatalogReader catalogReader) {
@@ -57,5 +61,12 @@ public class CatalogRestController {
   @ExceptionHandler(CatalogTooLargeException.class)
   public ResponseEntity<String> handleTooLargeCatalog(CatalogTooLargeException e) {
     return ResponseEntity.badRequest().body(e.getMessage());
+  }
+
+  // Komunikat IOException zawiera ścieżkę folderu, więc nigdy nie trafia do odpowiedzi ani logu.
+  @ExceptionHandler(IOException.class)
+  public ResponseEntity<String> handleIoFailure(IOException e) {
+    log.warn("Catalog folder read failed: {}", e.getClass().getSimpleName());
+    return ResponseEntity.internalServerError().body("Nie można odczytać wybranego folderu.");
   }
 }

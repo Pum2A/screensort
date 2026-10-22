@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import org.junit.jupiter.api.Test;
@@ -46,5 +47,16 @@ class CatalogRestControllerTest {
         .perform(get("/api/catalog/files").param("folderPath", "folder"))
         .andExpect(status().isBadRequest())
         .andExpect(content().string("Katalog ma więcej niż 1000 obrazów."));
+  }
+
+  @Test
+  void ioFailureReturnsFixedMessageWithoutLeakingThePath() throws Exception {
+    var reader = mock(CatalogReader.class);
+    when(reader.read(anyString())).thenThrow(new IOException("synthetic-secret-folder-name"));
+
+    mockMvc(reader)
+        .perform(get("/api/catalog/files").param("folderPath", "folder"))
+        .andExpect(status().isInternalServerError())
+        .andExpect(content().string("Nie można odczytać wybranego folderu."));
   }
 }
