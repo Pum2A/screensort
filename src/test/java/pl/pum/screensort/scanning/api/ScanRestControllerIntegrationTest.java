@@ -117,9 +117,6 @@ class ScanRestControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(1))
         .andExpect(jsonPath("$[0].id").value(firstId.intValue()));
-    System.out.printf(
-        "Web scans: roots=%d, files=%d, file ID=%d%n",
-        allowedRootRepository.count(), fileRecordRepository.count(), firstId);
 
     // Znany obraz z inną zawartością musi być sprawdzony ponownie, bez nowego ID.
     assertThat(

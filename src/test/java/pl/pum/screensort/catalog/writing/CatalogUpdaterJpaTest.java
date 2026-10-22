@@ -64,9 +64,6 @@ class CatalogUpdaterJpaTest {
     Instant firstDiscoveredAt = firstRecord.getFirstDiscoveredAt();
     Instant firstSeenAt = firstRecord.getLastSeenAt();
 
-    System.out.printf("First scan: roots=%d, files=%d, file ID=%d, size=%d B%n",
-        allowedRootRepository.count(), fileRecordRepository.count(), firstId, firstRecord.getSizeBytes());
-
     Thread.sleep(20);
 
     AcceptedImage secondScanImage =
@@ -79,9 +76,6 @@ class CatalogUpdaterJpaTest {
         allowedRootRepository.findByCanonicalPath(folder.toString()).orElseThrow();
     FileRecordEntity updatedRecord =
         fileRecordRepository.findByAllowedRootAndRelativePath(sameRoot, "photo.png").orElseThrow();
-
-    System.out.printf("Second scan: roots=%d, files=%d, file ID=%d, size=%d B%n",
-        allowedRootRepository.count(), fileRecordRepository.count(), updatedRecord.getId(), updatedRecord.getSizeBytes());
 
     assertThat(allowedRootRepository.count()).isEqualTo(1);
     assertThat(fileRecordRepository.count()).isEqualTo(1);
