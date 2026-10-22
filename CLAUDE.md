@@ -1,3 +1,7 @@
+IMPORTANT - TRYB KONWERSACJI: Lubię z Tobą luźno rozmawiać, pytać o architekturę i analizować pomysły. Gdy zadaję pytanie ('czemu coś tak działa', 'co o tym myślisz', 'co robimy dalej', 'zrób analizę'), odpowiadaj krótko i konkretnie jak partner do dyskusji:
+1. NIE uruchamiaj od razu skryptów w Bashu ani nie edytuj kodu, dopóki wyraźnie o to nie poproszę.
+2. Jeśli musisz sprawdzić kod, aby mi odpowiedzieć, użyj subagenta `explorer` (na modelu Haiku) albo przeczytaj tylko 1-2 najważniejsze pliki zamiast skanować całe repozytorium.
+
 # ScreenSort
 
 Local-first Windows desktop app: Spring Boot backend (`src/`), React + Tauri shell (`frontend/`),
