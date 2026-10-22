@@ -1,41 +1,59 @@
-import {backendFetch} from '../../desktop/transport.js'
+import {z} from 'zod'
+import {requestJson, requestJsonOrNull} from '../../shared/http.js'
+import type {ErrorMessages} from '../../shared/http.js'
 
-export type ExportJob = {id: string; batchId: string; status: 'RUNNING' | 'COMPLETED' | 'INTERRUPTED';
-    outputFolder: string; total: number; copied: number; failed: number; message: string | null; createdAt: string}
-export type ExportIssues = {items: {originalName: string; message: string}[]; hasNext: boolean}
+// Mirrors ExportStore.Job / ExportStore.Issues in Java; statuses are fixed by the V8/V9 CHECK constraints.
+export const exportJobSchema = z.object({
+    id: z.string(),
+    batchId: z.string(),
+    status: z.enum(['RUNNING', 'COMPLETED', 'INTERRUPTED']),
+    outputFolder: z.string(),
+    total: z.number().int(),
+    copied: z.number().int(),
+    failed: z.number().int(),
+    message: z.string().nullable(),
+    createdAt: z.string(),
+})
 
-async function checked<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-        let code = ''
-        try {code = (await response.json() as {code?: string}).code ?? ''} catch { /* Unknown responses use a fixed message. */ }
-        const messages: Record<string, string> = {
-            NO_APPROVALS: 'Najpierw zatwierdź aktualne nazwy i kategorie obrazów.',
-            EXPORT_BUSY: 'Kopiowanie jest już w toku. Poczekaj na zakończenie.',
-            BATCH_RUNNING: 'Poczekaj na zakończenie analizy folderu.',
-            DESTINATION_REQUIRED: 'Wybierz folder dla uporządkowanej kopii.',
-            DESTINATION_UNAVAILABLE: 'Nie można zapisywać w wybranym folderze. Wybierz inne miejsce.',
-            EXPORT_NOT_FOUND: 'Nie znaleziono zadania kopiowania.',
-        }
-        throw new Error(messages[code] ?? 'Nie udało się obsłużyć kopiowania. Spróbuj ponownie.')
-    }
-    return await response.json() as T
+export const exportIssuesSchema = z.object({
+    items: z.array(z.object({originalName: z.string(), message: z.string()})),
+    hasNext: z.boolean(),
+})
+
+export type ExportJob = z.infer<typeof exportJobSchema>
+export type ExportIssues = z.infer<typeof exportIssuesSchema>
+
+const messages: ErrorMessages = {
+    byCode: {
+        NO_APPROVALS: 'Najpierw zatwierdź aktualne nazwy i kategorie obrazów.',
+        EXPORT_BUSY: 'Kopiowanie jest już w toku. Poczekaj na zakończenie.',
+        BATCH_RUNNING: 'Poczekaj na zakończenie analizy folderu.',
+        DESTINATION_REQUIRED: 'Wybierz folder dla uporządkowanej kopii.',
+        DESTINATION_UNAVAILABLE: 'Nie można zapisywać w wybranym folderze. Wybierz inne miejsce.',
+        EXPORT_NOT_FOUND: 'Nie znaleziono zadania kopiowania.',
+    },
+    fallback: 'Nie udało się obsłużyć kopiowania. Spróbuj ponownie.',
 }
 
-export async function startExport(batchId: string, destinationFolder: string): Promise<ExportJob> {
-    return checked<ExportJob>(await backendFetch(`/api/organization/batches/${encodeURIComponent(batchId)}/exports`, {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({destinationFolder}),
-    }))
+export const exportKeys = {
+    latest: (batchId: string) => ['export', 'latest', batchId] as const,
+    job: (id: string) => ['export', 'job', id] as const,
+    issues: (id: string, page: number) => ['export', 'job', id, 'issues', page] as const,
 }
 
-export async function latestExport(batchId: string, signal: AbortSignal): Promise<ExportJob | null> {
-    const response = await backendFetch(`/api/organization/batches/${encodeURIComponent(batchId)}/exports/latest`, {signal})
-    return response.status === 404 ? null : checked<ExportJob>(response)
+export function startExport(batchId: string, destinationFolder: string): Promise<ExportJob> {
+    return requestJson(`/api/organization/batches/${encodeURIComponent(batchId)}/exports`, exportJobSchema, messages,
+        {method: 'POST', body: {destinationFolder}})
 }
 
-export async function readExport(id: string, signal: AbortSignal): Promise<ExportJob> {
-    return checked<ExportJob>(await backendFetch(`/api/organization/exports/${encodeURIComponent(id)}`, {signal}))
+export function latestExport(batchId: string, signal?: AbortSignal): Promise<ExportJob | null> {
+    return requestJsonOrNull(`/api/organization/batches/${encodeURIComponent(batchId)}/exports/latest`, exportJobSchema, messages, {signal})
 }
 
-export async function exportIssues(id: string, page: number, signal: AbortSignal): Promise<ExportIssues> {
-    return checked<ExportIssues>(await backendFetch(`/api/organization/exports/${encodeURIComponent(id)}/issues?page=${page}`, {signal}))
+export function readExport(id: string, signal?: AbortSignal): Promise<ExportJob> {
+    return requestJson(`/api/organization/exports/${encodeURIComponent(id)}`, exportJobSchema, messages, {signal})
+}
+
+export function exportIssues(id: string, page: number, signal?: AbortSignal): Promise<ExportIssues> {
+    return requestJson(`/api/organization/exports/${encodeURIComponent(id)}/issues?page=${page}`, exportIssuesSchema, messages, {signal})
 }
