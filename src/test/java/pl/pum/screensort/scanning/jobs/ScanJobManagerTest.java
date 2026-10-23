@@ -69,10 +69,10 @@ class ScanJobManagerTest {
   }
 
   @Test
-  void blocksAnotherFolderAndLegacyScanUntilTheActiveJobFinishes() throws Exception {
+  void blocksAnotherScanUntilTheActiveJobFinishes() throws Exception {
     ScanJob first = jobs.start(folder);
     assertThrows(ScanAlreadyRunningException.class, () -> jobs.start(Path.of("other-photos")));
-    assertThrows(ScanAlreadyRunningException.class, () -> jobs.scanAndSave(folder));
+    assertThrows(ScanAlreadyRunningException.class, () -> jobs.start(folder));
     when(workflow.scanAndSave(eq(folder), any(ScanProgressListener.class)))
         .thenReturn(emptyResult(folder));
     tasks.remove().run();
@@ -114,27 +114,28 @@ class ScanJobManagerTest {
   }
 
   @Test
-  void synchronousCompatibilityPathPropagatesFailureAndReleasesTheSlot() throws Exception {
+  void failedJobReleasesTheSlot() throws Exception {
     when(workflow.scanAndSave(eq(folder), any(ScanProgressListener.class)))
         .thenThrow(new IOException("failed read"));
-    assertThrows(IOException.class, () -> jobs.scanAndSave(folder));
+    ScanJob job = jobs.start(folder);
+    tasks.remove().run();
+    assertEquals(ScanStatus.FAILED, jobs.find(job.id()).orElseThrow().status());
     assertDoesNotThrow(() -> jobs.start(folder));
   }
 
   @Test
-  void synchronousFailureDoesNotRethrowPrivatePaths() throws Exception {
+  void failedJobNeverShowsPrivatePaths() throws Exception {
     String privatePath = "C:/Users/owner/Pictures/private.png";
     when(workflow.scanAndSave(eq(folder), any(ScanProgressListener.class)))
         .thenThrow(new NoSuchFileException(privatePath))
         .thenThrow(new UncheckedIOException(new AccessDeniedException(privatePath)));
 
-    IOException io = assertThrows(IOException.class, () -> jobs.scanAndSave(folder));
-    IllegalStateException runtime = assertThrows(IllegalStateException.class, () -> jobs.scanAndSave(folder));
-
-    for (Throwable thrown : List.of(io, runtime)) {
-      for (Throwable current = thrown; current != null; current = current.getCause()) {
-        assertFalse(String.valueOf(current.getMessage()).contains("private.png"));
-      }
+    for (int attempt = 0; attempt < 2; attempt++) {
+      ScanJob job = jobs.start(folder);
+      tasks.remove().run();
+      ScanJob failed = jobs.find(job.id()).orElseThrow();
+      assertEquals(ScanStatus.FAILED, failed.status());
+      assertFalse(failed.errorMessage().contains("private.png"));
     }
   }
 

@@ -10,7 +10,6 @@ import pl.pum.screensort.analysis.result.AnalysisResult;
 /** Explicit baseline, not a trained classifier. Every result still requires review. */
 @Component
 public class CategorySuggester {
-  public static final String VERSION = "caption-keywords-v1";
   private static final Map<String, Set<String>> RULES = Map.of(
       "PROGRAMMING", Set.of("code", "programming", "terminal", "exception", "postgresql", "java", "python"),
       "DOCUMENTS", Set.of("document", "invoice", "receipt", "spreadsheet", "paragon", "faktura"),

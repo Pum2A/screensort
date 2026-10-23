@@ -29,11 +29,11 @@ public class FileHasher {
 
       byte[] hashed = digest.digest();
       String hex = HexFormat.of().formatHex(hashed);
-      return Optional.of(hex); // udało się → pudełko z hashem
+      return Optional.of(hex);
     } catch (IOException | NoSuchAlgorithmException e) {
       // Typ wyjątku zamiast komunikatu: komunikaty IO zawierają ścieżkę pliku.
       log.debug("File hashing failed: {}", e.getClass().getSimpleName());
-      return Optional.empty(); // błąd → puste pudełko
+      return Optional.empty();
     }
   }
 }
