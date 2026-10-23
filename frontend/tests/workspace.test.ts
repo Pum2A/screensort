@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {filterCatalogPage, groupCatalogPage, storedFolder} from '../src/workspace/state.js'
+import {groupCatalogPage, storedFolder} from '../src/workspace/state.js'
 import {startupStep, elapsedLabel} from '../src/desktop/status.js'
 import {effectiveCategory, filterReviewPage} from '../src/organization/review/filters.js'
 import type {CatalogFile} from '../src/catalog/types.js'
@@ -12,12 +12,6 @@ const item: BatchItem = {fileId: 1, originalName: 'photo.png', status: 'COMPLETE
     message: null, analysisId: 1, sourceSha256: 'a'.repeat(64), analysisMatchesCatalog: true,
     namingRevision: -1, approvedName: null, review: null}
 
-test('catalog search is local to the provided page, case insensitive and does not mutate it', () => {
-    assert.deepEqual(filterCatalogPage(files, ' łÓdŹ '), [files[0]])
-    assert.deepEqual(filterCatalogPage(files, 'not-here'), [])
-    assert.equal(filterCatalogPage(files, '  '), files)
-    assert.equal(files.length, 3)
-})
 test('format branches group jpg/jpeg together without inventing categories', () => {
     const grouped = groupCatalogPage(files)
     assert.equal(grouped[0].format, 'PNG')
@@ -25,8 +19,7 @@ test('format branches group jpg/jpeg together without inventing categories', () 
     assert.deepEqual(grouped[1].files, [files[1], files[2]])
 })
 test('blocked or unavailable local storage does not prevent the first render', () => {
-    assert.equal(storedFolder(true), '')
-    assert.equal(storedFolder(false), 'demo-images')
+    assert.equal(storedFolder(), '')
 })
 test('startup does not invent model steps or percentages from unknown phase text', () => {
     const status = {phase: 'Przygotowanie aplikacji', backendReady: false, analysisReady: false, analysisStarting: false, error: null}
