@@ -19,7 +19,7 @@ export async function backendFetch(path: string, init: RequestInit = {}): Promis
     )
 }
 
-export async function desktopImage(path: string): Promise<string> {
+export async function desktopImage(path: string): Promise<Blob> {
     const bytes = await invoke<ArrayBuffer>('backend_image', {path})
-    return URL.createObjectURL(new Blob([bytes], {type: 'image/png'}))
+    return new Blob([bytes], {type: 'image/png'})
 }

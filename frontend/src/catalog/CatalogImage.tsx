@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Icon} from '../ui/Icon.js'
 import './CatalogImage.css'
 import {desktopImage, isDesktop} from '../desktop/transport.js'
+import {imageCache} from './imageCache.js'
 import {thumbnailSlots, withRetry} from './imageLoading.js'
 
 // Rodzic nadaje key=src: inny obraz dostaje świeży stan ładowania i błędu.
@@ -16,27 +17,37 @@ export function CatalogImage({src, name, preview = false}: {src: string, name: s
         const controller = new AbortController()
         let objectUrl: string | null = null
         let requested = false
+        function show(blob: Blob) {
+            objectUrl = URL.createObjectURL(blob)
+            setNativeSrc(objectUrl)
+        }
         async function load() {
             if (requested) return
             requested = true
+            // Keyed by src, not url: a manual retry stores the image where the next visit looks.
+            // The catalog row decides what is shown, so a file deleted since the scan keeps its
+            // thumbnail until the next scan, the same as its name and details.
+            const cached = imageCache.get(src)
+            if (cached) { show(cached); return }
             const fetchImage = () => desktopImage(url)
             try {
                 // The opened preview skips the queue: it is the one image the user is looking at.
-                const value = await withRetry(preview ? fetchImage
+                const blob = await withRetry(preview ? fetchImage
                     : () => thumbnailSlots.run(fetchImage, controller.signal), controller.signal)
-                if (controller.signal.aborted) { URL.revokeObjectURL(value); return }
-                objectUrl = value
-                setNativeSrc(value)
+                // Kept even if the user already scrolled away: the next visit gets it for free.
+                imageCache.set(src, blob)
+                if (!controller.signal.aborted) show(blob)
             } catch { if (!controller.signal.aborted) setStatus('error') }
         }
         const observer = new IntersectionObserver(entries => {
             if (entries.some(entry => entry.isIntersecting)) { observer.disconnect(); void load() }
         }, {rootMargin: '180px'})
-        if (preview) void load()
+        // An image already in memory costs nothing, so it does not wait until it scrolls into view.
+        if (preview || imageCache.get(src)) void load()
         else if (container.current) observer.observe(container.current)
         // Leaving the page cancels thumbnails that are still waiting for a slot.
         return () => { controller.abort(); observer.disconnect(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
-    }, [url, preview])
+    }, [src, url, preview])
     const actualSrc = isDesktop() ? nativeSrc : url
     return <div ref={container} className={`catalog-image ${preview ? 'catalog-image-large' : ''}`}>
         {status !== 'error' && actualSrc && <img src={actualSrc} alt={name} loading={preview ? 'eager' : 'lazy'}
