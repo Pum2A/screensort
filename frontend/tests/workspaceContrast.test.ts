@@ -4,8 +4,8 @@ import {readFileSync} from 'node:fs'
 
 const css = readFileSync('src/index.css', 'utf8')
 function token(name: string): string {
-    const value = css.match(new RegExp(`--${name}:\\s*(#[a-f0-9]{3,6})`, 'i'))?.[1]
-    assert.ok(value, `Missing theme token ${name}`)
+    const value = css.match(new RegExp(`--color-${name}:\\s*(#[a-f0-9]{3,6})\\b`, 'i'))?.[1]
+    assert.ok(value, `Missing colour token ${name}`)
     return value
 }
 function luminance(hex: string): number {
@@ -17,16 +17,20 @@ function luminance(hex: string): number {
     })
     return linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722
 }
-test('body text and small metadata meet AA contrast on both workspace surfaces', () => {
-    for (const foreground of ['text', 'muted']) for (const background of ['surface', 'background']) {
-        const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
-        assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
+function assertReadable(foreground: string, background: string) {
+    const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
+    assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
+}
+
+test('body text and small metadata meet AA contrast on every neutral surface', () => {
+    for (const foreground of ['ink', 'ink-muted']) for (const background of ['surface', 'canvas', 'subtle']) {
+        assertReadable(foreground, background)
     }
 })
 
-test('action and selected controls retain readable text on the restrained accent palette', () => {
-    for (const [foreground, background] of [['text', 'action'], ['accent', 'selected']]) {
-        const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
-        assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
+test('accent and state colours keep readable text on their own fills', () => {
+    for (const [foreground, background] of [['on-accent', 'accent'], ['on-accent', 'accent-strong'], ['accent', 'accent-soft'],
+        ['danger', 'danger-soft'], ['success-ink', 'success-soft'], ['warning-ink', 'warning-soft']]) {
+        assertReadable(foreground, background)
     }
 })

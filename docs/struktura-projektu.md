@@ -40,11 +40,9 @@ screenSorter/
 │   │   ├── examples.ts          dane trzech przykładów, niezwiązane z katalogiem
 │   │   ├── ReviewActions.tsx    formularz i zatwierdzanie tylko w stanie Reacta
 │   │   └── reviewName.ts        wskazówki dla propozycji nazwy w demo
-│   ├── assets/fonts/             lokalny font retro VT323
 │   └── ui/                      wspólne elementy widoku
 │       ├── Icon.tsx             ikony SVG
 │       └── AnimatedBranch.tsx   płynnie rozwijana i zwijana gałąź
-├── frontend/public/VT323-OFL.txt  licencja fontu dołączana do dystrybucji
 ├── frontend/tests/               testy układu, kontraktu API, pollingu i danych/formularza demo
 ├── src/main/java/pl/pum/screensort/
 │   ├── ScreenSortApplication.java  uruchamia Spring Boot
