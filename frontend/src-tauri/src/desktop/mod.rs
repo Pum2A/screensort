@@ -1,5 +1,6 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
+mod events;
 mod packages;
 mod paths;
 mod processes;
@@ -14,6 +15,7 @@ use std::sync::{
 };
 use tauri::{AppHandle, Manager, State};
 
+pub use events::spawn as spawn_events;
 pub use smoke::launch_startup_check;
 pub use smoke::run_smoke;
 
