@@ -1,6 +1,7 @@
 //! Own only our private PostgreSQL, Java and Python children; never use PATH.
 
 use super::paths::process_path;
+use super::timings::StartupTimer;
 use super::Status;
 use serde_json::{json, Value};
 use std::{
@@ -316,7 +317,23 @@ async fn published(path: &Path, pid: u32, owner: &mut Owner) -> Result<u16, Stri
     Err("Przekroczono czas uruchamiania lokalnego backendu.".into())
 }
 
-pub async fn start<F>(runtime: &Path, data: &Path, mut update: F) -> Result<Owner, String>
+/// Starts PostgreSQL and the backend, and records how long each stage took (C1: measure first).
+pub async fn start<F>(runtime: &Path, data: &Path, update: F) -> Result<Owner, String>
+where
+    F: FnMut(Status, Option<Backend>),
+{
+    let mut timer = StartupTimer::start();
+    let result = start_stages(runtime, data, update, &mut timer).await;
+    timer.save(data, if result.is_ok() { "ok" } else { "failed" });
+    result
+}
+
+async fn start_stages<F>(
+    runtime: &Path,
+    data: &Path,
+    mut update: F,
+    timer: &mut StartupTimer,
+) -> Result<Owner, String>
 where
     F: FnMut(Status, Option<Backend>),
 {
@@ -381,6 +398,7 @@ where
         },
         None,
     );
+    timer.mark("prepare");
     if !db.join("PG_VERSION").exists() {
         if db.exists() {
             return Err(
@@ -406,6 +424,7 @@ where
             &session.join("database-tools.log"),
         )?;
         let _ = fs::write(session.join("initdb.log"), result);
+        timer.mark("initdb");
     } else if fs::read_to_string(db.join("PG_VERSION"))
         .map_err(|_| "Nie można odczytać wersji bazy.")?
         .trim()
@@ -445,6 +464,7 @@ where
     if !pg_ready {
         return Err("Baza nie odpowiedziała w wymaganym czasie.".into());
     }
+    timer.mark("postgres");
     let mut check = Command::new(runtime.join("postgres/bin/psql.exe"));
     check
         .args(["-h", "127.0.0.1", "-p"])
@@ -478,6 +498,7 @@ where
             &session.join("database-tools.log"),
         )?;
     }
+    timer.mark("database");
     let java_state = session.join("java.json");
     update(
         Status {
@@ -505,6 +526,8 @@ where
         .current_dir(data);
     let java_pid = owner.spawn("Java", java, &session.join("java.log"))?;
     let port = published(&java_state, java_pid, &mut owner).await?;
+    // JVM start, Spring context and Flyway migrations; java.log in the session has the split.
+    timer.mark("backend");
     let backend = Backend {
         port,
         token: desktop_token,
@@ -518,6 +541,7 @@ where
     {
         return Err("Nie potwierdzono tożsamości backendu.".into());
     }
+    timer.mark("ready");
     owner.backend = Some(backend.clone());
     update(
         Status {
