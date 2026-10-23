@@ -115,6 +115,14 @@ class ScanJobApiIntegrationTest {
     mvc.perform(get("/api/catalog/page").param("folderPath", folder.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalFiles").value(1));
+    // Search covers the whole folder in the database, any case, and treats % as a plain character.
+    mvc.perform(get("/api/catalog/page").param("folderPath", folder.toString()).param("search", " PHOTO "))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalFiles").value(1))
+        .andExpect(jsonPath("$.files[0].originalName").value("photo.png"));
+    mvc.perform(get("/api/catalog/page").param("folderPath", folder.toString()).param("search", "%"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.totalFiles").value(0));
     mvc.perform(get(location + "/rejections"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.totalRejected").value(1))

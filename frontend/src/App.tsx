@@ -21,7 +21,7 @@ import {useUpdateBlocker} from './desktop/updates/context.js'
 function App({initialFolder}: {initialFolder?: string} = {}) {
     const desktop = isTauri()
     // The typed or chosen folder, which becomes the shown catalog only on "open" or after a scan.
-    const [folderPath, setFolderPath] = useState(() => initialFolder ?? storedFolder(desktop))
+    const [folderPath, setFolderPath] = useState(() => initialFolder ?? storedFolder())
     const catalog = useCatalogPage(folderPath)
     const [view, setView] = useState<WorkspaceView>('catalog')
     const [organizationVisited, setOrganizationVisited] = useState(false)

@@ -18,6 +18,10 @@ public interface FileRecordRepository extends JpaRepository<FileRecordEntity, Lo
   Page<FileRecordEntity> findAllByAllowedRootOrderByRelativePathAsc(
       AllowedRootEntity allowedRoot, Pageable pageable);
 
+  // Spring Data escapes % and _ in the search text, so it is matched literally.
+  Page<FileRecordEntity> findAllByAllowedRootAndOriginalNameContainingIgnoreCaseOrderByRelativePathAsc(
+      AllowedRootEntity allowedRoot, String name, Pageable pageable);
+
   List<KnownFile> findAllByAllowedRoot_Id(Long rootId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
