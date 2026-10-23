@@ -4,6 +4,7 @@ mod packages;
 mod paths;
 mod processes;
 mod smoke;
+mod timings;
 
 use regex::Regex;
 use serde::Serialize;
@@ -44,6 +45,8 @@ pub struct Desktop {
     backend: Mutex<Option<processes::Backend>>,
     owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
+    /// True while processes::start runs; closing then waits for it to stop what it started.
+    starting: AtomicBool,
     requests: AtomicUsize,
     updating: AtomicBool,
     packages: packages::PackageManager,
@@ -56,6 +59,7 @@ impl Default for Desktop {
             backend: Mutex::new(None),
             owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
+            starting: AtomicBool::new(true),
             requests: AtomicUsize::new(0),
             updating: AtomicBool::new(false),
             packages: packages::PackageManager::default(),
@@ -84,35 +88,20 @@ fn startup_failed(app: &AppHandle, error: String) {
 
 pub fn launch(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let runtime = match runtime_path(&app) {
-            Ok(path) => path,
-            Err(error) => {
-                startup_failed(&app, error);
-                return;
+        let result = start_processes(&app).await;
+        let desktop = app.state::<Desktop>();
+        let result = match result {
+            // The window closed while we were starting: stop cleanly instead of keeping the owner.
+            Ok(mut owner) if desktop.closing.load(Ordering::SeqCst) => {
+                owner.stop().await;
+                Err("Aplikacja kończy pracę.".to_string())
             }
+            other => other,
         };
-        let data = match app.path().app_local_data_dir() {
-            Ok(path) => path,
-            Err(_) => {
-                startup_failed(
-                    &app,
-                    "Nie można odnaleźć katalogu danych ScreenSort.".into(),
-                );
-                return;
-            }
-        };
-        let update_app = app.clone();
-        let result = processes::start(&runtime, &data, move |status, backend| {
-            let desktop = update_app.state::<Desktop>();
-            *lock(&desktop.status) = status;
-            if let Some(value) = backend {
-                *lock(&desktop.backend) = Some(value);
-            }
-        })
-        .await;
         match result {
             Ok(owner) => {
-                *app.state::<Desktop>().owner.lock().await = Some(owner);
+                *desktop.owner.lock().await = Some(owner);
+                desktop.starting.store(false, Ordering::SeqCst);
                 loop {
                     tauri::async_runtime::spawn_blocking(|| {
                         std::thread::sleep(std::time::Duration::from_secs(2))
@@ -129,26 +118,108 @@ pub fn launch(app: AppHandle) {
                         .await
                         .as_mut()
                         .and_then(|owner| owner.stopped_child());
+                    if stopped == Some("Java") && restart_backend(&app).await {
+                        continue;
+                    }
                     if let Some(name) = stopped {
                         let mut status = lock(&desktop.status);
                         status.analysis_ready = false;
                         if name != "Python" {
                             status.backend_ready = false;
                         }
-                        status.error = Some(format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie."));
+                        status.error = Some(if name == "Python" {
+                            "Silnik analizy zakończył pracę. Uruchom go ponownie w panelu „Silnik analizy”; katalog działa dalej.".into()
+                        } else {
+                            format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie.")
+                        });
                         if name != "Python" {
                             break;
                         }
                     }
                 }
             }
-            Err(message) => startup_failed(&app, message),
+            Err(message) => {
+                desktop.starting.store(false, Ordering::SeqCst);
+                startup_failed(&app, message);
+            }
         }
     });
 }
 
+async fn start_processes(app: &AppHandle) -> Result<processes::Owner, String> {
+    let runtime = runtime_path(app)?;
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Nie można odnaleźć katalogu danych ScreenSort.".to_string())?;
+    let update_app = app.clone();
+    let closing_app = app.clone();
+    processes::start(
+        &runtime,
+        &data,
+        move |status, backend| {
+            let desktop = update_app.state::<Desktop>();
+            *lock(&desktop.status) = status;
+            if let Some(value) = backend {
+                *lock(&desktop.backend) = Some(value);
+            }
+        },
+        move || {
+            closing_app
+                .state::<Desktop>()
+                .closing
+                .load(Ordering::SeqCst)
+        },
+    )
+    .await
+}
+
+/// Java stopped while the app runs: start it again on the same database. False when it gave up.
+async fn restart_backend(app: &AppHandle) -> bool {
+    let desktop = app.state::<Desktop>();
+    {
+        let mut status = lock(&desktop.status);
+        status.backend_ready = false;
+        status.error = None;
+        status.phase = "Backend przestał odpowiadać. Uruchamiamy go ponownie…".into();
+    }
+    *lock(&desktop.backend) = None;
+    let closing_app = app.clone();
+    let mut cancelled = move || {
+        closing_app
+            .state::<Desktop>()
+            .closing
+            .load(Ordering::SeqCst)
+    };
+    let result = match desktop.owner.lock().await.as_mut() {
+        Some(owner) => owner.restart_java(&mut cancelled).await,
+        None => return false,
+    };
+    let mut status = lock(&desktop.status);
+    match result {
+        Ok((backend, analysis)) => {
+            *lock(&desktop.backend) = Some(backend);
+            status.backend_ready = true;
+            status.analysis_ready = analysis;
+            status.phase = "Katalog gotowy. Backend uruchomiono ponownie.".into();
+            true
+        }
+        Err(message) => {
+            status.analysis_ready = false;
+            status.error = Some(message);
+            false
+        }
+    }
+}
+
 pub async fn stop(app: &AppHandle) {
-    let owner = app.state::<Desktop>().owner.lock().await.take();
+    let desktop = app.state::<Desktop>();
+    // A start in progress sees `closing` at its next step and stops what it started itself.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    while desktop.starting.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+        processes::pause(std::time::Duration::from_millis(100)).await;
+    }
+    let owner = desktop.owner.lock().await.take();
     if let Some(mut owner) = owner {
         owner.stop().await;
     }
@@ -286,6 +357,37 @@ pub fn desktop_status(state: State<'_, Desktop>) -> Status {
     lock(&state.status).clone()
 }
 
+/// Automatic tries per click. After the last one the user can press "start" again; no app restart.
+const ANALYSIS_ATTEMPTS: u32 = 3;
+
+/// Growing pause before the given attempt: 2 s before the second, 6 s before the third.
+fn analysis_retry_delay(attempt: u32) -> std::time::Duration {
+    std::time::Duration::from_secs(match attempt {
+        0 | 1 => 0,
+        2 => 2,
+        _ => 6,
+    })
+}
+
+#[cfg(test)]
+mod analysis_retry_tests {
+    use super::{analysis_retry_delay, ANALYSIS_ATTEMPTS};
+    use std::time::Duration;
+
+    #[test]
+    fn analysis_start_retries_with_growing_pauses() {
+        let pauses: Vec<Duration> = (1..=ANALYSIS_ATTEMPTS).map(analysis_retry_delay).collect();
+        assert_eq!(
+            pauses,
+            [
+                Duration::ZERO,
+                Duration::from_secs(2),
+                Duration::from_secs(6)
+            ]
+        );
+    }
+}
+
 #[tauri::command]
 pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
     {
@@ -311,18 +413,34 @@ pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
         status.phase = "Przygotowujemy AI na Twoje żądanie…".into();
     }
     tauri::async_runtime::spawn(async move {
-        let result = {
+        let mut result = Err("Katalog nie jest gotowy. Spróbuj ponownie.".to_string());
+        for attempt in 1..=ANALYSIS_ATTEMPTS {
             let desktop = app.state::<Desktop>();
-            let mut owner = desktop.owner.lock().await;
-            match owner.as_mut() {
-                Some(owner) => {
-                    owner
-                        .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
-                        .await
+            if attempt > 1 {
+                if let Ok(mut status) = desktop.status.lock() {
+                    status.phase = format!(
+                        "AI nie wystartowało. Ponawiamy (próba {attempt} z {ANALYSIS_ATTEMPTS})…"
+                    );
                 }
-                None => Err("Katalog nie jest gotowy. Spróbuj ponownie.".into()),
+                processes::pause(analysis_retry_delay(attempt)).await;
             }
-        };
+            if desktop.closing.load(Ordering::SeqCst) {
+                break;
+            }
+            let mut owner = desktop.owner.lock().await;
+            let Some(owner) = owner.as_mut() else { break };
+            // A missing AI package fails the same way every time: say so at once.
+            if let Err(message) = owner.analysis_package() {
+                result = Err(message);
+                break;
+            }
+            result = owner
+                .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
+                .await;
+            if result.is_ok() {
+                break;
+            }
+        }
         let desktop = app.state::<Desktop>();
         let mut status = lock(&desktop.status);
         status.analysis_starting = false;
