@@ -10,7 +10,7 @@ import '../../src/App.css'
 const batchId = '11111111-2222-4333-8444-555555555555'
 const hash = 'a'.repeat(64)
 const initial: BatchItem = {fileId: 1, originalName: 'IMG_0026.png', status: 'COMPLETED',
-    category: 'PHOTOGRAPHS', proposedName: 'kubek_na_biurku.png', message: null,
+    category: 'PHOTOGRAPHS', proposedName: 'kubek_na_biurku.png', proposalUncertain: false, message: null,
     analysisId: 8, sourceSha256: hash, analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}
 let rows: BatchItem[] = [initial, {...initial, fileId: 2, originalName: 'screenshot_42.png', category: 'REVIEW', proposedName: null},
     {...initial, fileId: 3, originalName: 'broken.png', status: 'FAILED', analysisId: null, message: 'Nie udało się odczytać obrazu.'}]

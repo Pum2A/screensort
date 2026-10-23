@@ -72,14 +72,20 @@ public class NamingService {
 
   private NamingReviewDto dto(FileRecordEntity file, SavedAnalysis analysis, FileNamingEntity naming) {
     boolean matches = analysis.result().sourceSha256().equals(file.getSha256());
-    var visual = analysis.result().visual();
-    String proposal = matches && visual.status() == AnalysisResult.Status.COMPLETED
-        ? generator.suggest(file.getOriginalName(), visual.result().description()).orElse(null) : null;
+    var proposal = matches ? suggestion(file.getOriginalName(), analysis.result()) : null;
     return new NamingReviewDto(file.getId(), analysis.id(), analysis.result().sourceSha256(),
-        file.getOriginalName(), proposal, matches, naming == null ? null : naming.getApprovedName(),
+        file.getOriginalName(), proposal == null ? null : proposal.name(),
+        proposal != null && proposal.uncertain(), matches, naming == null ? null : naming.getApprovedName(),
         naming == null ? null : naming.getApprovedAt(),
         naming != null && naming.getSourceSha256().equals(file.getSha256()),
         naming == null ? -1L : naming.getRevision());
+  }
+
+  private NameSuggestion suggestion(String originalName, AnalysisResult result) {
+    var ocr = result.ocr().status() == AnalysisResult.Status.COMPLETED ? result.ocr().result().text() : null;
+    var visual = result.visual().status() == AnalysisResult.Status.COMPLETED
+        ? result.visual().result().description() : null;
+    return generator.suggest(originalName, ocr, visual).orElse(null);
   }
 
   private static void validateId(long fileId) {

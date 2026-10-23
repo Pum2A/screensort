@@ -8,7 +8,7 @@ import type {BatchItem} from '../src/organization/api.js'
 
 const files = [{id: 1, originalName: 'Łódź.PNG', extension: 'png'}, {id: 2, originalName: 'foto.jpeg', extension: 'jpeg'},
     {id: 3, originalName: 'inne.jpg', extension: 'jpg'}] as CatalogFile[]
-const item: BatchItem = {fileId: 1, originalName: 'photo.png', status: 'COMPLETED', category: 'GAMES', proposedName: null,
+const item: BatchItem = {fileId: 1, originalName: 'photo.png', status: 'COMPLETED', category: 'GAMES', proposedName: null, proposalUncertain: false,
     message: null, analysisId: 1, sourceSha256: 'a'.repeat(64), analysisMatchesCatalog: true,
     namingRevision: -1, approvedName: null, review: null}
 

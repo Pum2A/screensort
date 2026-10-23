@@ -29,6 +29,7 @@ export const batchItemSchema = z.object({
     status: z.enum(['PENDING', 'RUNNING', 'COMPLETED', 'FAILED']),
     category: z.string().nullable(),
     proposedName: z.string().nullable(),
+    proposalUncertain: z.boolean(),
     message: z.string().nullable(),
     analysisId: z.number().int().nullable(),
     sourceSha256: z.string(),

@@ -19,7 +19,7 @@ public class ReviewStore {
       long totalFiles, boolean hasNext) {}
 
   private static final String SELECT = """
-      select i.file_id, i.original_name, i.status, i.category, i.proposed_name, i.message,
+      select i.file_id, i.original_name, i.status, i.category, i.proposed_name, i.proposal_uncertain, i.message,
         i.analysis_id, i.source_sha256, f.sha256 as current_sha, a.source_sha256 as analysis_sha,
         n.revision as naming_revision, n.approved_name, n.source_sha256 as naming_sha,
         r.decision, r.category as review_category, r.reviewed_at, r.revision as review_revision,
@@ -90,7 +90,8 @@ public class ReviewStore {
     var review = decision == null ? null : new ReviewItem.Decision(decision,
         row.getString("review_category"), reviewedAt.toInstant(), row.getLong("review_revision"), decisionMatches);
     return new ReviewItem(row.getLong("file_id"), row.getString("original_name"), row.getString("status"),
-        row.getString("category"), row.getString("proposed_name"), row.getString("message"),
+        row.getString("category"), row.getString("proposed_name"), row.getBoolean("proposal_uncertain"),
+        row.getString("message"),
         row.getObject("analysis_id", Long.class), row.getString("source_sha256"),
         currentSha.equals(row.getString("source_sha256")) && currentSha.equals(row.getString("analysis_sha")),
         namingRevision == null ? -1 : namingRevision,
