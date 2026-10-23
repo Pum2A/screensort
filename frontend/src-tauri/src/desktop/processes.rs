@@ -63,28 +63,27 @@ pub struct Owner {
     pub backend: Option<Backend>,
     python_port: u16,
     python_token: String,
-    analysis_attempted: bool,
     runtime: PathBuf,
     session: PathBuf,
 }
 
 impl Owner {
+    /// The installed AI package, or why there is none. A missing package is not worth retrying.
+    pub fn analysis_package(&self) -> Result<PathBuf, String> {
+        let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
+        super::packages::runtime(data, &self.runtime)
+    }
+
     /// Optional AI failure must never take down the catalog or its database.
     pub async fn start_analysis<F>(&mut self, mut cancelled: F) -> Result<(), String>
     where
         F: FnMut() -> bool,
     {
-        if self.analysis_attempted {
-            return Err(
-                "Pakiet analizy został już uruchomiony. Po błędzie uruchom aplikację ponownie."
-                    .into(),
-            );
-        }
-        let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
-        let ai_runtime = super::packages::runtime(data, &self.runtime)?;
-        // Failed starts are not a retry queue: do not accumulate child processes.
-        self.analysis_attempted = true;
+        let ai_runtime = self.analysis_package()?;
+        // Each attempt starts from a clean slate, so retries never pile up Python processes.
+        self.retire_python();
         let py_state = self.session.join("python.json");
+        let _ = fs::remove_file(&py_state);
         let mut python = Command::new(ai_runtime.join("python/python.exe"));
         python
             .args([
@@ -164,6 +163,21 @@ impl Owner {
         let id = child.id();
         self.children.push((name, child));
         Ok(id)
+    }
+
+    /// Stops and forgets the Python child, if any. The catalog keeps running.
+    fn retire_python(&mut self) {
+        self.children.retain_mut(|(name, child)| {
+            if *name != "Python" {
+                return true;
+            }
+            if child.try_wait().ok().flatten().is_none() {
+                let _ = child.kill();
+            }
+            let _ = child.wait();
+            false
+        });
+        self.python_port = 0;
     }
 
     pub fn stopped_child(&mut self) -> Option<&'static str> {
@@ -370,7 +384,6 @@ where
         backend: None,
         python_port: 0,
         python_token: python_token.clone(),
-        analysis_attempted: false,
         runtime: runtime.to_path_buf(),
         session: session.clone(),
     };
