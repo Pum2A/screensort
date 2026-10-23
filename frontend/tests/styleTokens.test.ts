@@ -22,6 +22,24 @@ test('no colour literal appears outside the theme tokens', () => {
     }
 })
 
+test('every token a stylesheet reads is defined in the theme', () => {
+    const theme = readFileSync('src/index.css', 'utf8').match(/@theme static \{[\s\S]*?\n\}/)?.[0] ?? ''
+    const defined = new Set([...theme.matchAll(/(--[a-z0-9-]+):/g)].map(match => match[1]))
+    for (const {file, text} of files.filter(({file}) => file.endsWith('.css'))) {
+        const missing = [...text.matchAll(/var\((--(color|shadow|text|radius|font)-[a-z0-9-]+)\)/g)]
+            .map(match => match[1]).filter(name => !defined.has(name))
+        assert.deepEqual(missing, [], `${file} reads tokens that the theme does not define`)
+    }
+})
+
+test('font sizes and corner radii come from the type and radius scale', () => {
+    const fixed = /(font-size|border-radius):[^;}]*\d(px|rem|em)\b/
+    for (const {file, text} of files.filter(({file}) => file.endsWith('.css'))) {
+        const offending = withoutTheme(file, text).split('\n').filter(line => fixed.test(line))
+        assert.deepEqual(offending, [], `${file} must use var(--text-*) and var(--radius-*)`)
+    }
+})
+
 test('components use token utilities instead of the default Tailwind palette', () => {
     const palette = /\b(bg|text|border|ring|outline|fill|stroke|from|to|via|divide|placeholder|accent|caret)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)\b/
     for (const {file, text} of files.filter(({file}) => file.endsWith('.tsx'))) {

@@ -1,18 +1,18 @@
-.editor { min-width: 0; padding: 20px; border: 1px solid var(--color-line); border-radius: 18px; background: var(--color-surface); }
+.editor { min-width: 0; padding: 20px; border: 0; border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-card); }
 .heading { margin-bottom: 16px; }
-.heading h4 { margin: 0 0 4px; font-size: 17px; font-weight: 600; letter-spacing: -.025em; }
-.heading span { color: var(--color-ink-muted); font-size: 12px; }
-.preview { overflow: hidden; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-subtle); }
+.heading h4 { margin: 0 0 4px; font-size: var(--text-subheading); font-weight: 600; letter-spacing: -.025em; }
+.heading span { color: var(--color-ink-muted); font-size: var(--text-small); }
+.preview { overflow: hidden; border: 0; border-radius: var(--radius-card); background: var(--color-subtle); }
 .preview :global(.catalog-image-large) { aspect-ratio: 16 / 10; max-height: 210px; background: var(--color-subtle); }
 .preview :global(img) { padding: 5%; }
-.original { margin: 14px 0 8px; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
-.original span { display: block; color: var(--color-ink-muted); font-size: 11px; margin-bottom: 4px; }
-.hint { margin: 8px 0 16px; color: var(--color-ink-muted); font-size: 12px; line-height: 1.8; }
+.original { margin: 14px 0 8px; font-size: var(--text-body); line-height: 1.65; overflow-wrap: anywhere; }
+.original span { display: block; color: var(--color-ink-muted); font-size: var(--text-caption); margin-bottom: 4px; }
+.hint { margin: 8px 0 16px; color: var(--color-ink-muted); font-size: var(--text-small); line-height: 1.8; }
 .form { margin-top: 16px; }
-.form > label { font-size: 13px; font-weight: 550; }
-.form > input, .form > select { min-height: 44px; border-color: var(--color-line); border-radius: 11px; font-size: 13px; color: var(--color-ink); }
+.form > label { font-size: var(--text-body); font-weight: 550; }
+.form > input, .form > select { min-height: 44px; border-color: transparent; border-radius: var(--radius-control); font-size: var(--text-body); color: var(--color-ink); background: var(--color-subtle); }
 .form > input[aria-invalid="true"] { border-color: var(--color-danger); }
-.form > p { font-size: 11px; line-height: 1.7; }
+.form > p { font-size: var(--text-caption); line-height: 1.7; }
 .form > div { display: grid; grid-template-columns: minmax(0, 1fr); }
 .form > div > button { width: 100%; }
 .editor > button:last-child { width: 100%; }

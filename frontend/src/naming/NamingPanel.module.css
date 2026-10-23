@@ -1,14 +1,14 @@
 .panel { margin-top: 24px; padding-top: 12px; border-top: 1px solid var(--color-line); min-width: 0; }
-.panel h4 { font-size: 20px; font-weight: 650; letter-spacing: -.035em; margin: 10px 0; }
-.hint { color: var(--color-ink-muted); font-size: 11px; line-height: 1.8; }
+.panel h4 { font-size: var(--text-subheading); font-weight: 650; letter-spacing: -.035em; margin: 10px 0; }
+.hint { color: var(--color-ink-muted); font-size: var(--text-caption); line-height: 1.8; }
 .original { overflow-wrap: anywhere; }
 .original span { color: var(--color-ink-muted); }
 .panel label { display: block; margin: 14px 0 8px; }
-.panel input { width: 100%; min-width: 0; min-height: 43px; padding: 11px 12px; border: 1px solid var(--color-line); border-radius: 12px; background: var(--color-surface); color: var(--color-ink); font-size: 12px; }
+.panel input { width: 100%; min-width: 0; min-height: 43px; padding: 11px 12px; border: 1px solid transparent; border-radius: var(--radius-control); background: var(--color-subtle); color: var(--color-ink); font-size: var(--text-body); }
 .panel input[aria-invalid="true"] { border-color: var(--color-danger); }
-.panel input:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; }
+.panel input:focus-visible { outline: 3px solid var(--color-accent-ring); outline-offset: 0; border-color: var(--color-accent); background: var(--color-surface); }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 12px; }
 .actions button { min-height: 44px; }
-.error { color: var(--color-danger); font-size: 11px; }
+.error { color: var(--color-danger); font-size: var(--text-caption); }
 .warning { border-left: 3px solid var(--color-warning); padding: 8px 12px; margin-top: 12px; overflow-wrap: anywhere; }
-.saved { border-left: 3px solid var(--color-success-ink); padding-left: 12px; font-size: 11px; overflow-wrap: anywhere; color: var(--color-success-ink); }
+.saved { border-left: 3px solid var(--color-success-ink); padding-left: 12px; font-size: var(--text-caption); overflow-wrap: anywhere; color: var(--color-success-ink); }

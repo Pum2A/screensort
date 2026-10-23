@@ -70,20 +70,20 @@ export function ReviewEditor({batchId, item, disabled, onSaved, onStateChange, o
         <p className={styles.original}><span>Oryginalna nazwa</span>{item.originalName}</p>
         <p className={styles.hint}>Sprawdź propozycję i popraw ją, jeśli nie oddaje zawartości obrazu.</p>
         {item.analysisId != null && <ReviewEvidence key={item.analysisId} fileId={item.fileId} analysisId={item.analysisId} sourceHash={item.sourceSha256}/>}
-        {changed && <p role="status" className="my-3 rounded-lg bg-warning-soft p-3 text-warning-ink">Wynik lub decyzja zmieniły się na serwerze. Edycji nie nadpisano. Wczytaj aktualny formularz.</p>}
-        {!item.analysisMatchesCatalog && <p role="status" className="my-3 rounded-lg bg-warning-soft p-3 text-warning-ink">Ta analiza nie odpowiada aktualnym danym katalogu. Zeskanuj i przeanalizuj obraz ponownie.</p>}
-        {item.review && !item.review.matchesCatalog && <p className="text-sm text-warning-ink">Poprzednia decyzja wymaga ponownego zatwierdzenia.</p>}
+        {changed && <p role="status" className="my-3 rounded-control bg-warning-soft p-3 text-warning-ink">Wynik lub decyzja zmieniły się na serwerze. Edycji nie nadpisano. Wczytaj aktualny formularz.</p>}
+        {!item.analysisMatchesCatalog && <p role="status" className="my-3 rounded-control bg-warning-soft p-3 text-warning-ink">Ta analiza nie odpowiada aktualnym danym katalogu. Zeskanuj i przeanalizuj obraz ponownie.</p>}
+        {item.review && !item.review.matchesCatalog && <p className="text-small text-warning-ink">Poprzednia decyzja wymaga ponownego zatwierdzenia.</p>}
         <form className={styles.form} onSubmit={(event: FormEvent<HTMLFormElement>) => { event.preventDefault(); void submit('APPROVED') }}>
             <label className="mb-1 block font-semibold" htmlFor={nameId}>Nazwa pliku</label>
             <input id={nameId} value={draft.name} disabled={locked} maxLength={255} autoComplete="off"
-                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-ring"
+                className="w-full rounded-control border border-transparent bg-subtle px-3 py-2.5 text-body text-ink focus:border-accent focus:bg-surface focus:outline-none focus:ring-3 focus:ring-accent-ring"
                 aria-invalid={Boolean(nameProblem)} aria-describedby={feedbackId}
                 onChange={event => {setDraft({...draft, name: event.target.value}); setError(null)}}/>
-            <p id={feedbackId} className={`mt-1 text-sm ${nameProblem ? 'text-danger' : 'text-ink-muted'}`}>
+            <p id={feedbackId} className={`mt-1 text-small ${nameProblem ? 'text-danger' : 'text-ink-muted'}`}>
                 {nameProblem ?? 'Sama nazwa, bez ścieżki. Zachowujemy oryginalne rozszerzenie.'}</p>
             <label className="mb-1 mt-4 block font-semibold" htmlFor={categoryId}>Kategoria</label>
             <select id={categoryId} value={draft.category} disabled={locked}
-                className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent-ring"
+                className="w-full rounded-control border border-transparent bg-subtle px-3 py-2.5 text-body text-ink focus:border-accent focus:bg-surface focus:outline-none focus:ring-3 focus:ring-accent-ring"
                 onChange={event => {setDraft({...draft, category: event.target.value}); setError(null)}}>
                 <option value="">Wybierz kategorię…</option>
                 {Object.entries(categoryLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -99,9 +99,9 @@ export function ReviewEditor({batchId, item, disabled, onSaved, onStateChange, o
         </form>
         {(dirty || changed || error) && <button type="button" className="text-button mt-3" disabled={saving || disabled}
             onClick={() => { if (changed || error) void reload(); else {setDraft(draftFor(item)); setError(null)} }}><RotateCcw size={16}/>{changed || error ? 'Wczytaj aktualny formularz (odrzuć edycję)' : 'Odrzuć edycję'}</button>}
-        {error && <p role="alert" className="mt-3 flex items-start gap-2 rounded-lg bg-danger-soft p-3 text-danger"><CircleAlert size={18} className="shrink-0"/>{error}</p>}
-        {dirty && <p role="status" className="mt-2 text-sm text-warning-ink">Zmiany w formularzu nie są jeszcze zapisane.</p>}
-        {item.review?.matchesCatalog && !changed && !dirty && <p role="status" className={`mt-3 rounded-lg p-3 text-sm ${item.review.decision === 'APPROVED' ? 'bg-success-soft text-success-ink' : 'bg-subtle text-ink-muted'}`}>
+        {error && <p role="alert" className="mt-3 flex items-start gap-2 rounded-control bg-danger-soft p-3 text-danger"><CircleAlert size={18} className="shrink-0"/>{error}</p>}
+        {dirty && <p role="status" className="mt-2 text-small text-warning-ink">Zmiany w formularzu nie są jeszcze zapisane.</p>}
+        {item.review?.matchesCatalog && !changed && !dirty && <p role="status" className={`mt-3 rounded-control p-3 text-small ${item.review.decision === 'APPROVED' ? 'bg-success-soft text-success-ink' : 'bg-subtle text-ink-muted'}`}>
             {item.review.decision === 'APPROVED' ? 'Nazwa i kategoria zapisane w bazie. Oryginał pozostaje bez zmian.' : 'Plik pominięty. Możesz później wrócić i go zatwierdzić.'}</p>}
         <button type="button" className="secondary-button mt-4" disabled={!hasNext || dirty || saving} onClick={onNext}>Następny obraz<ChevronRight size={18}/></button>
     </section>

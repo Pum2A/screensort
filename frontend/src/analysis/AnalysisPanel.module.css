@@ -1,14 +1,14 @@
 .panel { min-width: 0; }
-.hint { color: var(--color-ink-muted); font-size: 12px; line-height: 1.8; }
+.hint { color: var(--color-ink-muted); font-size: var(--text-small); line-height: 1.8; }
 .options { display: flex; gap: 16px; flex-wrap: wrap; margin: 14px 0; }
-.options label { display: flex; gap: 7px; align-items: center; min-height: 32px; font-size: 12px; }
+.options label { display: flex; gap: 7px; align-items: center; min-height: 32px; font-size: var(--text-small); }
 .options input { width: 16px; height: 16px; accent-color: var(--color-accent); }
 .results { margin-top: 20px; border-top: 1px solid var(--color-line); padding-top: 10px; }
-.results h4 { font-size: 15px; margin: 20px 0 10px; font-weight: 600; }
-.results p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
-.results pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 250px; overflow: auto; padding: 12px; background: var(--color-subtle); border: 1px solid var(--color-line); border-radius: 10px; font-size: 12px; line-height: 1.7; }
-.results small { color: var(--color-ink-muted); overflow-wrap: anywhere; font-size: 11px; line-height: 1.7; }
+.results h4 { font-size: var(--text-lead); margin: 20px 0 10px; font-weight: 600; }
+.results p { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--text-small); }
+.results pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 250px; overflow: auto; padding: 12px; background: var(--color-subtle); border: 0; border-radius: var(--radius-control); font-size: var(--text-small); line-height: 1.7; }
+.results small { color: var(--color-ink-muted); overflow-wrap: anywhere; font-size: var(--text-caption); line-height: 1.7; }
 .results details { margin-top: 16px; }
-.results code { display: block; overflow-wrap: anywhere; font-size: 12px; padding: 10px 0; }
-.error { color: var(--color-danger); background: var(--color-danger-soft); border: 1px solid var(--color-danger-line); border-radius: 8px; padding: 10px; margin-top: 12px; font-size: 11px; }
-.warning { color: var(--color-warning-ink); background: var(--color-warning-soft); border-left: 3px solid var(--color-warning); padding: 8px 12px; margin-top: 12px; font-size: 11px; }
+.results code { display: block; overflow-wrap: anywhere; font-size: var(--text-small); padding: 10px 0; }
+.error { color: var(--color-danger); background: var(--color-danger-soft); border: 0; border-radius: var(--radius-control); padding: 10px; margin-top: 12px; font-size: var(--text-caption); }
+.warning { color: var(--color-warning-ink); background: var(--color-warning-soft); border-left: 3px solid var(--color-warning); padding: 8px 12px; margin-top: 12px; font-size: var(--text-caption); }
