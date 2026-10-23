@@ -1,5 +1,6 @@
 package pl.pum.screensort.organization.review;
 
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -16,7 +17,7 @@ class ReviewControllerTest {
   private final UUID batch = UUID.randomUUID();
   private final String url = "/api/organization/batches/" + batch + "/items/1/review";
   private final ReviewService service = mock(ReviewService.class);
-  private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ReviewController(service)).build();
+  private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new ReviewController(service)).setControllerAdvice(new ApiExceptionHandler()).build();
 
   @Test void readsAndWritesJsonWithoutCaching() throws Exception {
     var result = ReviewServiceTest.item("COMPLETED", true, -1, null);

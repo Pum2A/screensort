@@ -1,5 +1,7 @@
 package pl.pum.screensort.catalog.api;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -8,10 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.InvalidPathException;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import pl.pum.screensort.catalog.reading.CatalogReader;
@@ -20,9 +20,8 @@ import pl.pum.screensort.catalog.reading.CatalogTooLargeException;
 class CatalogRestControllerTest {
 
   private static MockMvc mockMvc(CatalogReader reader) {
-    // Spring Boot ustawia UTF-8 na StringHttpMessageConverter; samodzielny MockMvc tego nie robi.
     return MockMvcBuilders.standaloneSetup(new CatalogRestController(reader))
-        .setMessageConverters(new StringHttpMessageConverter(StandardCharsets.UTF_8))
+        .setControllerAdvice(new ApiExceptionHandler())
         .build();
   }
 
@@ -34,7 +33,7 @@ class CatalogRestControllerTest {
     mockMvc(reader)
         .perform(get("/api/catalog/files").param("folderPath", "zly"))
         .andExpect(status().isBadRequest())
-        .andExpect(content().string("Nieprawidłowa ścieżka folderu."));
+        .andExpect(jsonPath("$.message").value("Ścieżka ma niepoprawny format."));
   }
 
   @Test
@@ -46,7 +45,7 @@ class CatalogRestControllerTest {
     mockMvc(reader)
         .perform(get("/api/catalog/files").param("folderPath", "folder"))
         .andExpect(status().isBadRequest())
-        .andExpect(content().string("Katalog ma więcej niż 1000 obrazów."));
+        .andExpect(jsonPath("$.message").value("Katalog ma więcej niż 1000 obrazów."));
   }
 
   @Test
@@ -57,6 +56,6 @@ class CatalogRestControllerTest {
     mockMvc(reader)
         .perform(get("/api/catalog/files").param("folderPath", "folder"))
         .andExpect(status().isInternalServerError())
-        .andExpect(content().string("Nie można odczytać wybranego folderu."));
+        .andExpect(jsonPath("$.message").value("Nie można odczytać wybranego folderu."));
   }
 }

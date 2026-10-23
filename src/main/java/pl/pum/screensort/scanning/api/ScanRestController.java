@@ -3,14 +3,10 @@ package pl.pum.screensort.scanning.api;
 import jakarta.validation.Valid;
 import java.io.IOException;
 import java.net.URI;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.UUID;
-import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,8 +16,6 @@ import pl.pum.screensort.scanning.api.dto.ScanRequest;
 import pl.pum.screensort.scanning.api.dto.ScanResultDto;
 import pl.pum.screensort.scanning.api.dto.ScanRejectionsDto;
 import pl.pum.screensort.scanning.api.dto.RejectedFileDto;
-import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
-import pl.pum.screensort.scanning.jobs.ScanAlreadyRunningException;
 import pl.pum.screensort.scanning.jobs.ScanJob;
 import pl.pum.screensort.scanning.jobs.ScanJobManager;
 import pl.pum.screensort.scanning.jobs.ScanStatus;
@@ -75,32 +69,5 @@ public class ScanRestController {
                   files.stream().map(RejectedFileDto::from).toList(), total, files.size() < total));
         })
         .orElseGet(() -> ResponseEntity.notFound().header("Cache-Control", "no-store").build());
-  }
-
-  @ExceptionHandler(ScanAlreadyRunningException.class)
-  public ResponseEntity<String> handleBusy(ScanAlreadyRunningException exception) {
-    return ResponseEntity.status(HttpStatus.CONFLICT).body(exception.getMessage());
-  }
-
-  @ExceptionHandler(TaskRejectedException.class)
-  public ResponseEntity<String> handleUnavailable(TaskRejectedException exception) {
-    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-        .body("Nie można teraz uruchomić skanu. Spróbuj ponownie później.");
-  }
-
-  @ExceptionHandler(InvalidPathException.class)
-  public ResponseEntity<String> handleInvalidPath(InvalidPathException exception) {
-    return ResponseEntity.badRequest().body("Ścieżka ma niepoprawny format.");
-  }
-
-  @ExceptionHandler(InvalidScanFolderException.class)
-  public ResponseEntity<String> handleInvalidFolder(InvalidScanFolderException e) {
-    return ResponseEntity.badRequest().body(e.getMessage()); // 400
-  }
-
-  @ExceptionHandler(MethodArgumentNotValidException.class)
-  public ResponseEntity<String> handleValidation(MethodArgumentNotValidException e) {
-    return ResponseEntity.badRequest()
-        .body(e.getBindingResult().getAllErrors().getFirst().getDefaultMessage());
   }
 }
