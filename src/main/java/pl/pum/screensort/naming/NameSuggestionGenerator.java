@@ -1,5 +1,6 @@
 package pl.pum.screensort.naming;
 
+import pl.pum.screensort.files.FileNames;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -31,7 +32,7 @@ public class NameSuggestionGenerator {
     }
     if (words.isEmpty()) return Optional.empty();
     String stem = String.join("_", words);
-    String extension = FileNameRules.extension(originalName);
+    String extension = FileNames.extension(originalName);
     String name = stem + extension;
     if (FileNameRules.problem(name, originalName).isPresent()) name = "obraz_" + name;
     return FileNameRules.problem(name, originalName).isEmpty() ? Optional.of(name) : Optional.empty();

@@ -1,5 +1,6 @@
 package pl.pum.screensort.naming;
 
+import pl.pum.screensort.files.FileNames;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Optional;
@@ -28,17 +29,12 @@ public final class FileNameRules {
     if (DEVICE.matcher(devicePart).matches()) {
       return Optional.of("Ta nazwa jest zarezerwowana przez Windows.");
     }
-    String extension = extension(originalName);
+    String extension = FileNames.extension(originalName);
     if (extension.isEmpty() || name.length() <= extension.length()
         || !name.toLowerCase(Locale.ROOT).endsWith(extension.toLowerCase(Locale.ROOT))
         || name.substring(0, name.length() - extension.length()).matches("[. ]+")) {
       return Optional.of("Zachowaj oryginalne rozszerzenie i wpisz nazwę przed nim.");
     }
     return Optional.empty();
-  }
-
-  public static String extension(String originalName) {
-    int dot = originalName.lastIndexOf('.');
-    return dot > 0 && dot < originalName.length() - 1 ? originalName.substring(dot) : "";
   }
 }

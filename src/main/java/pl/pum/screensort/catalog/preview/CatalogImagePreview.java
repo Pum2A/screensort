@@ -1,5 +1,8 @@
 package pl.pum.screensort.catalog.preview;
 
+import pl.pum.screensort.files.SourcePath;
+import pl.pum.screensort.files.Sha256;
+import pl.pum.screensort.files.ImageFormats;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardOpenOption.READ;
 import static pl.pum.screensort.catalog.preview.ImagePreviewException.Reason.BUSY;
@@ -23,11 +26,8 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
@@ -113,17 +113,8 @@ public class CatalogImagePreview {
     if (!root.equals(storedRoot)) {
       throw new ImagePreviewException(UNSAFE_PATH, "Folder źródłowy zmienił położenie.");
     }
-    Path relative = Path.of(source.relativePath());
-    // Obecny skaner jest nierekurencyjny: akceptujemy tylko bezpośrednie pliki folderu.
-    if (relative.isAbsolute() || relative.getNameCount() != 1
-        || source.relativePath().contains(":") || relative.toString().isBlank()
-        || relative.toString().equals(".") || relative.toString().equals("..")) {
-      throw new ImagePreviewException(UNSAFE_PATH, "Niedozwolona ścieżka obrazu.");
-    }
-    Path path = root.resolve(relative).normalize();
-    if (!root.equals(path.getParent())) {
-      throw new ImagePreviewException(UNSAFE_PATH, "Obraz musi należeć do wybranego folderu.");
-    }
+    Path path = SourcePath.directChild(root, source.relativePath())
+        .orElseThrow(() -> new ImagePreviewException(UNSAFE_PATH, "Niedozwolona ścieżka obrazu."));
     readAttributes(path);
     if (!path.equals(path.toRealPath())) {
       throw new ImagePreviewException(UNSAFE_PATH, "Nie otwieramy przekierowanych ścieżek.");
@@ -158,7 +149,7 @@ public class CatalogImagePreview {
       ImageReader reader = readers.next();
       try {
         String format = reader.getFormatName().toLowerCase(Locale.ROOT);
-        if (!Set.of("png", "jpeg", "jpg").contains(format)) {
+        if (!ImageFormats.readable(format)) {
           throw new ImagePreviewException(INVALID_IMAGE, "Podgląd obsługuje PNG i JPEG.");
         }
         boolean jpeg = !format.equals("png");
@@ -224,13 +215,8 @@ public class CatalogImagePreview {
       // NUL separates fields unambiguously; keys never expose source paths or filenames.
       String value = fileId + "\0" + path + "\0" + size + "\0" + bytes + "\0" + modifiedAt
           + "\0" + Objects.toString(fileKey, "") + "\0" + sha256;
-      try {
-        // v2: previews follow EXIF orientation. Old v1 entries are never read again.
-        return "screensort:preview:v2:" + HexFormat.of().formatHex(
-            MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
-      } catch (NoSuchAlgorithmException e) {
-        throw new IllegalStateException("Required SHA-256 unavailable", e);
-      }
+      // v2: previews follow EXIF orientation. Old v1 entries are never read again.
+      return "screensort:preview:v2:" + Sha256.hex(value.getBytes(StandardCharsets.UTF_8));
     }
   }
 
