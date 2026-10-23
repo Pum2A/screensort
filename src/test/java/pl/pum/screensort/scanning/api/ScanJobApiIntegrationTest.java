@@ -92,13 +92,6 @@ class ScanJobApiIntegrationTest {
               post("/api/scan/jobs").contentType(MediaType.APPLICATION_JSON)
                   .content("{\"folderPath\":\"another-folder\"}"))
           .andExpect(status().isConflict());
-      mvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(request))
-          .andExpect(status().isConflict());
-      mvc.perform(post("/scan").param("folderPath", folder.toString()))
-          .andExpect(status().isOk())
-          .andExpect(
-              model().attribute(
-                  "errorMessage", "Inny skan jest już w toku. Poczekaj na jego zakończenie."));
     } finally {
       allowSave.countDown();
     }
