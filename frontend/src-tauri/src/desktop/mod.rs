@@ -465,6 +465,22 @@ pub async fn backend_image(
     Ok(tauri::ipc::Response::new(bytes))
 }
 
+#[cfg(test)]
+mod image_failure_tests {
+    use super::image_failure;
+
+    #[test]
+    fn image_failures_keep_the_reason_and_hide_the_rest() {
+        assert_eq!(image_failure(404), "image:missing");
+        assert_eq!(image_failure(403), "image:blocked");
+        assert_eq!(image_failure(409), "image:changed");
+        assert_eq!(image_failure(413), "image:too-large");
+        assert_eq!(image_failure(422), "image:unsupported");
+        assert_eq!(image_failure(503), "image:busy");
+        assert_eq!(image_failure(500), "image:unavailable");
+    }
+}
+
 /// Stable reason codes for a failed preview. The WebView turns each into its own text and decides
 /// whether trying again can help. Statuses mirror `CatalogImageController`.
 fn image_failure(status: u16) -> &'static str {
@@ -481,18 +497,7 @@ fn image_failure(status: u16) -> &'static str {
 
 #[cfg(test)]
 mod tests {
-    use super::{allowed, image_failure};
-
-    #[test]
-    fn image_failures_keep_the_reason_and_hide_the_rest() {
-        assert_eq!(image_failure(404), "image:missing");
-        assert_eq!(image_failure(403), "image:blocked");
-        assert_eq!(image_failure(409), "image:changed");
-        assert_eq!(image_failure(413), "image:too-large");
-        assert_eq!(image_failure(422), "image:unsupported");
-        assert_eq!(image_failure(503), "image:busy");
-        assert_eq!(image_failure(500), "image:unavailable");
-    }
+    use super::allowed;
     #[test]
     fn bridge_supports_copying_and_only_its_public_routes() {
         let batch = "/api/organization/batches/00000000-0000-0000-0000-000000000001";
