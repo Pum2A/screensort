@@ -4,6 +4,7 @@ mod packages;
 mod paths;
 mod processes;
 mod smoke;
+mod timings;
 
 use regex::Regex;
 use serde::Serialize;
