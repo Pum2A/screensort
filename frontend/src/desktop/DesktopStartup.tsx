@@ -6,6 +6,7 @@ import {isDesktop} from './transport.js'
 import {AnalysisReadiness} from './readiness.js'
 import {DesktopRuntime} from './runtimeContext.js'
 import {StartupScreen} from './StartupScreen.js'
+import {watchNative} from './nativeStatus.js'
 import {initialStartup, nextStartup, startupView} from './status.js'
 import type {DesktopStatus} from './status.js'
 import './DesktopStartup.css'
@@ -14,19 +15,8 @@ export function DesktopStartup({children}: {children: ReactNode}) {
     const [state, dispatch] = useReducer(nextStartup, initialStartup)
     useEffect(() => {
         if (!isDesktop()) return
-        let stopped = false
-        let timer: ReturnType<typeof setTimeout>
-        async function check() {
-            try {
-                const status = await invoke<DesktopStatus>('desktop_status')
-                if (!stopped) dispatch({kind: 'status', status})
-            } catch {
-                if (!stopped) dispatch({kind: 'failed'})
-            }
-            if (!stopped) timer = setTimeout(() => void check(), 1000)
-        }
-        void check()
-        return () => { stopped = true; clearTimeout(timer) }
+        return watchNative<DesktopStatus>('desktop_status', 'desktop-status',
+            status => dispatch({kind: 'status', status}), () => dispatch({kind: 'failed'}))
     }, [])
 
     if (!isDesktop()) return children
