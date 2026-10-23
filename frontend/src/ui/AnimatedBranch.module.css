@@ -10,10 +10,10 @@
     min-height: 44px;
     padding: 9px 10px;
     border: 0;
-    border-radius: 10px;
+    border-radius: var(--radius-control);
     background: var(--color-subtle);
     color: var(--color-ink);
-    font-size: 13px;
+    font-size: var(--text-body);
     font-weight: 550;
     text-align: left;
     transition: background-color 160ms ease;
