@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {Icon} from '../ui/Icon.js'
 import './CatalogImage.css'
 import {desktopImage, isDesktop} from '../desktop/transport.js'
+import {thumbnailSlots, withRetry} from './imageLoading.js'
 
 // Rodzic nadaje key=src: inny obraz dostaje świeży stan ładowania i błędu.
 export function CatalogImage({src, name, preview = false}: {src: string, name: string, preview?: boolean}) {
@@ -12,25 +13,29 @@ export function CatalogImage({src, name, preview = false}: {src: string, name: s
     const container = useRef<HTMLDivElement>(null)
     useEffect(() => {
         if (!isDesktop()) return
-        let stopped = false
+        const controller = new AbortController()
         let objectUrl: string | null = null
         let requested = false
         async function load() {
             if (requested) return
             requested = true
+            const fetchImage = () => desktopImage(url)
             try {
-                const value = await desktopImage(url)
-                if (stopped) { URL.revokeObjectURL(value); return }
+                // The opened preview skips the queue: it is the one image the user is looking at.
+                const value = await withRetry(preview ? fetchImage
+                    : () => thumbnailSlots.run(fetchImage, controller.signal), controller.signal)
+                if (controller.signal.aborted) { URL.revokeObjectURL(value); return }
                 objectUrl = value
                 setNativeSrc(value)
-            } catch { if (!stopped) setStatus('error') }
+            } catch { if (!controller.signal.aborted) setStatus('error') }
         }
         const observer = new IntersectionObserver(entries => {
             if (entries.some(entry => entry.isIntersecting)) { observer.disconnect(); void load() }
         }, {rootMargin: '180px'})
         if (preview) void load()
         else if (container.current) observer.observe(container.current)
-        return () => { stopped = true; observer.disconnect(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
+        // Leaving the page cancels thumbnails that are still waiting for a slot.
+        return () => { controller.abort(); observer.disconnect(); if (objectUrl) URL.revokeObjectURL(objectUrl) }
     }, [url, preview])
     const actualSrc = isDesktop() ? nativeSrc : url
     return <div ref={container} className={`catalog-image ${preview ? 'catalog-image-large' : ''}`}>
