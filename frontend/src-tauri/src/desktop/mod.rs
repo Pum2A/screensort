@@ -302,6 +302,25 @@ fn analysis_retry_delay(attempt: u32) -> std::time::Duration {
     })
 }
 
+#[cfg(test)]
+mod analysis_retry_tests {
+    use super::{analysis_retry_delay, ANALYSIS_ATTEMPTS};
+    use std::time::Duration;
+
+    #[test]
+    fn analysis_start_retries_with_growing_pauses() {
+        let pauses: Vec<Duration> = (1..=ANALYSIS_ATTEMPTS).map(analysis_retry_delay).collect();
+        assert_eq!(
+            pauses,
+            [
+                Duration::ZERO,
+                Duration::from_secs(2),
+                Duration::from_secs(6)
+            ]
+        );
+    }
+}
+
 #[tauri::command]
 pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
     {
@@ -499,21 +518,7 @@ pub async fn backend_image(
 
 #[cfg(test)]
 mod tests {
-    use super::{allowed, analysis_retry_delay, ANALYSIS_ATTEMPTS};
-    use std::time::Duration;
-
-    #[test]
-    fn analysis_start_retries_with_growing_pauses() {
-        let pauses: Vec<Duration> = (1..=ANALYSIS_ATTEMPTS).map(analysis_retry_delay).collect();
-        assert_eq!(
-            pauses,
-            [
-                Duration::ZERO,
-                Duration::from_secs(2),
-                Duration::from_secs(6)
-            ]
-        );
-    }
+    use super::allowed;
     #[test]
     fn bridge_supports_copying_and_only_its_public_routes() {
         let batch = "/api/organization/batches/00000000-0000-0000-0000-000000000001";
