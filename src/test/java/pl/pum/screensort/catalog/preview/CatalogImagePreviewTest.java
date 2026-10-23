@@ -196,6 +196,30 @@ class CatalogImagePreviewTest {
     assertFailure(ImagePreviewException.Reason.UNSAFE_PATH);
   }
 
+  @Test
+  void aWholeGalleryPageRequestedAtOnceGetsEveryThumbnail() throws Exception {
+    int page = 24;
+    for (int id = 1; id <= page; id++) {
+      writeImage("page-" + id + ".png", "png", 1920, 1080, new Color(id * 10, 80, 160));
+      when(sourceReader.read(id)).thenReturn(
+          new ImageSource(id, folder.toRealPath().toString(), "page-" + id + ".png", "0".repeat(64)));
+    }
+    var gallery = java.util.concurrent.Executors.newFixedThreadPool(page);
+    try {
+      var requests = new java.util.ArrayList<java.util.concurrent.Callable<byte[]>>();
+      for (int id = 1; id <= page; id++) {
+        long fileId = id;
+        requests.add(() -> preview.read(fileId, CatalogImagePreview.Size.THUMBNAIL));
+      }
+      // Wiring check for a full page; the deterministic wait is covered by PreviewDecodeQueueTest.
+      for (var thumbnail : gallery.invokeAll(requests)) {
+        assertThat(ImageIO.read(new ByteArrayInputStream(thumbnail.get())).getWidth()).isEqualTo(320);
+      }
+    } finally {
+      gallery.shutdownNow();
+    }
+  }
+
   private void source(String relative) throws Exception {
     when(sourceReader.read(1)).thenReturn(new ImageSource(1, folder.toRealPath().toString(), relative, "0".repeat(64)));
   }

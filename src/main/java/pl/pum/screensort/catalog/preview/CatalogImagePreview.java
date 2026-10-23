@@ -25,13 +25,12 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.stream.MemoryCacheImageInputStream;
@@ -54,7 +53,9 @@ public class CatalogImagePreview {
   private final CatalogImageSourceReader sourceReader;
   private final ScanFolderValidator folderValidator;
   private final PreviewStore cache;
-  private final Semaphore decoders = new Semaphore(2);
+  // Two decoders bound memory; others queue. The wait stays below the desktop shell's 12 s
+  // request timeout, so a queued thumbnail is answered instead of silently dropped.
+  private final PreviewDecodeQueue decoders = new PreviewDecodeQueue(2, Duration.ofSeconds(10));
 
   public CatalogImagePreview(CatalogImageSourceReader sourceReader, ScanFolderValidator folderValidator,
       PreviewStore cache) {
@@ -79,23 +80,21 @@ public class CatalogImagePreview {
         return cached;
       }
 
-      if (!decoders.tryAcquire(2, TimeUnit.SECONDS)) {
-        throw new ImagePreviewException(BUSY, "Podglądy są zajęte. Spróbuj ponownie za chwilę.");
-      }
-      try {
+      return decoders.decode(key, () -> {
         // Sprawdzamy ponownie po oczekiwaniu na wolny dekoder.
         if (!path.equals(resolveSafePath(source)) || !sameFile(before, readAttributes(path))) {
           throw new ImagePreviewException(CHANGED, "Plik zmienił się. Odśwież katalog.");
         }
+        // W trakcie czekania inne żądanie mogło już wygenerować ten sam podgląd.
+        byte[] ready = cache.get(key);
+        if (ready != null) return ready;
         byte[] png = decode(path, size.edge);
         if (!path.equals(resolveSafePath(source)) || !sameFile(before, readAttributes(path))) {
           throw new ImagePreviewException(CHANGED, "Plik zmienił się podczas odczytu.");
         }
         cache.put(key, png);
         return png;
-      } finally {
-        decoders.release();
-      }
+      });
     } catch (NoSuchFileException e) {
       throw new ImagePreviewException(NOT_FOUND, "Plik nie jest już dostępny w folderze.");
     } catch (InvalidScanFolderException | InvalidPathException e) {
