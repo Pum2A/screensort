@@ -45,6 +45,8 @@ pub struct Desktop {
     backend: Mutex<Option<processes::Backend>>,
     owner: tauri::async_runtime::Mutex<Option<processes::Owner>>,
     closing: AtomicBool,
+    /// True while processes::start runs; closing then waits for it to stop what it started.
+    starting: AtomicBool,
     requests: AtomicUsize,
     updating: AtomicBool,
     packages: packages::PackageManager,
@@ -57,6 +59,7 @@ impl Default for Desktop {
             backend: Mutex::new(None),
             owner: tauri::async_runtime::Mutex::new(None),
             closing: AtomicBool::new(false),
+            starting: AtomicBool::new(true),
             requests: AtomicUsize::new(0),
             updating: AtomicBool::new(false),
             packages: packages::PackageManager::default(),
@@ -85,35 +88,20 @@ fn startup_failed(app: &AppHandle, error: String) {
 
 pub fn launch(app: AppHandle) {
     tauri::async_runtime::spawn(async move {
-        let runtime = match runtime_path(&app) {
-            Ok(path) => path,
-            Err(error) => {
-                startup_failed(&app, error);
-                return;
+        let result = start_processes(&app).await;
+        let desktop = app.state::<Desktop>();
+        let result = match result {
+            // The window closed while we were starting: stop cleanly instead of keeping the owner.
+            Ok(mut owner) if desktop.closing.load(Ordering::SeqCst) => {
+                owner.stop().await;
+                Err("Aplikacja kończy pracę.".to_string())
             }
+            other => other,
         };
-        let data = match app.path().app_local_data_dir() {
-            Ok(path) => path,
-            Err(_) => {
-                startup_failed(
-                    &app,
-                    "Nie można odnaleźć katalogu danych ScreenSort.".into(),
-                );
-                return;
-            }
-        };
-        let update_app = app.clone();
-        let result = processes::start(&runtime, &data, move |status, backend| {
-            let desktop = update_app.state::<Desktop>();
-            *desktop.status.lock().expect("status lock") = status;
-            if let Some(value) = backend {
-                *desktop.backend.lock().expect("backend lock") = Some(value);
-            }
-        })
-        .await;
         match result {
             Ok(owner) => {
-                *app.state::<Desktop>().owner.lock().await = Some(owner);
+                *desktop.owner.lock().await = Some(owner);
+                desktop.starting.store(false, Ordering::SeqCst);
                 loop {
                     tauri::async_runtime::spawn_blocking(|| {
                         std::thread::sleep(std::time::Duration::from_secs(2))
@@ -130,6 +118,9 @@ pub fn launch(app: AppHandle) {
                         .await
                         .as_mut()
                         .and_then(|owner| owner.stopped_child());
+                    if stopped == Some("Java") && restart_backend(&app).await {
+                        continue;
+                    }
                     if let Some(name) = stopped {
                         let mut status = desktop.status.lock().expect("status lock");
                         status.analysis_ready = false;
@@ -147,13 +138,88 @@ pub fn launch(app: AppHandle) {
                     }
                 }
             }
-            Err(message) => startup_failed(&app, message),
+            Err(message) => {
+                desktop.starting.store(false, Ordering::SeqCst);
+                startup_failed(&app, message);
+            }
         }
     });
 }
 
+async fn start_processes(app: &AppHandle) -> Result<processes::Owner, String> {
+    let runtime = runtime_path(app)?;
+    let data = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|_| "Nie można odnaleźć katalogu danych ScreenSort.".to_string())?;
+    let update_app = app.clone();
+    let closing_app = app.clone();
+    processes::start(
+        &runtime,
+        &data,
+        move |status, backend| {
+            let desktop = update_app.state::<Desktop>();
+            *desktop.status.lock().expect("status lock") = status;
+            if let Some(value) = backend {
+                *desktop.backend.lock().expect("backend lock") = Some(value);
+            }
+        },
+        move || {
+            closing_app
+                .state::<Desktop>()
+                .closing
+                .load(Ordering::SeqCst)
+        },
+    )
+    .await
+}
+
+/// Java stopped while the app runs: start it again on the same database. False when it gave up.
+async fn restart_backend(app: &AppHandle) -> bool {
+    let desktop = app.state::<Desktop>();
+    {
+        let mut status = desktop.status.lock().expect("status lock");
+        status.backend_ready = false;
+        status.error = None;
+        status.phase = "Backend przestał odpowiadać. Uruchamiamy go ponownie…".into();
+    }
+    *desktop.backend.lock().expect("backend lock") = None;
+    let closing_app = app.clone();
+    let mut cancelled = move || {
+        closing_app
+            .state::<Desktop>()
+            .closing
+            .load(Ordering::SeqCst)
+    };
+    let result = match desktop.owner.lock().await.as_mut() {
+        Some(owner) => owner.restart_java(&mut cancelled).await,
+        None => return false,
+    };
+    let mut status = desktop.status.lock().expect("status lock");
+    match result {
+        Ok((backend, analysis)) => {
+            *desktop.backend.lock().expect("backend lock") = Some(backend);
+            status.backend_ready = true;
+            status.analysis_ready = analysis;
+            status.phase = "Katalog gotowy. Backend uruchomiono ponownie.".into();
+            true
+        }
+        Err(message) => {
+            status.analysis_ready = false;
+            status.error = Some(message);
+            false
+        }
+    }
+}
+
 pub async fn stop(app: &AppHandle) {
-    let owner = app.state::<Desktop>().owner.lock().await.take();
+    let desktop = app.state::<Desktop>();
+    // A start in progress sees `closing` at its next step and stops what it started itself.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    while desktop.starting.load(Ordering::SeqCst) && std::time::Instant::now() < deadline {
+        processes::pause(std::time::Duration::from_millis(100)).await;
+    }
+    let owner = desktop.owner.lock().await.take();
     if let Some(mut owner) = owner {
         owner.stop().await;
     }
