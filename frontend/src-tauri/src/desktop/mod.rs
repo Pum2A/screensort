@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::sync::{
     atomic::{AtomicBool, AtomicUsize, Ordering},
-    Mutex,
+    LazyLock, Mutex, MutexGuard, PoisonError,
 };
 use tauri::{AppHandle, Manager, State};
 
@@ -76,7 +76,7 @@ fn runtime_path(app: &AppHandle) -> Result<std::path::PathBuf, String> {
 
 fn startup_failed(app: &AppHandle, error: String) {
     let desktop = app.state::<Desktop>();
-    let mut status = desktop.status.lock().expect("status lock");
+    let mut status = lock(&desktop.status);
     status.backend_ready = false;
     status.analysis_ready = false;
     status.error = Some(error);
@@ -104,9 +104,9 @@ pub fn launch(app: AppHandle) {
         let update_app = app.clone();
         let result = processes::start(&runtime, &data, move |status, backend| {
             let desktop = update_app.state::<Desktop>();
-            *desktop.status.lock().expect("status lock") = status;
+            *lock(&desktop.status) = status;
             if let Some(value) = backend {
-                *desktop.backend.lock().expect("backend lock") = Some(value);
+                *lock(&desktop.backend) = Some(value);
             }
         })
         .await;
@@ -130,7 +130,7 @@ pub fn launch(app: AppHandle) {
                         .as_mut()
                         .and_then(|owner| owner.stopped_child());
                     if let Some(name) = stopped {
-                        let mut status = desktop.status.lock().expect("status lock");
+                        let mut status = lock(&desktop.status);
                         status.analysis_ready = false;
                         if name != "Python" {
                             status.backend_ready = false;
@@ -283,7 +283,7 @@ pub fn install_ai_package(app: AppHandle, id: String, from_file: bool) -> Result
 
 #[tauri::command]
 pub fn desktop_status(state: State<'_, Desktop>) -> Status {
-    state.status.lock().expect("status lock").clone()
+    lock(&state.status).clone()
 }
 
 #[tauri::command]
@@ -324,7 +324,7 @@ pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
             }
         };
         let desktop = app.state::<Desktop>();
-        let mut status = desktop.status.lock().expect("status lock");
+        let mut status = lock(&desktop.status);
         status.analysis_starting = false;
         status.analysis_ready = result.is_ok();
         status.phase = if result.is_ok() {
@@ -344,61 +344,74 @@ pub struct BackendReply {
     body: Value,
 }
 
+/// Route patterns for the bridge, compiled once on first use instead of on every request.
+/// A pattern that fails to compile is `None` and matches nothing, so the bridge fails closed.
+struct Routes {
+    image: Option<Regex>,
+    batch_command: Option<Regex>,
+    naming: Option<Regex>,
+    review: Option<Regex>,
+    batch: Option<Regex>,
+    export: Option<Regex>,
+    job: Option<Regex>,
+    file_details: Option<Regex>,
+}
+
+static ROUTES: LazyLock<Routes> = LazyLock::new(|| Routes {
+    image: Regex::new(r"^/api/catalog/files/[1-9][0-9]*/(thumbnail|preview)$").ok(),
+    batch_command: Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/(control|exports)$")
+        .ok(),
+    naming: Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$").ok(),
+    review: Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$")
+        .ok(),
+    batch: Regex::new(
+        r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items|/plan|/exports/latest)?$",
+    )
+    .ok(),
+    export: Regex::new(r"^/api/organization/exports/[0-9a-fA-F-]{36}(/issues)?$").ok(),
+    job: Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$").ok(),
+    file_details: Regex::new(r"^/api/catalog/files/[1-9][0-9]*/(analysis|naming)$").ok(),
+});
+
+fn matches(pattern: &Option<Regex>, route: &str) -> bool {
+    pattern.as_ref().is_some_and(|regex| regex.is_match(route))
+}
+
 fn allowed(method: &str, path: &str, image: bool) -> bool {
     if path.len() > 8192 || path.contains('#') || path.contains('\\') {
         return false;
     }
     let route = path.split('?').next().unwrap_or("");
+    let routes = &*ROUTES;
     if image {
-        return method == "GET"
-            && Regex::new(r"^/api/catalog/files/[1-9][0-9]*/(thumbnail|preview)$")
-                .unwrap()
-                .is_match(route);
+        return method == "GET" && matches(&routes.image, route);
     }
     match method {
         "POST" => {
             matches!(
                 route,
                 "/api/scan/jobs" | "/api/analysis/jobs" | "/api/organization/batches"
-            ) || Regex::new(r"^/api/organization/batches/[0-9a-fA-F-]{36}/(control|exports)$")
-                .unwrap()
-                .is_match(route)
+            ) || matches(&routes.batch_command, route)
         }
-        "PUT" => {
-            Regex::new(r"^/api/catalog/files/[1-9][0-9]*/naming$")
-                .unwrap()
-                .is_match(route)
-                || Regex::new(
-                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
-                )
-                .unwrap()
-                .is_match(route)
-        }
+        "PUT" => matches(&routes.naming, route) || matches(&routes.review, route),
         "GET" => {
-            route == "/api/catalog/page"
-                || Regex::new(
-                    r"^/api/organization/batches/[0-9a-fA-F-]{36}/items/[1-9][0-9]*/review$",
-                )
-                .unwrap()
-                .is_match(route)
-                || route == "/api/organization/batches/latest"
-                || Regex::new(
-                    r"^/api/organization/batches/[0-9a-fA-F-]{36}(/items|/plan|/exports/latest)?$",
-                )
-                .unwrap()
-                .is_match(route)
-                || Regex::new(r"^/api/organization/exports/[0-9a-fA-F-]{36}(/issues)?$")
-                    .unwrap()
-                    .is_match(route)
-                || Regex::new(r"^/api/(scan|analysis)/jobs/[0-9a-fA-F-]{36}(/rejections)?$")
-                    .unwrap()
-                    .is_match(route)
-                || Regex::new(r"^/api/catalog/files/[1-9][0-9]*/(analysis|naming)$")
-                    .unwrap()
-                    .is_match(route)
+            matches!(
+                route,
+                "/api/catalog/page" | "/api/organization/batches/latest"
+            ) || matches(&routes.review, route)
+                || matches(&routes.batch, route)
+                || matches(&routes.export, route)
+                || matches(&routes.job, route)
+                || matches(&routes.file_details, route)
         }
         _ => false,
     }
+}
+
+/// A panic while holding a lock "poisons" it. The guarded values here are plain status data that
+/// stay consistent, so the app keeps using them instead of crashing on the next lock.
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex.lock().unwrap_or_else(PoisonError::into_inner)
 }
 
 #[tauri::command]
@@ -467,7 +480,38 @@ pub async fn backend_image(
 
 #[cfg(test)]
 mod tests {
-    use super::allowed;
+    use super::{allowed, lock, ROUTES};
+    use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn every_route_pattern_compiles() {
+        let routes = &*ROUTES;
+        for pattern in [
+            &routes.image,
+            &routes.batch_command,
+            &routes.naming,
+            &routes.review,
+            &routes.batch,
+            &routes.export,
+            &routes.job,
+            &routes.file_details,
+        ] {
+            assert!(pattern.is_some());
+        }
+    }
+
+    #[test]
+    fn a_poisoned_status_lock_still_answers() {
+        let status = Arc::new(Mutex::new(7));
+        let shared = Arc::clone(&status);
+        let _ = std::thread::spawn(move || {
+            let _guard = shared.lock().unwrap();
+            panic!("poison the lock");
+        })
+        .join();
+        assert!(status.is_poisoned());
+        assert_eq!(*lock(&status), 7);
+    }
     #[test]
     fn bridge_supports_copying_and_only_its_public_routes() {
         let batch = "/api/organization/batches/00000000-0000-0000-0000-000000000001";
