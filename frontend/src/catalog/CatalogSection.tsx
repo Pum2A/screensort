@@ -15,11 +15,12 @@ export function CatalogSection({catalog, hidden, scanning, onOrganize}: {
         <div className="catalog-heading"><div><span className="eyebrow">ZAPISANY KATALOG</span><h2 id="catalog-title"><FolderOpen size={21}/>{catalog.folder ? folderName(catalog.folder) : 'Twój pierwszy folder'}
             {page && <span className="count-badge">{page.totalFiles}</span>}</h2></div>
             <button className="text-button" onClick={onOrganize}>Analiza i propozycje<ArrowRight size={16}/></button></div>
-        <CatalogGallery key={[catalog.folder, catalog.pageNumber, catalog.generation].join(':')} files={loading || error ? [] : page?.files ?? []}>
+        <CatalogGallery key={[catalog.folder, catalog.pageNumber, catalog.generation].join(':')} files={loading || error ? [] : page?.files ?? []}
+            search={catalog.searchInput} searching={catalog.search !== ''} results={page?.totalFiles ?? 0} onSearch={catalog.setSearch}>
             {loading ? <div className="catalog-skeleton" role="status"><span className="sr-only">Ładujemy katalog obrazów</span>{Array.from({length: 8}, (_, index) => <div className="skeleton-tile" key={index}><span/><i/><i/></div>)}</div>
                 : error ? <div className="catalog-empty catalog-empty-error"><CircleAlert size={30}/><h3>Katalog jest niedostępny</h3><p role="alert">{error}</p>
                     <button className="secondary-button" onClick={catalog.retry}><Icon name="refresh"/>Spróbuj ponownie</button></div>
-                : !page || page.files.length === 0 ? <div className="catalog-empty"><Images size={36}/><h3>{page?.totalFiles === 0 ? 'Tu zaczyna się porządek.' : 'Wybierz folder na początek.'}</h3>
+                : !page || (page.files.length === 0 && !catalog.search) ? <div className="catalog-empty"><Images size={36}/><h3>{page?.totalFiles === 0 ? 'Tu zaczyna się porządek.' : 'Wybierz folder na początek.'}</h3>
                     <p>Wybierz źródło i zeskanuj jego zawartość. Twoje obrazy zostają dokładnie tam, gdzie są.</p></div> : undefined}
         </CatalogGallery>
         {page && page.totalFiles > 0 && <nav className="catalog-pagination" aria-label="Strony katalogu"><span className="page-range">{rangeStart}–{rangeEnd} z {page.totalFiles} obrazów</span>
