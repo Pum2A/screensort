@@ -21,7 +21,9 @@ from screensort_analysis.image.preparation import MAX_IMAGE_BYTES
 logger = logging.getLogger(__name__)
 bearer = HTTPBearer(auto_error=False)
 UPLOAD_TIMEOUT_SECONDS = 15
-ANALYSIS_TIMEOUT_SECONDS = 120
+# "Busy" is temporary, so it is 503 with a hint when to come back. 429 would mean the
+# client itself sends too many requests, which is not what happens here.
+BUSY_RETRY_AFTER_SECONDS = 2
 
 
 async def require_token(
@@ -116,7 +118,11 @@ async def analyze(
     if not runtime.is_ready:
         raise HTTPException(503, "ANALYSIS_UNAVAILABLE")
     if not runtime.reserve():
-        raise HTTPException(429, "ANALYSIS_BUSY", headers={"Retry-After": "1"})
+        raise HTTPException(
+            503,
+            "ANALYSIS_BUSY",
+            headers={"Retry-After": str(BUSY_RETRY_AFTER_SECONDS)},
+        )
     submitted = False
     try:
         data = await read_image(request)
@@ -124,7 +130,7 @@ async def analyze(
         submitted = True
         pending = asyncio.wrap_future(future)
         pending.add_done_callback(observe_completion)
-        async with asyncio.timeout(ANALYSIS_TIMEOUT_SECONDS):
+        async with asyncio.timeout(options.timeout_seconds):
             return await asyncio.shield(pending)
     except HTTPException:
         raise
