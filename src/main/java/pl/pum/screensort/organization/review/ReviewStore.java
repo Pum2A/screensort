@@ -41,6 +41,12 @@ public class ReviewStore {
     return new Page(List.copyOf(rows.subList(0, Math.min(50, rows.size()))), rows.size() > 50);
   }
 
+  /** Every item of the batch at once, for the library screen (the catalog caps a folder at 1000 files). */
+  @Transactional(readOnly = true)
+  public List<ReviewItem> all(UUID batchId) {
+    return List.copyOf(jdbc.query(SELECT + " where i.batch_id = ? order by i.file_id", this::item, batchId));
+  }
+
   /** Read-only export preview: only current, explicitly approved decisions are included. */
   @Transactional(readOnly = true)
   public PlanPage plan(UUID batchId, int page) {

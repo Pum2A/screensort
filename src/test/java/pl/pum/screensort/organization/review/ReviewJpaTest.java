@@ -118,6 +118,7 @@ class ReviewJpaTest {
     entities.clear();
     assertThat(reviews.read(fixture.batchId(), fixture.fileId())).isEqualTo(result);
     assertThat(batches.items(fixture.batchId(), 0).items()).containsExactly(result);
+    assertThat(store.all(fixture.batchId())).containsExactly(result);
     assertThat(naming.read(fixture.fileId()).approvedName()).isEqualTo("kubek.png");
     assertThat(files.findById(fixture.fileId()).orElseThrow().getOriginalName()).isEqualTo("IMG_0026.png");
     assertThat(Files.readAllBytes(source)).containsExactly(1, 2, 3, 4);
