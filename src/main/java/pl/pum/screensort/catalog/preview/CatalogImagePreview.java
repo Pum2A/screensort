@@ -157,11 +157,13 @@ public class CatalogImagePreview {
       }
       ImageReader reader = readers.next();
       try {
-        reader.setInput(images, true, true);
         String format = reader.getFormatName().toLowerCase(Locale.ROOT);
         if (!Set.of("png", "jpeg", "jpg").contains(format)) {
           throw new ImagePreviewException(INVALID_IMAGE, "Podgląd obsługuje PNG i JPEG.");
         }
+        boolean jpeg = !format.equals("png");
+        // Only JPEG metadata is read: it carries the EXIF orientation of phone photos.
+        reader.setInput(images, true, !jpeg);
         int width = reader.getWidth(0);
         int height = reader.getHeight(0);
         if (width <= 0 || height <= 0 || width > MAX_SOURCE_EDGE || height > MAX_SOURCE_EDGE
@@ -171,9 +173,10 @@ public class CatalogImagePreview {
         var params = reader.getDefaultReadParam();
         int sample = Math.max(1, Math.max(width, height) / edge);
         params.setSourceSubsampling(sample, sample, 0, 0);
+        int orientation = jpeg ? orientation(reader) : ExifOrientation.NORMAL;
         BufferedImage decoded = reader.read(0, params);
         try {
-          return encodeScaledPng(decoded, edge);
+          return encodeScaledPng(decoded, edge, orientation);
         } finally {
           decoded.flush();
         }
@@ -183,7 +186,16 @@ public class CatalogImagePreview {
     }
   }
 
-  private byte[] encodeScaledPng(BufferedImage decoded, int edge) throws IOException {
+  // A broken EXIF block must not cost the preview: the photo is then shown as stored.
+  private static int orientation(ImageReader reader) {
+    try {
+      return ExifOrientation.read(reader.getImageMetadata(0));
+    } catch (IOException | RuntimeException e) {
+      return ExifOrientation.NORMAL;
+    }
+  }
+
+  private byte[] encodeScaledPng(BufferedImage decoded, int edge, int orientation) throws IOException {
     double scale = Math.min(1.0, (double) edge / Math.max(decoded.getWidth(), decoded.getHeight()));
     int width = Math.max(1, (int) Math.round(decoded.getWidth() * scale));
     int height = Math.max(1, (int) Math.round(decoded.getHeight() * scale));
@@ -195,11 +207,14 @@ public class CatalogImagePreview {
     } finally {
       graphics.dispose();
     }
+    // Turned after scaling: the small image is cheap to rotate, and its longer edge stays within `edge`.
+    BufferedImage upright = ExifOrientation.apply(scaled, orientation);
     try (var output = new ByteArrayOutputStream()) {
-      if (!ImageIO.write(scaled, "png", output)) throw new IOException("PNG writer unavailable");
+      if (!ImageIO.write(upright, "png", output)) throw new IOException("PNG writer unavailable");
       return output.toByteArray();
     } finally {
       scaled.flush();
+      upright.flush();
     }
   }
 
@@ -210,7 +225,8 @@ public class CatalogImagePreview {
       String value = fileId + "\0" + path + "\0" + size + "\0" + bytes + "\0" + modifiedAt
           + "\0" + Objects.toString(fileKey, "") + "\0" + sha256;
       try {
-        return "screensort:preview:v1:" + HexFormat.of().formatHex(
+        // v2: previews follow EXIF orientation. Old v1 entries are never read again.
+        return "screensort:preview:v2:" + HexFormat.of().formatHex(
             MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8)));
       } catch (NoSuchAlgorithmException e) {
         throw new IllegalStateException("Required SHA-256 unavailable", e);
