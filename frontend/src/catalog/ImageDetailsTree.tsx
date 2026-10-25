@@ -5,6 +5,7 @@ import type {CatalogFile} from './types.js'
 import {Icon} from '../ui/Icon.js'
 import {useTreeConnections} from './useTreeConnections.js'
 import {AnimatedBranch} from '../ui/AnimatedBranch.js'
+import {AnalysisPanel} from '../analysis/AnalysisPanel.js'
 import './ImageDetailsTree.css'
 
 export function ImageDetailsTree({file}: {file: CatalogFile}) {
@@ -23,6 +24,10 @@ export function ImageDetailsTree({file}: {file: CatalogFile}) {
             <p className="metadata-note">Opis z ostatniego skanu. Podgląd z dysku.</p>
         </div>
         <div className="tree-branches">
+            {/* The single-image analysis and name editor, formerly in the library side panel. */}
+            <div className="tree-branch" data-tree-branch><AnimatedBranch label="Analiza obrazu" defaultOpen>
+                <AnalysisPanel key={file.id} fileId={file.id}/>
+            </AnimatedBranch></div>
             <div className="tree-branch" data-tree-branch><AnimatedBranch label="Plik" defaultOpen>
                 <dl className="file-properties">
                     <div><dt>Nazwa</dt><dd>{file.originalName}</dd></div>

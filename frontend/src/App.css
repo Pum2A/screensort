@@ -37,15 +37,8 @@ h1 { margin: 0; font-family: var(--font-sans); font-size: 32px; font-weight: 700
 .secondary-button:hover:not(:disabled) { background: var(--color-canvas); border-color: var(--color-subtle); }
 .primary-button:active:not(:disabled), .secondary-button:active:not(:disabled) { transform: scale(.97); }
 button:disabled { opacity: .45; }
-.catalog { margin-top: 26px; }
 .workspace-content > section:not([hidden]):not(.folder-toolbar) { animation: view-enter 220ms var(--motion-ease); }
 @keyframes view-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-.catalog-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
-.catalog-heading > div { min-width: 0; }
-.catalog-heading .eyebrow { display: none; }
-.catalog-heading h2 { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 18px; font-weight: 600; letter-spacing: -.025em; overflow-wrap: anywhere; }
-.catalog-heading h2 > svg { color: var(--muted); }
-.count-badge { color: var(--muted); background: #e8ece9; border-radius: 20px; padding: 3px 8px; font-size: 11px; font-weight: 550; letter-spacing: 0; }
 .catalog-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; gap: 15px; text-align: center; padding: 30px; color: var(--muted); }
 .catalog-empty h3 { margin: 0; font-size: 23px; color: var(--text); font-weight: 600; letter-spacing: -.035em; }
 .catalog-empty p { margin: 0; max-width: 350px; color: var(--muted); font-size: 13px; line-height: 1.8; }
@@ -115,9 +108,6 @@ button:disabled { opacity: .45; }
     .workspace-title p { max-width: 190px; }
     .workspace-header-status { margin-left: auto; margin-top: 4px; }
     .folder-actions button { padding-inline: 12px; }
-    .catalog-heading { gap: 8px; }
-    .catalog-heading h2 { font-size: 16px; }
-    .catalog-heading > .text-button { max-width: 120px; padding: 8px 4px; font-size: 11px; }
     .app-footer { flex-direction: column; gap: 6px; }
     .scan-stages { grid-template-columns: repeat(2, 1fr); }
     .rejected-details li { flex-direction: column; gap: 5px; }

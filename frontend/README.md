@@ -41,8 +41,10 @@ a database table. Pagination does not start a scan or change source images.
 
 ## Gallery and selected preview
 
-`catalog/CatalogGallery.tsx` renders the current page as compact tiles. Selection
-stores only `selectedId`; the selected file is derived from this page.
+`library/LibraryView.tsx` renders the whole folder from `GET /api/library` (catalog
+files plus the latest analysis) as a dense grid with AI category filters and
+multi-select. The bulk bar and `library/DuplicatesView.tsx` save ordinary review
+decisions through the same endpoint as the single-image editor.
 `CatalogImage.tsx` loads lazy thumbnails by record ID, not by arbitrary paths.
 `ImageDetailsDialog.tsx` requests the larger preview only after selection and
 shows metadata from the last scan. Escape / the close button restore focus to

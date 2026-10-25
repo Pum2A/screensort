@@ -1,16 +1,19 @@
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
+import {useQuery, useQueryClient} from '@tanstack/react-query'
 import {isTauri} from '@tauri-apps/api/core'
 import {open} from '@tauri-apps/plugin-dialog'
-import {ArrowRight, CircleAlert, FolderOpen, Images, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
+import {CircleAlert, FolderOpen, LoaderCircle, ScanLine, ShieldCheck} from 'lucide-react'
 import * as m from 'motion/react-m'
 import {ScanSummary} from './scanning/ScanSummary.js'
 import {ScanProgress} from './scanning/ScanProgress.js'
 import {useScanJob} from './scanning/useScanJob.js'
-import {CatalogGallery} from './catalog/CatalogGallery.js'
 import {fetchCatalog} from './catalog/api.js'
 import {folderName} from './catalog/format.js'
-import type {CatalogPage} from './catalog/types.js'
-import {Icon} from './ui/Icon.js'
+import {LibraryView} from './library/LibraryView.js'
+import {DuplicatesView} from './library/DuplicatesView.js'
+import {libraryKeys} from './library/api.js'
+import {duplicateGroups, isPending, libraryEntries} from './library/model.js'
+import {useLibrary} from './library/useLibrary.js'
 import {OrganizationPanel} from './organization/OrganizationPanel.js'
 import {rejectionLabel} from './scanning/rejectionLabels.js'
 import {Sidebar} from './workspace/Sidebar.js'
@@ -20,8 +23,6 @@ import type {WorkspaceView} from './workspace/state.js'
 import './App.css'
 import {useUpdateBlocker} from './desktop/updates/context.js'
 
-const CATALOG_PAGE_SIZE = 24
-
 function App({initialFolder}: {initialFolder?: string} = {}) {
     const desktop = isTauri()
     const [folderPath, setFolderPath] = useState(() => initialFolder ?? storedFolder(desktop))
@@ -29,11 +30,11 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const [organizationVisited, setOrganizationVisited] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [catalogFolder, setCatalogFolder] = useState(folderPath)
-    const [catalogRefresh, setCatalogRefresh] = useState(0)
-    const [catalogPageNumber, setCatalogPageNumber] = useState(0)
-    const [catalogPage, setCatalogPage] = useState<CatalogPage | null>(null)
-    const [catalogLoading, setCatalogLoading] = useState(Boolean(folderPath.trim()))
-    const [catalogError, setCatalogError] = useState<string | null>(null)
+    const queryClient = useQueryClient()
+    const library = useLibrary(catalogFolder)
+    // The analysis needs the file count even for folders the library cannot show (over 1000 images).
+    const catalogCount = useQuery({queryKey: ['catalog', 'count', catalogFolder], enabled: catalogFolder.trim() !== '',
+        queryFn: ({signal}) => fetchCatalog(catalogFolder, 0, 1, signal).then(page => page.totalFiles)})
     const [editingReview, setEditingReview] = useState(false)
     const [exporting, setExporting] = useState(false)
     const scan = useScanJob(completed => {
@@ -46,12 +47,16 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     function showCatalog(folder: string) {
         if (editingReview) return
         if (folder !== catalogFolder) setOrganizationVisited(false)
-        setCatalogPage(null); setCatalogPageNumber(0); setCatalogLoading(Boolean(folder.trim())); setCatalogError(null)
-        setCatalogFolder(folder); setCatalogRefresh(current => current + 1); setView('catalog')
+        setCatalogFolder(folder); setView('catalog')
+        // A rescan of the same folder changes files, so the cached library must not be shown.
+        void queryClient.invalidateQueries({queryKey: libraryKeys.folder(folder)})
+        void queryClient.invalidateQueries({queryKey: ['catalog', 'count', folder]})
     }
 
     function navigate(next: WorkspaceView) {
         if (next === 'organization') setOrganizationVisited(true)
+        // Decisions saved in "Do decyzji" change the library counts.
+        else if (view === 'organization') void queryClient.invalidateQueries({queryKey: libraryKeys.folder(catalogFolder)})
         setView(next)
     }
 
@@ -64,42 +69,30 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         } catch {setError('Nie udało się otworzyć okna wyboru folderu.')}
     }
 
-    useEffect(() => {
-        let ignore = false
-        if (!catalogFolder.trim()) return
-        fetchCatalog(catalogFolder, catalogPageNumber, CATALOG_PAGE_SIZE)
-            .then(page => {if (!ignore) setCatalogPage(page)})
-            .catch(() => {if (!ignore) {setCatalogPage(null); setCatalogError('Nie udało się pobrać katalogu. Sprawdź folder i działanie backendu.')}})
-            .finally(() => {if (!ignore) setCatalogLoading(false)})
-        return () => {ignore = true}
-    }, [catalogFolder, catalogPageNumber, catalogRefresh])
-
-    function changePage(direction: -1 | 1) {
-        setCatalogLoading(true); setCatalogError(null); setCatalogPageNumber(current => Math.max(0, current + direction))
-    }
-
-    const pageCount = catalogPage ? Math.ceil(catalogPage.totalFiles / catalogPage.pageSize) : 0
-    const rangeStart = catalogPage && catalogPage.files.length > 0 ? catalogPage.pageNumber * catalogPage.pageSize + 1 : 0
-    const rangeEnd = catalogPage && rangeStart > 0 ? rangeStart + catalogPage.files.length - 1 : 0
+    const entries = library.data ? libraryEntries(library.data) : []
+    const counts = {total: library.data ? entries.length : null, pending: entries.filter(entry => isPending(entry.state)).length,
+        duplicates: duplicateGroups(library.data?.files ?? []).length}
+    const label = catalogFolder ? folderName(catalogFolder) : ''
 
     return <div className="app-shell">
-        <Sidebar view={view} onView={navigate} total={catalogPage?.totalFiles ?? null} folder={catalogFolder}
-            folderLabel={catalogFolder ? folderName(catalogFolder) : ''} onAddFolder={desktop ? () => void handleChooseFolder() : undefined} locked={locked}/>
+        <Sidebar view={view} onView={navigate} counts={counts} folder={catalogFolder}
+            folderLabel={label} onAddFolder={desktop ? () => void handleChooseFolder() : undefined} locked={locked}/>
         <main className="workspace-main">
             <div className="workspace-content">
-                <WorkspaceHeader view={view} folderLabel={catalogFolder ? folderName(catalogFolder) : ''}/>
-                <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
+                <WorkspaceHeader view={view} folderLabel={label}/>
+                {/* The desktop app picks folders in the sidebar; the path field stays for the browser and the first start. */}
+                {(!desktop || !catalogFolder) && <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}
                             placeholder={desktop ? 'Wybierz folder z obrazami' : 'Wpisz ścieżkę folderu'} title={folderPath}/>
                     </label></div>
                     <div className="folder-actions">{desktop
                         ? <button className="secondary-button" disabled={locked} onClick={() => void handleChooseFolder()}><FolderOpen size={17}/>Wybierz folder</button>
-                        : <button className="secondary-button" disabled={locked || catalogLoading || !folderPath.trim()} onClick={() => {scan.clear(); showCatalog(folderPath)}}><FolderOpen size={17}/>Otwórz katalog</button>}
+                        : <button className="secondary-button" disabled={locked || library.isFetching || !folderPath.trim()} onClick={() => {scan.clear(); showCatalog(folderPath)}}><FolderOpen size={17}/>Otwórz katalog</button>}
                         <button className="primary-button" disabled={locked || !folderPath.trim()} onClick={() => {setError(null); void scan.start(folderPath)}}>
                             {scan.busy ? <LoaderCircle size={17} className="spin"/> : <ScanLine size={17}/>}{scan.busy ? 'Skanujemy…' : 'Skanuj folder'}</button>
                     </div>
-                </section>
+                </section>}
                 {editingReview && <div className="feedback feedback-warning" role="status">Masz niezapisane zmiany w przeglądzie propozycji. Zachowaliśmy je; przed zmianą folderu zapisz lub odrzuć edycję.</div>}
                 {error && <div className="feedback feedback-error" role="alert"><CircleAlert size={18}/>{error}</div>}
                 {scan.error && <div className="feedback feedback-error" role="alert"><CircleAlert size={18}/><div><p>{scan.error}</p>
@@ -113,24 +106,20 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
                     {scan.rejections.truncated && <p>Przykłady: {scan.rejections.files.length} z {scan.rejections.totalRejected} pominiętych wpisów.</p>}
                     <ul>{scan.rejections.files.map(file => <li key={file.path}><strong>{file.originalName}</strong><span>{rejectionLabel(file.reason)}<details><summary>Kod diagnostyczny</summary><code>{file.reason}</code></details></span></li>)}</ul></details>}
 
-                {/* Keep both views mounted: switching tabs must not throw away a review draft. */}
-                <section hidden={view !== 'catalog'} id="catalog" aria-labelledby="catalog-title" className="catalog">
-                    <div className="catalog-heading"><div><span className="eyebrow">ZAPISANY KATALOG</span><h2 id="catalog-title"><FolderOpen size={21}/>{catalogFolder ? folderName(catalogFolder) : 'Twój pierwszy folder'}
-                        {catalogPage && <span className="count-badge">{catalogPage.totalFiles}</span>}</h2></div>
-                        <button className="text-button" onClick={() => navigate('organization')}>Analiza i propozycje<ArrowRight size={16}/></button></div>
-                    <CatalogGallery key={[catalogFolder, catalogPageNumber, catalogRefresh].join(':')} files={catalogLoading || catalogError ? [] : catalogPage?.files ?? []}>
-                        {catalogLoading ? <div className="catalog-skeleton" role="status"><span className="sr-only">Ładujemy katalog obrazów</span>{Array.from({length: 8}, (_, index) => <div className="skeleton-tile" key={index}><span/><i/><i/></div>)}</div>
-                            : catalogError ? <div className="catalog-empty catalog-empty-error"><CircleAlert size={30}/><h3>Katalog jest niedostępny</h3><p role="alert">{catalogError}</p>
-                                <button className="secondary-button" onClick={() => showCatalog(catalogFolder)}><Icon name="refresh"/>Spróbuj ponownie</button></div>
-                            : !catalogPage || catalogPage.files.length === 0 ? <div className="catalog-empty"><Images size={36}/><h3>{catalogPage?.totalFiles === 0 ? 'Tu zaczyna się porządek.' : 'Wybierz folder na początek.'}</h3>
-                                <p>Wybierz źródło i zeskanuj jego zawartość. Twoje obrazy zostają dokładnie tam, gdzie są.</p></div> : undefined}
-                    </CatalogGallery>
-                    {catalogPage && catalogPage.totalFiles > 0 && <nav className="catalog-pagination" aria-label="Strony katalogu"><span className="page-range">{rangeStart}–{rangeEnd} z {catalogPage.totalFiles} obrazów</span>
-                        <div className="page-controls"><button className="icon-button" aria-label="Poprzednia strona" disabled={catalogLoading || scan.busy || catalogPageNumber === 0} onClick={() => changePage(-1)}><Icon name="left"/></button>
-                            <span aria-live="polite">{catalogPage.pageNumber + 1} / {pageCount}</span><button className="icon-button" aria-label="Następna strona" disabled={catalogLoading || scan.busy || !catalogPage.hasNext} onClick={() => changePage(1)}><Icon name="right"/></button></div></nav>}
+                {/* Keep every view mounted: switching tabs must not throw away a review draft or a selection. */}
+                <section hidden={view !== 'catalog'} id="catalog" aria-label="Biblioteka">
+                    {catalogFolder ? <LibraryView library={library.data} loading={library.isPending} active={view === 'catalog'}
+                        error={library.isError ? library.error.message : null} onRetry={() => void library.refetch()}
+                        onScan={() => {setError(null); void scan.start(catalogFolder)}} scanDisabled={locked}
+                        onReview={() => navigate('organization')} onDuplicates={() => navigate('duplicates')}/>
+                        : <div className="catalog-empty"><FolderOpen size={36}/><h3>Wybierz folder na początek.</h3>
+                            <p>Wybierz źródło i zeskanuj jego zawartość. Twoje obrazy zostają dokładnie tam, gdzie są.</p></div>}
+                </section>
+                <section hidden={view !== 'duplicates'} id="duplicates" aria-label="Duplikaty">
+                    <DuplicatesView library={library.data} onBack={() => navigate('catalog')}/>
                 </section>
                 <section hidden={view !== 'organization'} id="organization" aria-label="Analiza i przegląd propozycji">
-                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogPage?.totalFiles ?? 0} scanning={scan.busy} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
+                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} scanning={scan.busy} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
                         : <div className="catalog-empty"><FolderOpen size={32}/><h3>Najpierw wybierz folder.</h3><p>Skan tworzy katalog, na którym pracuje analiza.</p><button className="secondary-button" onClick={() => setView('catalog')}>Wróć do katalogu</button></div>)}
                 </section>
                 <m.footer initial={{opacity: 0}} animate={{opacity: 1}} className="app-footer"><span><ShieldCheck size={14}/>Oryginały bez zmian. Decyzje należą do Ciebie.</span><span>ScreenSort · wersja rozwojowa</span></m.footer>
