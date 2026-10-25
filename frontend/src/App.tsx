@@ -13,7 +13,7 @@ import type {CatalogPage} from './catalog/types.js'
 import {Icon} from './ui/Icon.js'
 import {OrganizationPanel} from './organization/OrganizationPanel.js'
 import {rejectionLabel} from './scanning/rejectionLabels.js'
-import {WorkspaceNavigation} from './workspace/WorkspaceNavigation.js'
+import {Sidebar} from './workspace/Sidebar.js'
 import {WorkspaceHeader} from './workspace/WorkspaceHeader.js'
 import {storedFolder} from './workspace/state.js'
 import type {WorkspaceView} from './workspace/state.js'
@@ -83,10 +83,11 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const rangeEnd = catalogPage && rangeStart > 0 ? rangeStart + catalogPage.files.length - 1 : 0
 
     return <div className="app-shell">
-        <WorkspaceNavigation total={catalogPage?.totalFiles ?? null} view={view} onView={navigate}/>
+        <Sidebar view={view} onView={navigate} total={catalogPage?.totalFiles ?? null} folder={catalogFolder}
+            folderLabel={catalogFolder ? folderName(catalogFolder) : ''} onAddFolder={desktop ? () => void handleChooseFolder() : undefined} locked={locked}/>
         <main className="workspace-main">
             <div className="workspace-content">
-                <WorkspaceHeader view={view}/>
+                <WorkspaceHeader view={view} folderLabel={catalogFolder ? folderName(catalogFolder) : ''}/>
                 <section className="folder-toolbar" aria-label="Wybór i skanowanie folderu">
                     <div className="folder-field"><span className="folder-symbol"><FolderOpen size={24}/></span><label htmlFor="folder-path">Folder źródłowy
                         <input id="folder-path" type="text" value={folderPath} onChange={event => setFolderPath(event.target.value)} readOnly={desktop} disabled={locked}
