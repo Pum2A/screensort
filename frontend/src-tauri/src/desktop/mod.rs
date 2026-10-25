@@ -136,7 +136,11 @@ pub fn launch(app: AppHandle) {
                         if name != "Python" {
                             status.backend_ready = false;
                         }
-                        status.error = Some(format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie."));
+                        status.error = Some(if name == "Python" {
+                            "Silnik analizy zakończył pracę. Uruchom go ponownie w panelu „Silnik analizy”; katalog działa dalej.".into()
+                        } else {
+                            format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie.")
+                        });
                         if name != "Python" {
                             break;
                         }
@@ -287,6 +291,37 @@ pub fn desktop_status(state: State<'_, Desktop>) -> Status {
     state.status.lock().expect("status lock").clone()
 }
 
+/// Automatic tries per click. After the last one the user can press "start" again; no app restart.
+const ANALYSIS_ATTEMPTS: u32 = 3;
+
+/// Growing pause before the given attempt: 2 s before the second, 6 s before the third.
+fn analysis_retry_delay(attempt: u32) -> std::time::Duration {
+    std::time::Duration::from_secs(match attempt {
+        0 | 1 => 0,
+        2 => 2,
+        _ => 6,
+    })
+}
+
+#[cfg(test)]
+mod analysis_retry_tests {
+    use super::{analysis_retry_delay, ANALYSIS_ATTEMPTS};
+    use std::time::Duration;
+
+    #[test]
+    fn analysis_start_retries_with_growing_pauses() {
+        let pauses: Vec<Duration> = (1..=ANALYSIS_ATTEMPTS).map(analysis_retry_delay).collect();
+        assert_eq!(
+            pauses,
+            [
+                Duration::ZERO,
+                Duration::from_secs(2),
+                Duration::from_secs(6)
+            ]
+        );
+    }
+}
+
 #[tauri::command]
 pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
     {
@@ -312,18 +347,34 @@ pub async fn start_analysis_runtime(app: AppHandle) -> Result<(), String> {
         status.phase = "Przygotowujemy AI na Twoje żądanie…".into();
     }
     tauri::async_runtime::spawn(async move {
-        let result = {
+        let mut result = Err("Katalog nie jest gotowy. Spróbuj ponownie.".to_string());
+        for attempt in 1..=ANALYSIS_ATTEMPTS {
             let desktop = app.state::<Desktop>();
-            let mut owner = desktop.owner.lock().await;
-            match owner.as_mut() {
-                Some(owner) => {
-                    owner
-                        .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
-                        .await
+            if attempt > 1 {
+                if let Ok(mut status) = desktop.status.lock() {
+                    status.phase = format!(
+                        "AI nie wystartowało. Ponawiamy (próba {attempt} z {ANALYSIS_ATTEMPTS})…"
+                    );
                 }
-                None => Err("Katalog nie jest gotowy. Spróbuj ponownie.".into()),
+                processes::pause(analysis_retry_delay(attempt)).await;
             }
-        };
+            if desktop.closing.load(Ordering::SeqCst) {
+                break;
+            }
+            let mut owner = desktop.owner.lock().await;
+            let Some(owner) = owner.as_mut() else { break };
+            // A missing AI package fails the same way every time: say so at once.
+            if let Err(message) = owner.analysis_package() {
+                result = Err(message);
+                break;
+            }
+            result = owner
+                .start_analysis(|| desktop.closing.load(Ordering::SeqCst))
+                .await;
+            if result.is_ok() {
+                break;
+            }
+        }
         let desktop = app.state::<Desktop>();
         let mut status = desktop.status.lock().expect("status lock");
         status.analysis_starting = false;
