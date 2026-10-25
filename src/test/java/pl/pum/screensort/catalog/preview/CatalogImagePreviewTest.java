@@ -39,7 +39,7 @@ class CatalogImagePreviewTest {
   void setUp() {
     sourceReader = mock(CatalogImageSourceReader.class);
     preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator(),
-        new PreviewStore(Optional.empty(), new ProductMetrics(new SimpleMeterRegistry())));
+        new PreviewStore(Optional.empty(), Optional.empty(), new ProductMetrics(new SimpleMeterRegistry())));
   }
 
   @ParameterizedTest
