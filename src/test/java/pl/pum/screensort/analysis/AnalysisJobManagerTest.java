@@ -26,7 +26,7 @@ class AnalysisJobManagerTest {
     var finish = new CountDownLatch(1);
     var result = AnalysisResultTest.result("a".repeat(64));
     when(source.read(1)).thenReturn(new AnalysisSourceReader.Input(1, new byte[]{1}, result.sourceSha256(), "image/png"));
-    when(python.analyze(any(), anyString(), eq(true), eq(false))).thenAnswer(call -> {
+    when(python.analyze(any(), anyString(), eq(true), eq(false), eq(false))).thenAnswer(call -> {
       started.countDown();
       if (!finish.await(5, TimeUnit.SECONDS)) throw new IllegalStateException("Test timeout");
       return result;
@@ -53,7 +53,7 @@ class AnalysisJobManagerTest {
     var python = mock(PythonAnalysisClient.class);
     var store = mock(AnalysisStore.class);
     when(source.read(1)).thenReturn(new AnalysisSourceReader.Input(1, new byte[]{1}, "a".repeat(64), "image/png"));
-    when(python.analyze(any(), anyString(), eq(true), eq(false)))
+    when(python.analyze(any(), anyString(), eq(true), eq(false), eq(false)))
         .thenReturn(AnalysisResultTest.result("b".repeat(64)));
     var manager = new AnalysisJobManager(new AnalysisProcessor(source, python, store,
         new ProductMetrics(new SimpleMeterRegistry())));
