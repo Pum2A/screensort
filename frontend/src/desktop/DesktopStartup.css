@@ -59,3 +59,5 @@
 .engine-install-progress progress { width: 100%; height: 8px; margin-top: 12px; accent-color: var(--accent); }
 .engine-install-progress small { display: block; margin-top: 9px; font-size: 11px; color: var(--muted); }
 @media (max-width: 520px) { .desktop-startup { padding: 16px; } .startup-card { padding: 25px; border-radius: 24px; } .startup-card h1 { font-size: 36px; } .startup-topline { flex-wrap: wrap; } .workspace-modal { width: calc(100% - 20px); max-height: calc(100dvh - 20px); } .workspace-modal-heading, .workspace-modal-body { padding: 20px; } .workspace-modal-heading h2 { font-size: 25px; } .engine-download { padding: 17px; } .engine-profile-heading .neutral-badge { display: none; } }
+/* Stays visible above the workspace while the app reconnects to its backend. */
+.connection-banner { position: sticky; top: 0; z-index: 50; margin: 0; border-radius: 0; border-width: 0 0 1px; }
