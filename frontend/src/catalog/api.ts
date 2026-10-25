@@ -14,6 +14,8 @@ export function fetchCatalog(folderPath: string, pageNumber: number, pageSize: n
 
 export function imageUrl(file: CatalogFile, size: 'thumbnail' | 'preview'): string {
     // ID wskazuje rekord. Nie przekazujemy endpointowi ścieżki do otwarcia.
-    const version = new URLSearchParams({v: `${file.lastSeenAt}:${file.lastModifiedAt}`})
+    // Wersja to treść pliku, nie data skanu: ponowny skan nie zmienia adresu, więc cache trafia.
+    // Ten sam adres buduje przegląd organizacji (reviewImageUrl), więc oba widoki dzielą wpis.
+    const version = new URLSearchParams({v: file.sha256})
     return `/api/catalog/files/${file.id}/${size}?${version}`
 }
