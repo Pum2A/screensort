@@ -61,7 +61,7 @@ Legenda: [x] zrobione w tej sesji, [ ] otwarte, [?] wymaga decyzji właściciela
 ### Niskie / porządki
 
 27. [ ] Notatki Codexa w kodzie (`ScanWorkflow.java:40-71`, `KnownFilesReader.java:17-78`) — usunąć (TODO.md pkt 2).
-28. [ ] Martwy kod: `scanning/prototype/*` + `scan.html` + Thymeleaf, `ScanWorkflow.scanAndSave`, `AllowedRootEntity.recursiveScan`, [x] ~~`frontend/src/analysis/demo/*`~~ (usunięte razem z testem `analysisDemo.test.ts`), font VT323 i `--font-retro`, `OcrRecognizer.recognize`, parametr `languages`.
+28. [ ] Martwy kod: `scanning/prototype/*` + `scan.html` + Thymeleaf, `ScanWorkflow.scanAndSave`, `AllowedRootEntity.recursiveScan`, [x] ~~`frontend/src/analysis/demo/*`~~ (usunięte razem z testem `analysisDemo.test.ts`), [x] ~~font VT323 i `--font-retro`~~, `OcrRecognizer.recognize`, parametr `languages`.
 29. [ ] Duplikaty: reguły ścieżek i limity obrazów w 3 miejscach (`ManagedImagePath`/`ImageLimits`), focus-trap w 2 komponentach.
 30. [ ] Współbieżność backendu: brak wykluczania skan↔batch/eksport, `synchronized` trzymany podczas HTTP, `connect` zamyka `HttpClient` w użyciu, `CREATE_NEW` pliku stanu po awarii.
 31. [ ] Drobne błędy: `getFieldError()` null (NPE), `ValueError`→422 `INVALID_IMAGE` dla błędów opcji, `PythonAnalysisClient` mapuje każdy non-2xx na 503, `lang="en"` w `index.html`, blob zawsze `image/png`.

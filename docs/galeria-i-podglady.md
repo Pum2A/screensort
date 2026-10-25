@@ -31,10 +31,10 @@ fokus miniaturze bez dodatkowego przewijania. Nagłówek z X nie przewija się
 razem z danymi. Każdą gałąź można osobno zwinąć. To nadal pojedynczy podgląd,
 nie wybór plików do kopii.
 
-Wygląd jest inspirowany eksploratorem retro PC: kremowe tło, niebieski akcent,
-cienkie linie i lokalny font VT323. Font wraz z licencją jest w repozytorium,
-nie jest pobierany z CDN podczas działania. Licencja `frontend/public/VT323-OFL.txt`
-trafia także do `dist`. Źródło: [oficjalne Google Fonts](https://github.com/google/fonts/tree/main/ofl/vt323).
+Kolory, cienie i zaokrąglenia pochodzą z tokenów w `frontend/src/index.css`
+(blok `@theme`): białe powierzchnie na jasnoszarym tle, jeden niebieski akcent,
+czerwony, zielony i żółty tylko dla stanów. Aplikacja używa systemowego fontu
+Segoe UI, więc nic nie jest pobierane z sieci.
 Krótka animacja pojawienia się nie zmienia geometrii; preferencja ograniczenia
 ruchu wyłącza animacje. API, skaner, baza i Rust nie zmieniły się w tym etapie.
 

@@ -36,9 +36,21 @@ public class CatalogReader {
     this.fileRecordRepository = fileRecordRepository;
   }
 
+  /** Longest search text we pass to the database; longer input is cut, never rejected. */
+  public static final int MAX_SEARCH_LENGTH = 100;
+
   @Transactional(readOnly = true)
   public CatalogPageDto readPage(String folderPath, int pageNumber, int pageSize)
       throws IOException {
+    return readPage(folderPath, pageNumber, pageSize, "");
+  }
+
+  /** {@code search}: part of the file name, any case, across the whole folder; blank lists all. */
+  @Transactional(readOnly = true)
+  public CatalogPageDto readPage(String folderPath, int pageNumber, int pageSize, String search)
+      throws IOException {
+    String name = search == null ? "" : search.strip();
+    if (name.length() > MAX_SEARCH_LENGTH) name = name.substring(0, MAX_SEARCH_LENGTH);
 
     // Określamy, którą stronę i ile rekordów chcemy pobrać.
     PageRequest pageRequest = PageRequest.of(pageNumber, pageSize);
@@ -56,8 +68,10 @@ public class CatalogReader {
     }
 
     // Pobieramy z bazy tylko wybraną stronę rekordów.
-    Page<FileRecordEntity> filePage =
-        fileRecordRepository.findAllByAllowedRootOrderByRelativePathAsc(root.get(), pageRequest);
+    Page<FileRecordEntity> filePage = name.isEmpty()
+        ? fileRecordRepository.findAllByAllowedRootOrderByRelativePathAsc(root.get(), pageRequest)
+        : fileRecordRepository.findAllByAllowedRootAndOriginalNameContainingIgnoreCaseOrderByRelativePathAsc(
+            root.get(), name, pageRequest);
 
     // Zamieniamy encje tej strony na opisy przeznaczone dla UI.
     List<CatalogFileDto> files = new ArrayList<>();

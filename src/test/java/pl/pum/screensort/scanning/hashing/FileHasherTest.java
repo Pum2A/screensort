@@ -17,15 +17,17 @@ class FileHasherTest {
   @TempDir Path temporaryDirectory;
 
   @Test
-  void hashesExistingFile() {
+  void hashesExistingFile() throws Exception {
     FileHasher hasher = new FileHasher();
+    // Known SHA-256 test vector for "abc"; no bundled sample image needed.
+    Path file = Files.writeString(temporaryDirectory.resolve("abc.png"), "abc");
 
-    Optional<String> result = hasher.hash(Path.of("demo-images/xzzz1.png"));
+    Optional<String> result = hasher.hash(file);
 
     assertTrue(result.isPresent());
     assertEquals(64, result.get().length());
     assertEquals(
-        "d095274923ae2ae713da857aead939d4878c362d9bad9d39a6258c5c9607bd8d",
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
         result.get());
   }
 

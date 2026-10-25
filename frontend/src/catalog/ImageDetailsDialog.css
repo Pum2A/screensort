@@ -1,9 +1,9 @@
-.image-details-dialog { width: min(1100px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--border); border-radius: 20px; background: var(--background); color: var(--text); box-shadow: 0 16px 64px #20262330; }
+.image-details-dialog { width: min(1100px, calc(100% - 32px)); max-width: none; max-height: calc(100dvh - 32px); margin: auto; padding: 0; overflow: hidden; border: 1px solid var(--color-line); border-radius: 20px; background: var(--color-canvas); color: var(--color-ink); box-shadow: var(--shadow-overlay); }
 .image-details-dialog[open] { display: flex; flex-direction: column; }
-.image-details-dialog::backdrop { background: #17203366; backdrop-filter: blur(3px); }
-.preview-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
+.image-details-dialog::backdrop { background: var(--color-scrim); backdrop-filter: blur(3px); }
+.preview-dialog-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; flex-shrink: 0; border-bottom: 1px solid var(--color-line); }
 .preview-dialog-title { min-width: 0; }
-.preview-dialog-title > span { color: var(--muted); font-size: 11px; }
+.preview-dialog-title > span { color: var(--color-ink-muted); font-size: 11px; }
 .preview-dialog-title h2 { margin: 5px 0 0; font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preview-dialog-heading .icon-button { flex-shrink: 0; background: transparent; }
 .preview-dialog-body { overflow: auto; min-height: 0; padding: 4px 20px 16px; overscroll-behavior: contain; scrollbar-gutter: stable; }
