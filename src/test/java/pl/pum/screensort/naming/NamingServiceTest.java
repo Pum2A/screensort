@@ -89,6 +89,23 @@ class NamingServiceTest {
   }
 
   @Test
+  void combinesTextOnTheImageWithTheCaptionAndFlagsOcrOnlyGuesses() {
+    var ocr = new AnalysisResult.OcrStep(AnalysisResult.Status.COMPLETED,
+        new AnalysisResult.Ocr("ROBLOX\nLobby", "RapidOCR", "test", 1), null);
+    var both = new AnalysisResult(HASH, ocr, analysis(HASH, true).result().visual());
+    when(analyses.latest(1)).thenReturn(Optional.of(new SavedAnalysis(8, 1, Instant.now(), true, both)));
+    assertThat(service.read(1).proposedName()).isEqualTo("roblox_lobby_mug_desk.png");
+    assertThat(service.read(1).proposalUncertain()).isFalse();
+
+    var onlyText = new AnalysisResult(HASH, new AnalysisResult.OcrStep(AnalysisResult.Status.COMPLETED,
+        new AnalysisResult.Ocr("ROBLOX", "RapidOCR", "test", 1), null),
+        new AnalysisResult.VisualStep(AnalysisResult.Status.SKIPPED, null, null));
+    when(analyses.latest(1)).thenReturn(Optional.of(new SavedAnalysis(8, 1, Instant.now(), true, onlyText)));
+    assertThat(service.read(1).proposedName()).isEqualTo("roblox.png");
+    assertThat(service.read(1).proposalUncertain()).isTrue();
+  }
+
+  @Test
   void rejectsInvalidNamesMissingAnalysisAndInvalidRequests() {
     assertFailure(() -> service.approve(1, 8, HASH, -1, "../mug.png"), "INVALID_NAME");
     assertFailure(() -> service.approve(1, 8, HASH, -1, null), "INVALID_NAME");

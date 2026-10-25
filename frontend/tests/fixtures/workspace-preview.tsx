@@ -25,7 +25,7 @@ const files: CatalogFile[] = Array.from({length: 94}, (_, index) => {
         sizeBytes: 130000 + id * 12617, lastModifiedAt: date, sha256: id.toString(16).padStart(64, '0'), firstDiscoveredAt: date, lastSeenAt: date}
 })
 let rows: BatchItem[] = files.map(file => ({fileId: file.id, originalName: file.originalName, status: scenario === 'paused' && file.id > 7 ? 'PENDING' : file.id % 31 === 0 ? 'FAILED' : 'COMPLETED',
-    category: categories[(file.id - 1) % 6], proposedName: proposals[(file.id - 1) % 6] + '.' + file.extension,
+    category: categories[(file.id - 1) % 6], proposedName: proposals[(file.id - 1) % 6] + '.' + file.extension, proposalUncertain: (file.id - 1) % 6 === 4,
     analysisId: 100 + file.id, sourceSha256: file.sha256, message: file.id % 31 === 0 ? 'Nie udało się odczytać obrazu. Oryginał pozostaje bez zmian.' : null,
     analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}))
 let job: Batch = {id: batchId, folderPath: 'synthetic-fixture', status: scenario === 'paused' ? 'PAUSED' : 'COMPLETED',
@@ -89,7 +89,7 @@ window.fetch = async (input, options) => {
         const row = rows[Number(naming[1]) - 1]
         if (method === 'PUT') {const body = JSON.parse(String(options?.body)); row.approvedName = body.name; row.namingRevision++}
         return Response.json({fileId: row.fileId, originalName: row.originalName, analysisId: row.analysisId, sourceSha256: row.sourceSha256,
-            proposedName: row.proposedName, analysisMatchesCatalog: true, approvedName: row.approvedName,
+            proposedName: row.proposedName, proposalUncertain: row.proposalUncertain, analysisMatchesCatalog: true, approvedName: row.approvedName,
             approvedAt: row.approvedName ? date : null, approvalMatchesCatalog: row.approvedName !== null, revision: row.namingRevision})
     }
     const review = url.pathname.match(/\/items\/(\d+)\/review$/)

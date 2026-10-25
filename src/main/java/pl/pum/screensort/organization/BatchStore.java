@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
+import pl.pum.screensort.naming.NameSuggestion;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
 import pl.pum.screensort.organization.review.ReviewStore;
 
@@ -95,13 +96,17 @@ public class BatchStore {
       failed(id, item.fileId(), "Modele nie zwróciły poprawnego wyniku. Spróbuj ponownie po sprawdzeniu pakietu AI.", false);
       return;
     }
+    var ocr = saved.result().ocr().result();
     var visual = saved.result().visual().result();
-    String proposal = visual == null ? null : names.suggest(item.originalName(), visual.description()).orElse(null);
+    var proposal = names.suggest(item.originalName(), ocr == null ? null : ocr.text(),
+        visual == null ? null : visual.description());
     boolean partial = saved.result().ocr().error() != null || saved.result().visual().error() != null;
     jdbc.update("""
-        update analysis_batch_item set status = 'COMPLETED', analysis_id = ?, category = ?, proposed_name = ?, message = ?
+        update analysis_batch_item set status = 'COMPLETED', analysis_id = ?, category = ?, proposed_name = ?,
+          proposal_uncertain = ?, message = ?
         where batch_id = ? and file_id = ?
-        """, saved.id(), categories.suggest(saved.result()), proposal,
+        """, saved.id(), categories.suggest(saved.result()), proposal.map(NameSuggestion::name).orElse(null),
+        proposal.map(NameSuggestion::uncertain).orElse(false),
         partial ? "Część analizy nie powiodła się. Sprawdź szczegóły obrazu." : null, id, item.fileId());
   }
 

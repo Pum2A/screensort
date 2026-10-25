@@ -7,7 +7,7 @@ import type {NamingReview} from '../src/naming/types.js'
 const originalFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = originalFetch })
 const review: NamingReview = {fileId: 12, analysisId: 5, sourceSha256: 'a'.repeat(64),
-    originalName: 'IMG_0026.png', proposedName: 'mug_desk.png', analysisMatchesCatalog: true,
+    originalName: 'IMG_0026.png', proposedName: 'mug_desk.png', proposalUncertain: false, analysisMatchesCatalog: true,
     approvedName: null, approvedAt: null, approvalMatchesCatalog: false, revision: -1}
 
 test('reads the saved analysis proposal by file ID, without starting analysis', async () => {

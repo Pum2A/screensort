@@ -134,7 +134,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, onEditingCha
                 {paused && !ready && <p className="batch-resume-hint">Zachowano {finished} z {job.total} wyników. Po uruchomieniu silnika kliknij „Wznów analizę”.</p>}
             </div>
             <div className="review-section-heading"><div><h3>Przegląd propozycji</h3></div>
-                <div className="review-section-actions"><details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Nazwy pochodzą obecnie z opisu wizualnego, a kategorie z prostych reguł OCR i opisu. To nie jest jeszcze wspólna interpretacja. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details>
+                <div className="review-section-actions"><details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Nazwy łączą wyraźne słowa z tekstu na obrazie (np. tytuł gry) z opisem wizualnym, a kategorie powstają z prostych reguł OCR i opisu. Propozycje z małej ilości informacji są oznaczone jako niepewne. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details>
                     {job.status === 'COMPLETED' && <button type="button" className="secondary-button" disabled={editingReview || working || exporting}
                         aria-expanded={planOpen} onClick={() => setPlanOpen(value => !value)}><FolderTree size={16}/>{planOpen ? 'Ukryj plan' : 'Zapisz i uporządkuj'}</button>}</div></div>
             {planOpen && <OrganizationPlanPreview batchId={job.id} revision={revision} disabled={editingReview || working || scanning || !!running}
