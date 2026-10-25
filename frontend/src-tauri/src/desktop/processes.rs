@@ -66,6 +66,41 @@ pub struct Owner {
     python_token: String,
     runtime: PathBuf,
     session: PathBuf,
+    java: Option<JavaLaunch>,
+    java_restarts: u32,
+}
+
+/// Everything needed to start the backend again after a crash, without a new database session.
+struct JavaLaunch {
+    data: PathBuf,
+    pg_port: u16,
+    password: String,
+    token: String,
+}
+
+/// How often a crashed backend is started again in one app run before the user is asked to restart.
+pub const MAX_JAVA_RESTARTS: u32 = 3;
+const CLOSING: &str = "Aplikacja kończy pracę.";
+
+fn java_command(runtime: &Path, launch: &JavaLaunch, state: &Path) -> Command {
+    let mut java = Command::new(runtime.join("java/bin/java.exe"));
+    java.args(["-Xmx512m", "-jar"])
+        .arg(runtime.join("backend.jar"))
+        .arg("--spring.profiles.active=desktop")
+        .env(
+            "SCREENSORT_DB_URL",
+            format!("jdbc:postgresql://127.0.0.1:{}/screensort", launch.pg_port),
+        )
+        .env("SCREENSORT_DB_PASSWORD", &launch.password)
+        .env("SCREENSORT_DESKTOP_TOKEN", &launch.token)
+        .env("SCREENSORT_DESKTOP_STATE_FILE", state)
+        .env_remove("SCREENSORT_ANALYSIS_TOKEN")
+        .env_remove("SCREENSORT_ANALYSIS_URL")
+        .env_remove("JAVA_TOOL_OPTIONS")
+        .env_remove("JDK_JAVA_OPTIONS")
+        .env_remove("_JAVA_OPTIONS")
+        .current_dir(&launch.data);
+    java
 }
 
 impl Owner {
@@ -78,7 +113,7 @@ impl Owner {
     /// Optional AI failure must never take down the catalog or its database.
     pub async fn start_analysis<F>(&mut self, cancelled: F) -> Result<(), String>
     where
-        F: FnMut() -> bool,
+        F: FnMut() -> bool + Send,
     {
         // Measured like the catalog start, so the log shows how long the AI models take to load.
         // Every retry is its own measured start.
@@ -96,7 +131,7 @@ impl Owner {
         timer: &mut StartupTimer,
     ) -> Result<(), String>
     where
-        F: FnMut() -> bool,
+        F: FnMut() -> bool + Send,
     {
         let ai_runtime = self.analysis_package()?;
         // Each attempt starts from a clean slate, so retries never pile up Python processes.
@@ -123,7 +158,7 @@ impl Owner {
                     .unwrap_or(&self.session),
             );
         let pid = self.spawn("Python", python, &self.session.join("python.log"))?;
-        self.python_port = published(&py_state, pid, self).await?;
+        self.python_port = published(&py_state, pid, self, &mut cancelled).await?;
         timer.mark("spawn");
         let client = http_client()?;
         let deadline = Instant::now() + Duration::from_secs(180);
@@ -186,6 +221,78 @@ impl Owner {
         let id = child.id();
         self.children.push((name, child));
         Ok(id)
+    }
+
+    async fn start_backend(
+        &mut self,
+        state: &Path,
+        cancelled: &mut (dyn FnMut() -> bool + Send),
+    ) -> Result<Backend, String> {
+        let launch = self.java.as_ref().ok_or("Brak konfiguracji backendu.")?;
+        let java = java_command(&self.runtime, launch, state);
+        let token = launch.token.clone();
+        let pid = self.spawn("Java", java, &self.session.join("java.log"))?;
+        let port = published(state, pid, self, cancelled).await?;
+        let backend = Backend {
+            port,
+            token,
+            client: http_client()?,
+        };
+        if backend
+            .request("GET", "/_internal/ready", None, 4096)
+            .await?
+            .0
+            != 200
+        {
+            return Err("Nie potwierdzono tożsamości backendu.".into());
+        }
+        self.backend = Some(backend.clone());
+        Ok(backend)
+    }
+
+    /// Starts the backend again after it stopped, on the same database. Returns the new backend
+    /// and whether the running AI engine could be connected to it again.
+    pub async fn restart_java(
+        &mut self,
+        cancelled: &mut (dyn FnMut() -> bool + Send),
+    ) -> Result<(Backend, bool), String> {
+        if self.java_restarts >= MAX_JAVA_RESTARTS {
+            return Err("Backend zatrzymał się kilka razy. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie.".into());
+        }
+        self.java_restarts += 1;
+        self.backend = None;
+        self.children.retain_mut(|(name, child)| {
+            if *name != "Java" {
+                return true;
+            }
+            if child.try_wait().ok().flatten().is_none() {
+                let _ = child.kill();
+            }
+            let _ = child.wait();
+            false
+        });
+        let state = self
+            .session
+            .join(format!("java-restart-{}.json", self.java_restarts));
+        let backend = self.start_backend(&state, cancelled).await?;
+        let mut analysis = false;
+        if self.python_port != 0 {
+            let connection = json!({
+                "url": format!("http://127.0.0.1:{}", self.python_port), "token": self.python_token
+            });
+            analysis = matches!(
+                backend
+                    .request(
+                        "POST",
+                        "/_internal/analysis-connection",
+                        Some(&connection),
+                        4096
+                    )
+                    .await,
+                Ok((204, _))
+            );
+        }
+        Ok((backend, analysis))
     }
 
     /// Stops and forgets the Python child, if any. The catalog keeps running.
@@ -326,9 +433,17 @@ fn available_port() -> Result<u16, String> {
         .map_err(|_| "Brak wolnego portu lokalnego.".into())
 }
 
-async fn published(path: &Path, pid: u32, owner: &mut Owner) -> Result<u16, String> {
+async fn published(
+    path: &Path,
+    pid: u32,
+    owner: &mut Owner,
+    cancelled: &mut (dyn FnMut() -> bool + Send),
+) -> Result<u16, String> {
     let deadline = Instant::now() + Duration::from_secs(120);
     while Instant::now() < deadline {
+        if cancelled() {
+            return Err(CLOSING.into());
+        }
         if let Some(name) = owner.stopped_child() {
             return Err(format!(
                 "Proces {name} przerwał start. Sprawdź lokalne logi aplikacji."
@@ -354,14 +469,43 @@ async fn published(path: &Path, pid: u32, owner: &mut Owner) -> Result<u16, Stri
 }
 
 /// Starts PostgreSQL and the backend, and records how long each stage took (C1: measure first).
-pub async fn start<F>(runtime: &Path, data: &Path, update: F) -> Result<Owner, String>
+/// A failed or cancelled start stops what it already started, PostgreSQL included, cleanly.
+pub async fn start<F, C>(
+    runtime: &Path,
+    data: &Path,
+    update: F,
+    mut cancelled: C,
+) -> Result<Owner, String>
 where
     F: FnMut(Status, Option<Backend>),
+    C: FnMut() -> bool + Send,
 {
     let mut timer = StartupTimer::start("app");
-    let result = start_stages(runtime, data, update, &mut timer).await;
-    timer.save(data, if result.is_ok() { "ok" } else { "failed" });
-    result
+    let mut started = None;
+    let result = start_stages(
+        runtime,
+        data,
+        update,
+        &mut timer,
+        &mut started,
+        &mut cancelled,
+    )
+    .await;
+    let outcome = match &result {
+        Ok(()) => "ok",
+        Err(_) if cancelled() => "closed",
+        Err(_) => "failed",
+    };
+    timer.save(data, outcome);
+    match (result, started) {
+        (Ok(()), Some(owner)) => Ok(owner),
+        (Ok(()), None) => Err("Nie udało się uruchomić katalogu.".into()),
+        (Err(message), Some(mut owner)) => {
+            owner.stop().await;
+            Err(message)
+        }
+        (Err(message), None) => Err(message),
+    }
 }
 
 async fn start_stages<F>(
@@ -369,7 +513,9 @@ async fn start_stages<F>(
     data: &Path,
     mut update: F,
     timer: &mut StartupTimer,
-) -> Result<Owner, String>
+    started: &mut Option<Owner>,
+    cancelled: &mut (dyn FnMut() -> bool + Send),
+) -> Result<(), String>
 where
     F: FnMut(Status, Option<Backend>),
 {
@@ -415,7 +561,7 @@ where
     };
     let python_token = random_secret()?;
     let desktop_token = random_secret()?;
-    let mut owner = Owner {
+    let owner = started.insert(Owner {
         children: Vec::new(),
         job: Job::new()?,
         pg_ctl: runtime.join("postgres/bin/pg_ctl.exe"),
@@ -425,7 +571,9 @@ where
         python_token: python_token.clone(),
         runtime: runtime.to_path_buf(),
         session: session.clone(),
-    };
+        java: None,
+        java_restarts: 0,
+    });
     update(
         Status {
             phase: "Przygotowujemy prywatną bazę PostgreSQL…".into(),
@@ -434,6 +582,9 @@ where
         None,
     );
     timer.mark("prepare");
+    if cancelled() {
+        return Err(CLOSING.into());
+    }
     if !db.join("PG_VERSION").exists() {
         if db.exists() {
             return Err(
@@ -477,6 +628,9 @@ where
     owner.spawn("PostgreSQL", pg, &session.join("postgres.log"))?;
     let mut pg_ready = false;
     for _ in 0..100 {
+        if cancelled() {
+            return Err(CLOSING.into());
+        }
         if owner.stopped_child().is_some() {
             return Err("Lokalna baza nie mogła się uruchomić. Sprawdź logi sesji.".into());
         }
@@ -534,7 +688,9 @@ where
         )?;
     }
     timer.mark("database");
-    let java_state = session.join("java.json");
+    if cancelled() {
+        return Err(CLOSING.into());
+    }
     update(
         Status {
             phase: "Uruchamiamy backend i sprawdzamy migracje…".into(),
@@ -542,42 +698,17 @@ where
         },
         None,
     );
-    let mut java = Command::new(runtime.join("java/bin/java.exe"));
-    java.args(["-Xmx512m", "-jar"])
-        .arg(runtime.join("backend.jar"))
-        .arg("--spring.profiles.active=desktop")
-        .env(
-            "SCREENSORT_DB_URL",
-            format!("jdbc:postgresql://127.0.0.1:{pg_port}/screensort"),
-        )
-        .env("SCREENSORT_DB_PASSWORD", &password)
-        .env("SCREENSORT_DESKTOP_TOKEN", &desktop_token)
-        .env("SCREENSORT_DESKTOP_STATE_FILE", &java_state)
-        .env_remove("SCREENSORT_ANALYSIS_TOKEN")
-        .env_remove("SCREENSORT_ANALYSIS_URL")
-        .env_remove("JAVA_TOOL_OPTIONS")
-        .env_remove("JDK_JAVA_OPTIONS")
-        .env_remove("_JAVA_OPTIONS")
-        .current_dir(data);
-    let java_pid = owner.spawn("Java", java, &session.join("java.log"))?;
-    let port = published(&java_state, java_pid, &mut owner).await?;
-    // JVM start, Spring context and Flyway migrations; java.log in the session has the split.
-    timer.mark("backend");
-    let backend = Backend {
-        port,
+    owner.java = Some(JavaLaunch {
+        data: data.to_path_buf(),
+        pg_port,
+        password,
         token: desktop_token,
-        client: http_client()?,
-    };
-    if backend
-        .request("GET", "/_internal/ready", None, 4096)
-        .await?
-        .0
-        != 200
-    {
-        return Err("Nie potwierdzono tożsamości backendu.".into());
-    }
-    timer.mark("ready");
-    owner.backend = Some(backend.clone());
+    });
+    // JVM start, Spring context, Flyway migrations and the identity check; java.log has the split.
+    let backend = owner
+        .start_backend(&session.join("java.json"), cancelled)
+        .await?;
+    timer.mark("backend");
     update(
         Status {
             phase: "Katalog gotowy. AI uruchomisz, gdy będzie potrzebne.".into(),
@@ -586,9 +717,9 @@ where
             analysis_starting: false,
             error: None,
         },
-        Some(backend.clone()),
+        Some(backend),
     );
-    Ok(owner)
+    Ok(())
 }
 
 fn hide(command: &mut Command) {
