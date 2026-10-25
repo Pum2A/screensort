@@ -15,7 +15,7 @@ public class ProductMetrics {
     FOLDER_VALIDATION, KNOWN_FILES_READ, SCAN, CATALOG_SAVE,
     ANALYSIS_SOURCE_READ, ANALYSIS_REQUEST, ANALYSIS_SAVE
   }
-  public enum CacheLayer { MEMORY, REDIS }
+  public enum CacheLayer { MEMORY, DISK, REDIS }
   public enum CacheOutcome { HIT, MISS, ERROR, BYPASS }
 
   @FunctionalInterface

@@ -29,7 +29,6 @@ public class PythonAnalysisClient {
   private volatile Endpoint endpoint;
   private final JsonMapper json;
   private HttpClient http;
-  private HttpClient extendedHttp;
   private record Endpoint(RestClient client, RestClient extendedClient, String token) {}
 
   public PythonAnalysisClient(RestClient.Builder builder, JsonMapper json,
@@ -50,27 +49,20 @@ public class PythonAnalysisClient {
         || !token.matches("[A-Za-z0-9_-]{43,128}")) {
       throw new IllegalArgumentException("Analysis service must use IPv4 loopback");
     }
-    var client = newHttpClient();
+    var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
+        .followRedirects(HttpClient.Redirect.NEVER).build();
     var factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(135));
-    // A second try after a timeout asks Python for a longer limit, so the read waits longer too.
-    var extendedClient = newHttpClient();
-    var extendedFactory = new JdkClientHttpRequestFactory(extendedClient);
+    // The read timeout lives in the factory, so the longer second try shares the same connection.
+    // It asks Python for a longer limit, so the read waits longer too.
+    var extendedFactory = new JdkClientHttpRequestFactory(client);
     extendedFactory.setReadTimeout(Duration.ofSeconds(EXTENDED_TIMEOUT_SECONDS + 15));
     var previous = http;
-    var previousExtended = extendedHttp;
     http = client;
-    extendedHttp = extendedClient;
     endpoint = new Endpoint(builder.clone().baseUrl(url).requestFactory(factory).build(),
         builder.clone().baseUrl(url).requestFactory(extendedFactory).build(), token);
     // Każdy HttpClient trzyma wątek selektora i pulę wątków. Poprzedni musi zostać zamknięty.
     if (previous != null) previous.close();
-    if (previousExtended != null) previousExtended.close();
-  }
-
-  private static HttpClient newHttpClient() {
-    return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
-        .followRedirects(HttpClient.Redirect.NEVER).build();
   }
 
   /** Tylko do testów: aktualnie używany klient HTTP. */
@@ -81,10 +73,6 @@ public class PythonAnalysisClient {
     if (http != null) {
       http.close();
       http = null;
-    }
-    if (extendedHttp != null) {
-      extendedHttp.close();
-      extendedHttp = null;
     }
   }
 

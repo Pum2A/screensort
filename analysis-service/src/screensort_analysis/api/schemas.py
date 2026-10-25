@@ -22,6 +22,8 @@ class AnalysisOptions(BaseModel):
     languages: list[Literal["pl", "en"]] = Field(
         default_factory=lambda: ["pl", "en"], min_length=1, max_length=2
     )
+    # The backend asks for more time once, for an image that already timed out.
+    timeout_seconds: int = Field(default=120, ge=30, le=240, alias="timeoutSeconds")
 
 
 class ReadyResponse(BaseModel):
