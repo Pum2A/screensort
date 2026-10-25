@@ -233,7 +233,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
         .map_err(|_| "Package check worker stopped")??;
         package_install_ms = Some(started.elapsed().as_millis() as u64);
     }
-    let mut owner = processes::start(runtime, data, |_, _| {}).await?;
+    let mut owner = processes::start(runtime, data, |_, _| {}, || false).await?;
     let include_analysis = !std::env::args().any(|arg| arg == "--catalog-only");
     if include_analysis {
         owner.start_analysis(|| false).await?;
@@ -247,7 +247,7 @@ async fn smoke(runtime: &Path, data: &Path) -> Result<Value, String> {
     owner.stop().await;
     let (id, reviewed_batch) = result?;
     drop(owner);
-    let mut restarted = processes::start(runtime, data, |_, _| {}).await?;
+    let mut restarted = processes::start(runtime, data, |_, _| {}, || false).await?;
     let result = if include_analysis {
         async {
             let backend = restarted.backend.as_ref().ok_or("Restart failed")?;
