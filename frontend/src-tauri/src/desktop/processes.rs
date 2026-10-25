@@ -1,6 +1,7 @@
 //! Own only our private PostgreSQL, Java and Python children; never use PATH.
 
 use super::paths::process_path;
+use super::timings::StartupTimer;
 use super::Status;
 use serde_json::{json, Value};
 use std::{
@@ -70,7 +71,7 @@ pub struct Owner {
 
 impl Owner {
     /// Optional AI failure must never take down the catalog or its database.
-    pub async fn start_analysis<F>(&mut self, mut cancelled: F) -> Result<(), String>
+    pub async fn start_analysis<F>(&mut self, cancelled: F) -> Result<(), String>
     where
         F: FnMut() -> bool,
     {
@@ -80,6 +81,23 @@ impl Owner {
                     .into(),
             );
         }
+        // Measured like the catalog start, so the log shows how long the AI models take to load.
+        let mut timer = StartupTimer::start("ai");
+        let result = self.start_analysis_stages(cancelled, &mut timer).await;
+        if let Some(data) = self.db.parent() {
+            timer.save(data, if result.is_ok() { "ok" } else { "failed" });
+        }
+        result
+    }
+
+    async fn start_analysis_stages<F>(
+        &mut self,
+        mut cancelled: F,
+        timer: &mut StartupTimer,
+    ) -> Result<(), String>
+    where
+        F: FnMut() -> bool,
+    {
         let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
         let ai_runtime = super::packages::runtime(data, &self.runtime)?;
         // Failed starts are not a retry queue: do not accumulate child processes.
@@ -106,6 +124,7 @@ impl Owner {
             );
         let pid = self.spawn("Python", python, &self.session.join("python.log"))?;
         self.python_port = published(&py_state, pid, self).await?;
+        timer.mark("spawn");
         let client = http_client()?;
         let deadline = Instant::now() + Duration::from_secs(180);
         while Instant::now() < deadline && !cancelled() {
@@ -121,10 +140,13 @@ impl Owner {
                 .await
             {
                 if response.status().is_success() {
+                    // Model loading and the warm-up analysis end when /ready answers.
+                    timer.mark("models");
                     let backend = self.backend.as_ref().ok_or("Katalog jest niedostępny.")?;
                     let (status, _) = backend.request("POST", "/_internal/analysis-connection", Some(&json!({
                         "url": format!("http://127.0.0.1:{}", self.python_port), "token": self.python_token
                     })), 4096).await?;
+                    timer.mark("connect");
                     return if status == 204 {
                         Ok(())
                     } else {
@@ -316,7 +338,23 @@ async fn published(path: &Path, pid: u32, owner: &mut Owner) -> Result<u16, Stri
     Err("Przekroczono czas uruchamiania lokalnego backendu.".into())
 }
 
-pub async fn start<F>(runtime: &Path, data: &Path, mut update: F) -> Result<Owner, String>
+/// Starts PostgreSQL and the backend, and records how long each stage took (C1: measure first).
+pub async fn start<F>(runtime: &Path, data: &Path, update: F) -> Result<Owner, String>
+where
+    F: FnMut(Status, Option<Backend>),
+{
+    let mut timer = StartupTimer::start("app");
+    let result = start_stages(runtime, data, update, &mut timer).await;
+    timer.save(data, if result.is_ok() { "ok" } else { "failed" });
+    result
+}
+
+async fn start_stages<F>(
+    runtime: &Path,
+    data: &Path,
+    mut update: F,
+    timer: &mut StartupTimer,
+) -> Result<Owner, String>
 where
     F: FnMut(Status, Option<Backend>),
 {
@@ -381,6 +419,7 @@ where
         },
         None,
     );
+    timer.mark("prepare");
     if !db.join("PG_VERSION").exists() {
         if db.exists() {
             return Err(
@@ -406,6 +445,7 @@ where
             &session.join("database-tools.log"),
         )?;
         let _ = fs::write(session.join("initdb.log"), result);
+        timer.mark("initdb");
     } else if fs::read_to_string(db.join("PG_VERSION"))
         .map_err(|_| "Nie można odczytać wersji bazy.")?
         .trim()
@@ -445,6 +485,7 @@ where
     if !pg_ready {
         return Err("Baza nie odpowiedziała w wymaganym czasie.".into());
     }
+    timer.mark("postgres");
     let mut check = Command::new(runtime.join("postgres/bin/psql.exe"));
     check
         .args(["-h", "127.0.0.1", "-p"])
@@ -478,6 +519,7 @@ where
             &session.join("database-tools.log"),
         )?;
     }
+    timer.mark("database");
     let java_state = session.join("java.json");
     update(
         Status {
@@ -505,6 +547,8 @@ where
         .current_dir(data);
     let java_pid = owner.spawn("Java", java, &session.join("java.log"))?;
     let port = published(&java_state, java_pid, &mut owner).await?;
+    // JVM start, Spring context and Flyway migrations; java.log in the session has the split.
+    timer.mark("backend");
     let backend = Backend {
         port,
         token: desktop_token,
@@ -518,6 +562,7 @@ where
     {
         return Err("Nie potwierdzono tożsamości backendu.".into());
     }
+    timer.mark("ready");
     owner.backend = Some(backend.clone());
     update(
         Status {

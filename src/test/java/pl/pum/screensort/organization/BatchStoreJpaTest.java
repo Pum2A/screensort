@@ -81,6 +81,25 @@ class BatchStoreJpaTest {
     assertThat(store.latest(folder).orElseThrow().id()).isEqualTo(job.id());
   }
 
+  @Test void aPostponedFileComesAfterEveryFreshOneWithItsAttemptCounted() {
+    String folder = prepare(3);
+    var job = store.create(folder, true, false);
+    var slow = store.next(job.id()).orElseThrow();
+    assertThat(slow.attempts()).isZero();
+    store.postpone(job.id(), slow.fileId(), "Retry later");
+
+    var second = store.next(job.id()).orElseThrow();
+    store.failed(job.id(), second.fileId(), "Bad image", false);
+    var third = store.next(job.id()).orElseThrow();
+    store.failed(job.id(), third.fileId(), "Bad image", false);
+    var last = store.next(job.id()).orElseThrow();
+
+    assertThat(second.fileId()).isNotEqualTo(slow.fileId());
+    assertThat(third.fileId()).isNotEqualTo(slow.fileId());
+    assertThat(last.fileId()).isEqualTo(slow.fileId());
+    assertThat(last.attempts()).isOne();
+  }
+
   private String prepare(int count) {
     String folder = "C:\\synthetic-batch-" + UUID.randomUUID();
     Instant now = Instant.parse("2026-10-19T12:00:00Z");
