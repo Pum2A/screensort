@@ -67,7 +67,7 @@ pub fn catalog_for_command(id: &str) -> Result<PackageSpec, String> {
 
 impl PackageManager {
     pub fn busy(&self) -> bool {
-        self.progress.lock().expect("package lock").busy
+        super::lock(&self.progress).busy
     }
 
     pub fn begin(&self) -> Result<(), String> {
@@ -92,14 +92,14 @@ impl PackageManager {
     }
 
     fn update(&self, phase: &str, completed: u64, total: u64) {
-        let mut state = self.progress.lock().expect("package lock");
+        let mut state = super::lock(&self.progress);
         state.phase = phase.into();
         state.completed_bytes = completed;
         state.total_bytes = total;
     }
 
     pub fn finish(&self, result: Result<(), String>) {
-        let mut state = self.progress.lock().expect("package lock");
+        let mut state = super::lock(&self.progress);
         state.busy = false;
         state.phase = match &result {
             Ok(_) => "INSTALLED",

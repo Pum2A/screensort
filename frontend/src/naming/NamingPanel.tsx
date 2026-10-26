@@ -71,12 +71,13 @@ export function NamingPanel({fileId, disabled}: {fileId: number, disabled: boole
 
     return <section className={styles.panel} aria-label="Propozycja nazwy">
         <h4>Nadaj obrazowi nazwę</h4>
-        <p className={styles.hint}>Propozycja z kilku słów opisu, bez nowego wywołania AI i bez tłumaczenia. Popraw ją po swojemu.</p>
+        <p className={styles.hint}>Propozycja łączy słowa z tekstu na obrazie z opisem obrazu, bez nowego wywołania AI i bez tłumaczenia. Popraw ją po swojemu.</p>
         {loading && <p role="status">Przygotowujemy propozycję…</p>}
         {review && !loading && <>
             <p className={styles.original}>Oryginał: <span>{review.originalName}</span></p>
             {!review.analysisMatchesCatalog && <p className={styles.warning}>Analiza dotyczy starszej wersji pliku. Przeanalizuj aktualny obraz przed zatwierdzeniem.</p>}
-            {!review.proposedName && review.analysisMatchesCatalog && <p className={styles.hint}>Brakuje opisu do utworzenia nazwy. Wpisz własną albo uruchom analizę wizualną.</p>}
+            {!review.proposedName && review.analysisMatchesCatalog && <p className={styles.hint}>Brakuje tekstu i opisu do utworzenia nazwy. Wpisz własną albo uruchom analizę.</p>}
+            {review.proposedName && review.proposalUncertain && !review.approvalMatchesCatalog && <p className={styles.warning} role="status">Niepewna propozycja: powstała z małej ilości informacji. Sprawdź ją przed zatwierdzeniem.</p>}
             {review.approvedName && !review.approvalMatchesCatalog && <p className={styles.warning}>Poprzednia decyzja „{review.approvedName}” dotyczy innej zawartości pliku.</p>}
             <form onSubmit={submit}>
                 <label htmlFor={inputId}>Nazwa do zatwierdzenia</label>

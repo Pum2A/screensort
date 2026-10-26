@@ -19,7 +19,7 @@ public class ReviewStore {
       long totalFiles, boolean hasNext) {}
 
   private static final String SELECT = """
-      select i.file_id, i.original_name, i.status, i.category, i.proposed_name, i.message,
+      select i.file_id, i.original_name, i.status, i.category, i.proposed_name, i.proposal_uncertain, i.message,
         i.analysis_id, i.source_sha256, f.sha256 as current_sha, a.source_sha256 as analysis_sha,
         n.revision as naming_revision, n.approved_name, n.source_sha256 as naming_sha,
         r.decision, r.category as review_category, r.reviewed_at, r.revision as review_revision,
@@ -39,6 +39,12 @@ public class ReviewStore {
     var rows = jdbc.query(SELECT + " where i.batch_id = ? order by i.file_id limit 51 offset ?",
         this::item, batchId, Math.multiplyExact((long) page, 50));
     return new Page(List.copyOf(rows.subList(0, Math.min(50, rows.size()))), rows.size() > 50);
+  }
+
+  /** Every item of the batch at once, for the library screen (the catalog caps a folder at 1000 files). */
+  @Transactional(readOnly = true)
+  public List<ReviewItem> all(UUID batchId) {
+    return List.copyOf(jdbc.query(SELECT + " where i.batch_id = ? order by i.file_id", this::item, batchId));
   }
 
   /** Read-only export preview: only current, explicitly approved decisions are included. */
@@ -90,7 +96,8 @@ public class ReviewStore {
     var review = decision == null ? null : new ReviewItem.Decision(decision,
         row.getString("review_category"), reviewedAt.toInstant(), row.getLong("review_revision"), decisionMatches);
     return new ReviewItem(row.getLong("file_id"), row.getString("original_name"), row.getString("status"),
-        row.getString("category"), row.getString("proposed_name"), row.getString("message"),
+        row.getString("category"), row.getString("proposed_name"), row.getBoolean("proposal_uncertain"),
+        row.getString("message"),
         row.getObject("analysis_id", Long.class), row.getString("source_sha256"),
         currentSha.equals(row.getString("source_sha256")) && currentSha.equals(row.getString("analysis_sha")),
         namingRevision == null ? -1 : namingRevision,
