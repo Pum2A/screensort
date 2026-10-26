@@ -1,7 +1,18 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.1 preview**.
+Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.2 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Aktualizacja 0.3.2 (PR #39, #41, #42, wydanie #43): ponowna analiza folderu
+używa zapisanych wyników obrazów o niezmienionej treści i opcjach, więc po
+restarcie nic nie liczy się od zera. Propozycje nazw mają przełącznik PL / EN
+(domyślnie PL, tabela `app_setting`, migracja V12) i nie mieszają już języków.
+Limonka oznacza tylko aktywny widok, postęp i kropkę pewnej propozycji, a
+kafelki biblioteki są uproszczone. Wydanie 0.3.2 zostało opublikowane
+2026-10-26 w kanale `updates-preview`. Pakiet AI bez zmian (2026-10-19-2).
+Scalony PR #40 (OCR i opis obrazu równolegle, zmierzone 5,56 s → 3,66 s na
+obraz) wejdzie do użytkowników dopiero z następnym pakietem AI: właściciel
+zdecydował, że teraz nie wymuszamy ponownego pobrania ~750 MB.
 
 Poprawka 0.3.1: w zainstalowanej 0.3.0 Biblioteka, „Do decyzji” i Duplikaty
 były puste, bo most Tauri nie przepuszczał nowej trasy `/api/library`, a front

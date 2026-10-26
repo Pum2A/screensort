@@ -4,7 +4,7 @@
 
 **Turn a folder of screenshot chaos into named, sorted copies — on your own computer.**
 
-![Version](https://img.shields.io/badge/version-0.3.0_preview-191C1F?style=flat-square&labelColor=CDFF47)
+![Version](https://img.shields.io/badge/version-0.3.2_preview-191C1F?style=flat-square&labelColor=CDFF47)
 ![Windows](https://img.shields.io/badge/Windows-x64-191C1F?style=flat-square)
 ![Local first](https://img.shields.io/badge/AI-runs_locally-191C1F?style=flat-square)
 ![Java](https://img.shields.io/badge/Java_25-Spring_Boot_4-191C1F?style=flat-square&logo=openjdk&logoColor=white)
