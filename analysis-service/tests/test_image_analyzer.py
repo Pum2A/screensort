@@ -3,6 +3,7 @@
 from contextlib import closing
 from hashlib import sha256
 from io import BytesIO
+from threading import Event
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -69,7 +70,8 @@ def test_prepares_once_and_passes_the_same_image_and_options_to_both_engines(
     image = ocr.recognize_prepared.call_args.args[0]
     ocr.recognize_prepared.assert_called_once_with(image, options)
     vision.analyze.assert_called_once_with(image)
-    assert [call[0] for call in calls.mock_calls] == ["ocr", "vision"]
+    # The steps run side by side, so only both calls are guaranteed, not their order.
+    assert sorted(call[0] for call in calls.mock_calls) == ["ocr", "vision"]
     assert result.source_sha256 == sha256(data).hexdigest()
     assert result.ocr.status == "COMPLETED"
     assert result.ocr.result == ocr.recognize_prepared.return_value
@@ -80,6 +82,29 @@ def test_prepares_once_and_passes_the_same_image_and_options_to_both_engines(
     assert ImageAnalysisResult.model_validate_json(result.model_dump_json()) == result
     with pytest.raises(ValueError, match="closed"):
         image.getpixel((0, 0))
+
+
+def test_ocr_and_caption_run_at_the_same_time(data, engines):
+    ocr, vision = engines
+    caption_started = Event()
+    text = ocr.recognize_prepared.return_value
+
+    def recognize(image, options):
+        # Fails if the caption only starts after OCR has finished.
+        assert caption_started.wait(5)
+        return text
+
+    def describe(image):
+        caption_started.set()
+        return vision.analyze.return_value
+
+    ocr.recognize_prepared.side_effect = recognize
+    vision.analyze.side_effect = describe
+
+    result = ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
+
+    assert result.ocr.status == "COMPLETED"
+    assert result.visual.status == "COMPLETED"
 
 
 def test_bad_input_stops_before_either_engine(engines):
@@ -214,11 +239,10 @@ def test_fatal_failure_propagates_and_closes_the_shared_image(
     with pytest.raises(failure_type, match="Stop processing"):
         ImageAnalyzer(ocr, vision).analyze(data, OcrOptions())
 
+    # Both steps run side by side, so the other one may already have finished.
     image = ocr.recognize_prepared.call_args.args[0]
     with pytest.raises(ValueError, match="closed"):
         image.getpixel((0, 0))
-    if failed_engine == "ocr":
-        vision.analyze.assert_not_called()
 
 
 @pytest.mark.parametrize("invalid_engine", ["ocr", "vision"])
