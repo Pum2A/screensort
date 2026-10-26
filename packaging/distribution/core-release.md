@@ -1,5 +1,22 @@
 ## ScreenSort Windows x64 preview
 
+New in 0.3.2: no repeated analysis, one language per name, a calmer look.
+
+- Analyzing a folder again (for example after restarting the app) reuses the
+  saved result of every image whose content and options did not change. Only
+  new, changed or previously failed images go to the AI engine, so a folder
+  that was already analyzed finishes in seconds instead of hours.
+- Proposed names no longer mix Polish and English. "Do decyzji" has a PL / EN
+  switch (Polish by default). Polish names translate the image description;
+  words without a translation are left out. Text read from the image stays
+  as written. Switching rewrites waiting proposals at once, without analyzing
+  again; approved names are not changed.
+- Calmer design: lime marks only the active view, progress and a small dot on
+  images with a certain proposal. Tiles show just the picture and its name,
+  and every card uses the same thin border.
+
+The AI engine package is unchanged and does not need to be downloaded again.
+
 0.3.1 fixes 0.3.0: the library, "Do decyzji" and Duplikaty screens stayed
 empty in the installed app. They show your folder again. Nothing else changed,
 and no data was lost: the catalog, analyses and decisions were never touched.
