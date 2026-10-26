@@ -1,7 +1,13 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.0 preview**.
+Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.1 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Poprawka 0.3.1: w zainstalowanej 0.3.0 Biblioteka, „Do decyzji” i Duplikaty
+były puste, bo most Tauri nie przepuszczał nowej trasy `/api/library`, a front
+traktował odmowę mostu (zwykły tekst zamiast `Error`) jak brak błędu. Trasa jest
+na liście mostu, a odmowy mostu są teraz błędami z komunikatem. Wydanie 0.3.1
+zostało opublikowane 2026-10-26 w kanale `updates-preview`.
 
 Aktualizacja 0.3.0: redesign v1+ i szybkie decyzje hurtowe. Nowy pasek boczny
 (Biblioteka, Do decyzji, Duplikaty), biblioteka całego folderu z kategoriami AI
