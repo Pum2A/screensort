@@ -1,7 +1,6 @@
 package pl.pum.screensort.scanning.api;
 
 import jakarta.validation.Valid;
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -17,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import pl.pum.screensort.scanning.api.dto.ScanRequest;
-import pl.pum.screensort.scanning.api.dto.ScanResultDto;
 import pl.pum.screensort.scanning.api.dto.ScanRejectionsDto;
 import pl.pum.screensort.scanning.api.dto.RejectedFileDto;
 import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
@@ -25,7 +23,6 @@ import pl.pum.screensort.scanning.jobs.ScanAlreadyRunningException;
 import pl.pum.screensort.scanning.jobs.ScanJob;
 import pl.pum.screensort.scanning.jobs.ScanJobManager;
 import pl.pum.screensort.scanning.jobs.ScanStatus;
-import pl.pum.screensort.scanning.result.ScanResult;
 
 @RestController
 public class ScanRestController {
@@ -33,12 +30,6 @@ public class ScanRestController {
 
   public ScanRestController(ScanJobManager scanJobs) {
     this.scanJobs = scanJobs;
-  }
-
-  @PostMapping("/api/scan")
-  public ScanResultDto scan(@Valid @RequestBody ScanRequest request) throws IOException {
-    ScanResult result = scanJobs.scanAndSave(Path.of(request.folderPath()));
-    return ScanResultDto.from(result);
   }
 
   @PostMapping("/api/scan/jobs")

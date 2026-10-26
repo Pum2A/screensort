@@ -3,12 +3,12 @@ package pl.pum.screensort.scanning.api;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
+import com.jayway.jsonpath.JsonPath;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,6 +22,7 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -31,10 +32,11 @@ import pl.pum.screensort.catalog.database.AllowedRootRepository;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
 
+/** A real scan job from the HTTP API to the catalog, previews and a rescan with stable IDs. */
 @SpringBootTest(properties = "spring.docker.compose.enabled=false")
 @AutoConfigureMockMvc
 @Testcontainers
-class ScanRestControllerIntegrationTest {
+class ScanToCatalogIntegrationTest {
 
   @Container @ServiceConnection
   static final PostgreSQLContainer postgres =
@@ -45,7 +47,7 @@ class ScanRestControllerIntegrationTest {
   @Autowired private FileRecordRepository fileRecordRepository;
 
   @Test
-  void webReportsIncrementalSummaryAndKeepsStableFileIds(@TempDir Path folder)
+  void scanJobsReportIncrementalSummaryAndKeepStableFileIds(@TempDir Path folder)
       throws Exception {
     Path imagePath = folder.resolve("photo.png");
     assertThat(
@@ -58,9 +60,7 @@ class ScanRestControllerIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(0));
 
-    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(1))
+    scan(requestJson)
         .andExpect(jsonPath("$.summary.newImages").value(1))
         .andExpect(jsonPath("$.summary.rescannedImages").value(0))
         .andExpect(jsonPath("$.summary.unchangedImages").value(0))
@@ -93,13 +93,7 @@ class ScanRestControllerIntegrationTest {
         .andExpect(jsonPath("$[0].relativePath").value("photo.png"))
         .andExpect(jsonPath("$[0].sha256").value(firstRecord.getSha256()));
 
-    mockMvc.perform(post("/scan").param("folderPath", folder.toString()))
-        .andExpect(status().isOk())
-        .andExpect(view().name("scanning/scan"));
-
-    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(1))
+    scan(requestJson)
         .andExpect(jsonPath("$.summary.newImages").value(0))
         .andExpect(jsonPath("$.summary.rescannedImages").value(0))
         .andExpect(jsonPath("$.summary.unchangedImages").value(1))
@@ -113,10 +107,6 @@ class ScanRestControllerIntegrationTest {
     assertThat(secondRecord.getId()).isEqualTo(firstId);
     assertThat(secondRecord.getSha256()).hasSize(64);
     assertThat(secondRecord.getSha256()).isEqualTo(firstRecord.getSha256());
-    mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.length()").value(1))
-        .andExpect(jsonPath("$[0].id").value(firstId.intValue()));
 
     // Znany obraz z inną zawartością musi być sprawdzony ponownie, bez nowego ID.
     assertThat(
@@ -125,9 +115,7 @@ class ScanRestControllerIntegrationTest {
         .isTrue();
     Files.setLastModifiedTime(
         imagePath, FileTime.from(firstRecord.getLastModifiedAt().plusSeconds(120)));
-    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(1))
+    scan(requestJson)
         .andExpect(jsonPath("$.summary.newImages").value(0))
         .andExpect(jsonPath("$.summary.rescannedImages").value(1))
         .andExpect(jsonPath("$.summary.unchangedImages").value(0))
@@ -147,19 +135,40 @@ class ScanRestControllerIntegrationTest {
                 folder.resolve("new-photo.png").toFile()))
         .isTrue();
     Files.writeString(folder.resolve("notes.txt"), "Not an image.");
-    mockMvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(requestJson))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.accepted.length()").value(2))
-        .andExpect(jsonPath("$.rejected.length()").value(1))
+    String location = scanLocation(requestJson);
+    mockMvc.perform(get(location))
         .andExpect(jsonPath("$.summary.newImages").value(1))
         .andExpect(jsonPath("$.summary.rescannedImages").value(0))
         .andExpect(jsonPath("$.summary.unchangedImages").value(1))
         .andExpect(jsonPath("$.summary.rejectedFiles").value(1));
+    mockMvc.perform(get(location + "/rejections"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.files.length()").value(1));
 
     assertThat(allowedRootRepository.count()).isEqualTo(1);
     assertThat(fileRecordRepository.count()).isEqualTo(2);
     mockMvc.perform(get("/api/catalog/files").param("folderPath", folder.toString()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.length()").value(2));
+  }
+
+  /** Starts a scan job and returns the finished job, so assertions read its summary. */
+  private ResultActions scan(String requestJson) throws Exception {
+    return mockMvc.perform(get(scanLocation(requestJson))).andExpect(status().isOk());
+  }
+
+  private String scanLocation(String requestJson) throws Exception {
+    String location = mockMvc
+        .perform(post("/api/scan/jobs").contentType(MediaType.APPLICATION_JSON).content(requestJson))
+        .andExpect(status().isAccepted())
+        .andReturn().getResponse().getHeader("Location");
+    for (int attempt = 0; attempt < 200; attempt++) {
+      String job = mockMvc.perform(get(location)).andReturn().getResponse().getContentAsString();
+      String state = JsonPath.read(job, "$.status");
+      if (state.equals("COMPLETED")) return location;
+      if (state.equals("FAILED")) throw new AssertionError("Scan job failed");
+      Thread.sleep(50);
+    }
+    throw new AssertionError("Scan job did not finish within 10 s");
   }
 }
