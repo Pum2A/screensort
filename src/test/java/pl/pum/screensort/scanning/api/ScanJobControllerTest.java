@@ -1,5 +1,6 @@
 package pl.pum.screensort.scanning.api;
 
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -28,7 +29,7 @@ import pl.pum.screensort.scanning.result.RejectionReason;
 class ScanJobControllerTest {
   private final ScanJobManager jobs = mock(ScanJobManager.class);
   private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(new ScanRestController(jobs))
+      MockMvcBuilders.standaloneSetup(new ScanRestController(jobs)).setControllerAdvice(new ApiExceptionHandler())
           // Tak jak w Boot: polskie komunikaty tekstowe i JSON w UTF-8.
           .setMessageConverters(
               new StringHttpMessageConverter(StandardCharsets.UTF_8),
@@ -126,6 +127,6 @@ class ScanJobControllerTest {
     when(jobs.start(any())).thenThrow(new TaskRejectedException("Internal executor details"));
     mvc.perform(post("/api/scan/jobs").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
         .andExpect(status().isServiceUnavailable())
-        .andExpect(content().string("Nie można teraz uruchomić skanu. Spróbuj ponownie później."));
+        .andExpect(jsonPath("$.message").value("Nie można teraz uruchomić skanu. Spróbuj ponownie później."));
   }
 }

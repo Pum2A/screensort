@@ -1,5 +1,6 @@
 package pl.pum.screensort.naming;
 
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -15,7 +16,7 @@ import pl.pum.screensort.naming.api.dto.NamingReviewDto;
 
 class NamingControllerTest {
   private final NamingService service = mock(NamingService.class);
-  private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new NamingController(service)).build();
+  private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new NamingController(service)).setControllerAdvice(new ApiExceptionHandler()).build();
 
   @Test
   void exposesTheReadAndApprovalWithoutCachingOrStartingAnalysis() throws Exception {

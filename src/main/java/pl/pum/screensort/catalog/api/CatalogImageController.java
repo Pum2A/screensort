@@ -1,6 +1,5 @@
 package pl.pum.screensort.catalog.api;
 
-import java.nio.charset.StandardCharsets;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -9,6 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import pl.pum.screensort.api.ApiError;
 import pl.pum.screensort.catalog.preview.CatalogImagePreview;
 import pl.pum.screensort.catalog.preview.ImagePreviewException;
 
@@ -37,8 +37,9 @@ public class CatalogImageController {
         .contentLength(png.length).body(png);
   }
 
+  // Stays here, not in ApiExceptionHandler: image answers also need nosniff and, when busy, Retry-After.
   @ExceptionHandler(ImagePreviewException.class)
-  public ResponseEntity<String> unavailable(ImagePreviewException exception) {
+  public ResponseEntity<ApiError> unavailable(ImagePreviewException exception) {
     HttpStatus status = switch (exception.reason()) {
       case NOT_FOUND -> HttpStatus.NOT_FOUND;
       case UNSAFE_PATH -> HttpStatus.FORBIDDEN;
@@ -48,9 +49,9 @@ public class CatalogImageController {
       case BUSY -> HttpStatus.SERVICE_UNAVAILABLE;
     };
     var response = ResponseEntity.status(status).cacheControl(CacheControl.noStore())
-        .contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8))
+        .contentType(MediaType.APPLICATION_JSON)
         .header("X-Content-Type-Options", "nosniff");
     if (status == HttpStatus.SERVICE_UNAVAILABLE) response.header("Retry-After", "1");
-    return response.body(exception.getMessage());
+    return response.body(new ApiError("IMAGE_" + exception.reason().name(), exception.getMessage()));
   }
 }

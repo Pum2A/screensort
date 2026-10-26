@@ -1,5 +1,6 @@
 package pl.pum.screensort.organization.review;
 
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.assertj.core.api.Assertions.*;
 
 import jakarta.persistence.EntityManager;
@@ -173,7 +174,7 @@ class ReviewJpaTest {
     Path existing = Files.createDirectory(destination.resolve("ScreenSort"));
     Files.writeString(existing.resolve("keep.txt"), "keep");
     var mvc = org.springframework.test.web.servlet.setup.MockMvcBuilders
-        .standaloneSetup(new ExportController(exportManager, exports)).build();
+        .standaloneSetup(new ExportController(exportManager, exports)).setControllerAdvice(new ApiExceptionHandler()).build();
     mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
             .post("/api/organization/batches/" + fixture.batchId() + "/exports")
             .contentType(org.springframework.http.MediaType.APPLICATION_JSON)

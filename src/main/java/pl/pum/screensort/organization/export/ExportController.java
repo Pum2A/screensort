@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/organization")
 public class ExportController {
   public record Request(String destinationFolder) {}
-  public record Error(String code, String message) {}
   private final ExportManager exports;
   private final ExportStore store;
 
@@ -39,11 +38,5 @@ public class ExportController {
     if (page < 0 || page > 1_000_000) throw new ExportException(400, "INVALID_PAGE", "Nieprawidłowa strona.");
     read(id);
     return ResponseEntity.ok().header("Cache-Control", "no-store").body(store.issues(id, page));
-  }
-
-  @ExceptionHandler(ExportException.class)
-  public ResponseEntity<Error> failure(ExportException error) {
-    return ResponseEntity.status(error.status()).header("Cache-Control", "no-store")
-        .body(new Error(error.code(), error.getMessage()));
   }
 }
