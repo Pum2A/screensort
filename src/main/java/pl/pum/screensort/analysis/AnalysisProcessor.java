@@ -1,5 +1,6 @@
 package pl.pum.screensort.analysis;
 
+import java.util.Optional;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.client.PythonAnalysisClient;
 import pl.pum.screensort.analysis.database.AnalysisStore;
@@ -21,6 +22,11 @@ public class AnalysisProcessor {
       ProductMetrics metrics) {
     this.sources = sources; this.python = python; this.store = store;
     this.metrics = metrics;
+  }
+
+  /** The saved result when this content was already analyzed with these options; no model call. */
+  public Optional<SavedAnalysis> reusable(long fileId, boolean ocr, boolean visual, String sha256) {
+    return store.reusable(fileId, ocr, visual, sha256);
   }
 
   public SavedAnalysis process(long fileId, boolean ocr, boolean visual, String expectedHash) {

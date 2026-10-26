@@ -29,6 +29,16 @@ public class AnalysisStore {
     return dto(analyses.saveAndFlush(entity));
   }
 
+  /** A finished result for exactly this content and these options, so a folder batch can skip the model. */
+  @Transactional(readOnly = true)
+  public Optional<SavedAnalysis> reusable(long fileId, boolean ocr, boolean visual, String sha256) {
+    return analyses.findByFile_IdAndOcrEnabledAndVisualEnabled(fileId, ocr, visual)
+        .filter(entity -> entity.getSourceSha256().equals(sha256))
+        .map(this::dto)
+        .filter(saved -> (!ocr || saved.result().ocr().status() == AnalysisResult.Status.COMPLETED)
+            && (!visual || saved.result().visual().status() == AnalysisResult.Status.COMPLETED));
+  }
+
   @Transactional(readOnly = true)
   public Optional<SavedAnalysis> latest(long fileId) {
     return analyses.findFirstByFile_IdOrderByAnalyzedAtDesc(fileId).map(this::dto);

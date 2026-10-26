@@ -155,6 +155,17 @@ class NamingJpaTest {
     assertThat(names.findByFile_Id(id)).isPresent();
   }
 
+  @Test
+  void reusesOnlyAFinishedAnalysisOfTheSameContentAndOptions(@TempDir Path folder) {
+    long id = prepareFile(folder);
+    assertThat(analyses.reusable(id, false, true, "a".repeat(64))).isPresent();
+    // Changed content, other options or a step that did not finish all mean the model has to run again.
+    assertThat(analyses.reusable(id, false, true, "b".repeat(64))).isEmpty();
+    assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
+    analyses.save(id, true, true, NamingServiceTest.analysis("a".repeat(64), true).result());
+    assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
+  }
+
   private long prepareFile(Path folder) {
     Instant now = Instant.parse("2026-10-18T12:00:00Z");
     var root = new AllowedRootEntity(folder.toAbsolutePath().toString(), false, now);

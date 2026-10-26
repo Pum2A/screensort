@@ -110,8 +110,10 @@ public class BatchManager {
         if (pending.isEmpty()) { store.state(job.id(), "COMPLETED"); break; }
         var item = pending.orElseThrow();
         try {
-          var saved = processor.process(item.fileId(), job.ocr(), job.visual(), item.sourceSha256(),
-              item.attempts() > 0);
+          // A file analyzed before (earlier batch, app restart) keeps its result instead of costing seconds again.
+          var reused = processor.reusable(item.fileId(), job.ocr(), job.visual(), item.sourceSha256());
+          var saved = reused.isPresent() ? reused.get()
+              : processor.process(item.fileId(), job.ocr(), job.visual(), item.sourceSha256(), item.attempts() > 0);
           store.completed(job.id(), item, saved);
           busyWaited = Duration.ZERO;
         } catch (EngineBusyException busy) {
