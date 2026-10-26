@@ -7,6 +7,7 @@ import {categories, countEntries, inReviewTab, isPending, libraryEntries, select
 import type {BulkAction, LibraryEntry, ReviewTab} from '../../library/model.js'
 import {bulkMessage, useBulkReview} from '../../library/useBulkReview.js'
 import {useLibrary} from '../../library/useLibrary.js'
+import {NamingLanguageSwitch} from '../../naming/NamingLanguageSwitch.js'
 import {PixelIcon} from '../../ui/PixelIcon.js'
 import type {BatchItem} from '../api.js'
 import {ReviewEditor} from './ReviewEditor.js'
@@ -154,8 +155,11 @@ export function ReviewBoard({folderPath, batchId, disabled, active, onSaved, onE
                 <div className="lib-bar" aria-hidden="true"><i className="lib-bar-ink" style={{width: `${total ? (counts.approved / total) * 100 : 0}%`}}/>
                     <i className="rv-bar-skip" style={{width: `${total ? (counts.skipped / total) * 100 : 0}%`}}/></div>
                 <small>{counts.pending} czeka na decyzję · {counts.skipped} pominiętych · {counts.queued + counts.fresh} w analizie · {counts.failed} błędów</small></div>
-            <button className="primary-button" disabled={locked || sure.length === 0} onClick={() => approve(sure)}>
-                <PixelIcon name="sparkles"/>Zatwierdź pewne ({sure.length})</button>
+            <div className="rv-head-actions">
+                <NamingLanguageSwitch disabled={locked}/>
+                <button className="primary-button" disabled={locked || sure.length === 0} onClick={() => approve(sure)}>
+                    <PixelIcon name="sparkles"/>Zatwierdź pewne ({sure.length})</button>
+            </div>
         </header>
 
         <div className="lib-toolbar">

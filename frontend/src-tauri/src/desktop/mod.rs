@@ -513,11 +513,18 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 "/api/scan/jobs" | "/api/analysis/jobs" | "/api/organization/batches"
             ) || matches(&routes.batch_command, route)
         }
-        "PUT" => matches(&routes.naming, route) || matches(&routes.review, route),
+        "PUT" => {
+            route == "/api/settings/naming-language"
+                || matches(&routes.naming, route)
+                || matches(&routes.review, route)
+        }
         "GET" => {
             matches!(
                 route,
-                "/api/catalog/page" | "/api/library" | "/api/organization/batches/latest"
+                "/api/catalog/page"
+                    | "/api/library"
+                    | "/api/organization/batches/latest"
+                    | "/api/settings/naming-language"
             ) || matches(&routes.review, route)
                 || matches(&routes.batch, route)
                 || matches(&routes.export, route)
@@ -704,6 +711,10 @@ mod tests {
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/library?folderPath=test", false));
         assert!(!allowed("POST", "/api/library", false));
+        assert!(allowed("GET", "/api/settings/naming-language", false));
+        assert!(allowed("PUT", "/api/settings/naming-language", false));
+        assert!(!allowed("POST", "/api/settings/naming-language", false));
+        assert!(!allowed("PUT", "/api/settings/other", false));
         assert!(!allowed("GET", "/api/library/../catalog", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
         assert!(allowed("GET", "/api/catalog/files/1/naming", false));

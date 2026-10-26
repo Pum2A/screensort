@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 class NameSuggestionGeneratorTest {
-  private final NameSuggestionGenerator generator = new NameSuggestionGenerator();
+  private final NameSuggestionGenerator generator = new NameSuggestionGenerator(() -> NamingLanguage.EN);
 
   @Test
   void extractsAtMostSixCaptionWordsWithoutRunningAnAiModel() {
@@ -54,7 +54,7 @@ class NameSuggestionGeneratorTest {
         .map(NameSuggestion::name).contains("zolty_kubek_biurku.png");
     assertThat(generator.suggest("a.png", "ŁÓDŹ", "Mapa miasta"))
         .map(NameSuggestion::name).contains("lodz_mapa_miasta.png");
-    assertThat(generator.suggest("a.png", null, "CON")).contains(new NameSuggestion("obraz_con.png", true));
+    assertThat(generator.suggest("a.png", null, "CON")).contains(new NameSuggestion("image_con.png", true));
     String name = generator.suggest("a.png", "../../CON <SCRIPT>", "../../<script> bad:path | ?").orElseThrow().name();
     assertThat(FileNameRules.problem(name, "a.png")).isEmpty();
   }
@@ -64,5 +64,18 @@ class NameSuggestionGeneratorTest {
     assertThat(generator.suggest("a.png", null, null)).isEmpty();
     assertThat(generator.suggest("a.png", "ok 12", "The image is a picture of the photo")).isEmpty();
     assertThat(generator.suggest("no-extension", null, "A mug")).isEmpty();
+  }
+
+  @Test
+  void polishNamesTranslateTheCaptionAndNeverMixInEnglishWords() {
+    var polish = new NameSuggestionGenerator(() -> NamingLanguage.PL);
+    assertThat(polish.suggest("IMG_0026.png", null, "A mug on a desk next to a computer monitor."))
+        .contains(new NameSuggestion("kubek_biurko_komputer_monitor.png", false));
+    // Text from the screenshot stays as written; caption words without a Polish entry are left out.
+    assertThat(polish.suggest("a.png", "ROBLOX\nLobby", "A cartoon character with a square head."))
+        .map(NameSuggestion::name).contains("roblox_lobby_kreskowka_postac.png");
+    assertThat(polish.suggest("a.png", null, "CON")).isEmpty();
+    assertThat(polish.suggest("a.png", null, "A screenshot of a computer screen."))
+        .contains(new NameSuggestion("zrzut_komputer_ekran.png", true));
   }
 }

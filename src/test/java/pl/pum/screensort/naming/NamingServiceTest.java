@@ -23,7 +23,7 @@ class NamingServiceTest {
   private final AnalysisStore analyses = mock(AnalysisStore.class);
   private final FileNamingRepository names = mock(FileNamingRepository.class);
   private final FileRecordEntity file = mock(FileRecordEntity.class);
-  private final NamingService service = new NamingService(files, analyses, names, new NameSuggestionGenerator());
+  private final NamingService service = new NamingService(files, analyses, names, new NameSuggestionGenerator(() -> NamingLanguage.EN));
 
   @BeforeEach
   void prepare() {

@@ -1,6 +1,9 @@
 /* Figma v1+ "03 · Przegląd hurtowy": cards with a category pill each, the single-image form on the right. */
 .rv { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; padding-bottom: 72px; }
 .rv-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); }
+.rv-head-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: flex-end; }
+.naming-language { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-muted); }
+.naming-language small { color: var(--danger); }
 .rv-progress { display: flex; flex-direction: column; gap: 6px; flex: 1; max-width: 360px; }
 .rv-progress strong { font-size: 14px; font-weight: 600; }
 .rv-progress small { font-family: var(--font-mono); font-size: 11px; color: var(--color-muted); }

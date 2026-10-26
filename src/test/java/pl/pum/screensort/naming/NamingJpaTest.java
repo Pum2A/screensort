@@ -36,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({NamingService.class, NameSuggestionGenerator.class, AnalysisStore.class, NamingJpaTest.JsonConfig.class})
+@Import({NamingService.class, NameSuggestionGenerator.class, NamingSettings.class, AnalysisStore.class, NamingJpaTest.JsonConfig.class})
 class NamingJpaTest {
   static final PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:18.6"));
 
@@ -75,6 +75,7 @@ class NamingJpaTest {
   @Autowired private FileRecordRepository files;
   @Autowired private FileNamingRepository names;
   @Autowired private PlatformTransactionManager transactions;
+  @Autowired private NamingSettings settings;
 
   @Test
   void savesReloadsAndUpdatesOneDecisionWithoutRenamingTheSource(@TempDir Path folder) throws Exception {
@@ -84,7 +85,7 @@ class NamingJpaTest {
     var modified = Files.getLastModifiedTime(source);
     long id = prepareFile(folder);
     var review = naming.read(id);
-    assertThat(review.proposedName()).isEqualTo("mug_desk.png");
+    assertThat(review.proposedName()).isEqualTo("kubek_biurko.png"); // Polish by default.
     var approved = naming.approve(id, review.analysisId(), review.sourceSha256(), review.revision(), "kubek_na_biurku.png");
     assertThat(approved.revision()).isZero();
     entityManager.clear();
@@ -164,6 +165,15 @@ class NamingJpaTest {
     assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
     analyses.save(id, true, true, NamingServiceTest.analysis("a".repeat(64), true).result());
     assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
+  }
+
+  @Test
+  void namesArePolishUntilTheOwnerPicksAnotherLanguage() {
+    assertThat(settings.language()).isEqualTo(NamingLanguage.PL);
+    settings.language(NamingLanguage.EN);
+    assertThat(settings.language()).isEqualTo(NamingLanguage.EN);
+    settings.language(NamingLanguage.PL);
+    assertThat(settings.language()).isEqualTo(NamingLanguage.PL);
   }
 
   private long prepareFile(Path folder) {
