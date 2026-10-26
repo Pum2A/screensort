@@ -153,9 +153,12 @@ impl PackageManager {
             &base,
             spec.archive_bytes + spec.unpacked_bytes + 256 * 1024 * 1024,
         )?;
-        let mut zip = tempfile::NamedTempFile::new_in(&base)
-            .map_err(|_| "Nie można utworzyć pliku tymczasowego pakietu.")?;
-        if let Some(path) = local {
+        // A download keeps its bytes in a named .part file, so an interrupted or cancelled download
+        // continues next time. A ZIP chosen by the user is copied into a throwaway file.
+        let part = partial_download(&base, spec);
+        let mut copied = None;
+        let mut downloaded = None;
+        let zip: &mut File = if let Some(path) = local {
             self.update("VERIFYING", 0, spec.archive_bytes);
             let mut source = File::open(path).map_err(|_| "Nie można otworzyć wybranego ZIP.")?;
             if source
@@ -168,34 +171,45 @@ impl PackageManager {
                     "Wybrany plik nie jest pakietem wymaganym przez tę wersję ScreenSort.".into(),
                 );
             }
+            let copy = copied.insert(
+                tempfile::NamedTempFile::new_in(&base)
+                    .map_err(|_| "Nie można utworzyć pliku tymczasowego pakietu.")?,
+            );
             archive::copy_verified(
                 &mut source,
-                zip.as_file_mut(),
+                copy.as_file_mut(),
                 spec,
                 &|| self.cancelled(),
                 |n| self.update("VERIFYING", n, spec.archive_bytes),
             )?;
+            copy.as_file_mut()
         } else {
             self.update("DOWNLOADING", 0, spec.archive_bytes);
+            let file = downloaded.insert(
+                OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .create(true)
+                    .truncate(false)
+                    .open(&part)
+                    .map_err(|_| "Nie można utworzyć pliku pobierania pakietu.")?,
+            );
             tauri::async_runtime::block_on(download::download(
                 spec,
-                zip.as_file_mut(),
+                file,
                 &|| self.cancelled(),
                 |n| self.update("DOWNLOADING", n, spec.archive_bytes),
             ))?;
-        }
+            file
+        };
         let stage = tempfile::Builder::new()
             .prefix("install-")
             .tempdir_in(&base)
             .map_err(|_| "Nie można przygotować katalogu instalacji.")?;
         self.update("EXTRACTING", 0, spec.unpacked_bytes);
-        archive::extract_verified(
-            zip.as_file_mut(),
-            stage.path(),
-            spec,
-            &|| self.cancelled(),
-            |n| self.update("EXTRACTING", n, spec.unpacked_bytes),
-        )?;
+        archive::extract_verified(zip, stage.path(), spec, &|| self.cancelled(), |n| {
+            self.update("EXTRACTING", n, spec.unpacked_bytes)
+        })?;
         archive::cancelled(&|| self.cancelled())?;
         let receipt = Receipt {
             id: spec.id.clone(),
@@ -216,8 +230,15 @@ impl PackageManager {
         self.update("ACTIVATING", spec.unpacked_bytes, spec.unpacked_bytes);
         activate(stage.path(), &target, &|| self.cancelled())?;
         self.update("INSTALLED", spec.unpacked_bytes, spec.unpacked_bytes);
+        drop(downloaded);
+        let _ = fs::remove_file(&part);
         Ok(())
     }
+}
+
+/// One partial download per package version; the name holds only validated id and version.
+fn partial_download(base: &Path, spec: &PackageSpec) -> PathBuf {
+    base.join(format!("{}-{}.part", spec.id, spec.version))
 }
 
 fn activate(stage: &Path, target: &Path, cancel: &impl Fn() -> bool) -> Result<(), String> {
