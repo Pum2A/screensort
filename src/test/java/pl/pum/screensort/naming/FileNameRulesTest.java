@@ -1,5 +1,6 @@
 package pl.pum.screensort.naming;
 
+import pl.pum.screensort.files.FileNames;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -12,7 +13,7 @@ class FileNameRulesTest {
     for (String name : new String[]{"kubek_na_biurku.png", "Moje zdjęcie.PNG", "2042.123.421.png"}) {
       assertThat(FileNameRules.problem(name, "IMG_0026.png")).isEmpty();
     }
-    assertThat(FileNameRules.extension("2042.123.421.png")).isEqualTo(".png");
+    assertThat(FileNames.extension("2042.123.421.png")).isEqualTo(".png");
   }
 
   @ParameterizedTest

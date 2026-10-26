@@ -1,5 +1,9 @@
 package pl.pum.screensort.organization.export;
 
+import pl.pum.screensort.files.Sha256;
+import pl.pum.screensort.files.SourcePath;
+import pl.pum.screensort.organization.review.ImageCategory;
+import pl.pum.screensort.files.FileNames;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -13,8 +17,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Component;
@@ -38,14 +40,12 @@ public class OrganizedFileCopier {
     }
     Path storedRoot = Path.of(item.sourceFolder());
     Path root = folders.validate(storedRoot).path();
-    Path relative = Path.of(item.relativePath());
-    if (!storedRoot.equals(root) || relative.isAbsolute() || relative.getNameCount() != 1
-        || item.relativePath().contains(":") || relative.toString().isBlank()
-        || relative.toString().equals(".") || relative.toString().equals("..")) {
+    var child = SourcePath.directChild(root, item.relativePath());
+    if (!storedRoot.equals(root) || child.isEmpty()) {
       throw new CopyProblem("Lokalizacja źródła wymaga ponownego skanowania.");
     }
-    Path source = root.resolve(relative).normalize();
-    if (!source.getParent().equals(root) || !source.equals(source.toRealPath())) {
+    Path source = child.get();
+    if (!source.equals(source.toRealPath())) {
       throw new CopyProblem("Plik źródłowy jest przekierowaną ścieżką.");
     }
     var before = sourceAttributes(source, item.sizeBytes());
@@ -55,7 +55,7 @@ public class OrganizedFileCopier {
     requireDirectory(category);
     Path temporary = Files.createTempFile(category, ".screensort-", ".part");
     try {
-      MessageDigest digest = sha256();
+      MessageDigest digest = Sha256.digest();
       long count = 0;
       byte[] buffer = new byte[64 * 1024];
       try (var channel = Files.newByteChannel(source, Set.of(READ, NOFOLLOW_LINKS));
@@ -71,7 +71,7 @@ public class OrganizedFileCopier {
         }
       }
       var after = sourceAttributes(source, item.sizeBytes());
-      if (count != item.sizeBytes() || !item.sha256().equals(HexFormat.of().formatHex(digest.digest()))
+      if (count != item.sizeBytes() || !item.sha256().equals(Sha256.hex(digest))
           || !before.lastModifiedTime().equals(after.lastModifiedTime())
           || !Objects.equals(before.fileKey(), after.fileKey()) || !source.equals(source.toRealPath())
           || !root.equals(folders.validate(root).path())) {
@@ -96,19 +96,13 @@ public class OrganizedFileCopier {
   }
 
   public static String categoryFolder(String category) throws CopyProblem {
-    return switch (category) {
-      case "PROGRAMMING" -> "Programowanie";
-      case "DOCUMENTS" -> "Dokumenty";
-      case "GAMES" -> "Gry";
-      case "PHOTOGRAPHS" -> "Fotografie";
-      case "OTHER" -> "Pozostałe";
-      default -> throw new CopyProblem("Wybierz poprawną kategorię obrazu.");
-    };
+    return ImageCategory.parse(category).map(ImageCategory::folder)
+        .orElseThrow(() -> new CopyProblem("Wybierz poprawną kategorię obrazu."));
   }
 
   private static String collisionName(String name, int index) {
     if (index == 1) return name;
-    String extension = FileNameRules.extension(name);
+    String extension = FileNames.extension(name);
     String suffix = " (" + index + ")" + extension;
     String base = name.substring(0, name.length() - extension.length());
     while ((base + suffix).getBytes(StandardCharsets.UTF_8).length > 255 || base.length() + suffix.length() > 255) {
@@ -129,10 +123,5 @@ public class OrganizedFileCopier {
     if (!Files.isDirectory(path, NOFOLLOW_LINKS) || !path.equals(path.toRealPath())) {
       throw new CopyProblem("Folder wynikowy został przeniesiony lub przekierowany.");
     }
-  }
-
-  private static MessageDigest sha256() {
-    try { return MessageDigest.getInstance("SHA-256"); }
-    catch (NoSuchAlgorithmException error) { throw new IllegalStateException("Required SHA-256 is unavailable", error); }
   }
 }

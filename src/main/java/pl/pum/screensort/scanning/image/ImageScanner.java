@@ -1,5 +1,6 @@
 package pl.pum.screensort.scanning.image;
 
+import pl.pum.screensort.files.ImageFormats;
 import static pl.pum.screensort.scanning.result.RejectionReason.METADATA_UNREADABLE;
 
 import java.io.IOException;
@@ -34,7 +35,6 @@ public class ImageScanner {
   private static final Logger log = LoggerFactory.getLogger(ImageScanner.class);
   private static final long MAX_FILE_SIZE_BYTES = 50L * 1024 * 1024;
   private static final int MAX_IN_FLIGHT = 4;
-  private static final Set<String> SUPPORTED_IMAGE_FORMATS = Set.of("png", "jpeg", "jpg");
   // Limity zgodne z podglądem: poza nimi pliku nie da się bezpiecznie pokazać.
   private static final long MAX_SOURCE_PIXELS = 40_000_000;
   private static final int MAX_SOURCE_EDGE = 20_000;
@@ -147,12 +147,6 @@ public class ImageScanner {
     return new ScanResult(allowedRoot, accepted, rejected, summary);
   }
 
-  private boolean hasSupportedExtension(Path path) {
-    String fileName = path.getFileName().toString().toLowerCase();
-
-    return fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg");
-  }
-
   private boolean hasAllowedSize(Path path) {
     try {
       long fileSizeBytes = Files.size(path);
@@ -175,7 +169,7 @@ public class ImageScanner {
       var reader = readers.next();
       try {
         reader.setInput(images, true, true);
-        if (!SUPPORTED_IMAGE_FORMATS.contains(reader.getFormatName().toLowerCase(Locale.ROOT))) {
+        if (!ImageFormats.readable(reader.getFormatName())) {
           return false;
         }
         // Wymiary z nagłówka. Pełne dekodowanie zajmowałoby setki megabajtów RAM na plik.
@@ -215,7 +209,7 @@ public class ImageScanner {
     if (!Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
       return Optional.of(RejectionReason.NOT_A_REGULAR_FILE);
     }
-    if (!hasSupportedExtension(path)) {
+    if (!ImageFormats.hasImageExtension(path.getFileName().toString())) {
       return Optional.of(RejectionReason.UNSUPPORTED_EXTENSION);
     }
     if (!hasAllowedSize(path)) {

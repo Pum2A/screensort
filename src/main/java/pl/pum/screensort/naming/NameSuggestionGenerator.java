@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Component;
+import pl.pum.screensort.files.FileNames;
 
 /**
  * A small, deterministic rule, not a language model or translation. Up to two keywords from the
@@ -53,7 +54,7 @@ public class NameSuggestionGenerator {
       specificCaption |= !GENERIC.contains(word);
     }
     if (words.isEmpty()) return Optional.empty();
-    String name = String.join("_", words) + FileNameRules.extension(originalName);
+    String name = String.join("_", words) + FileNames.extension(originalName);
     if (FileNameRules.problem(name, originalName).isPresent()) name = "obraz_" + name;
     if (FileNameRules.problem(name, originalName).isPresent()) return Optional.empty();
     // Two words from somewhere specific are enough; a lone word or only filler words are not.

@@ -1,5 +1,7 @@
 package pl.pum.screensort.analysis.source;
 
+import pl.pum.screensort.files.Sha256;
+import pl.pum.screensort.files.SourcePath;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardOpenOption.READ;
 
@@ -8,9 +10,6 @@ import java.nio.channels.Channels;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
@@ -36,14 +35,10 @@ public class AnalysisSourceReader {
     try {
       Path storedRoot = Path.of(source.folderPath());
       Path root = folders.validate(storedRoot).path();
-      Path relative = Path.of(source.relativePath());
-      if (!root.equals(storedRoot) || relative.isAbsolute() || relative.getNameCount() != 1
-          || source.relativePath().contains(":") || relative.toString().isBlank()
-          || relative.toString().equals(".") || relative.toString().equals("..")) {
-        throw new AnalysisException(400, "Niedozwolona lokalizacja obrazu.");
-      }
-      Path path = root.resolve(relative).normalize();
-      if (!root.equals(path.getParent()) || !path.equals(path.toRealPath())) {
+      if (!root.equals(storedRoot)) throw new AnalysisException(400, "Niedozwolona lokalizacja obrazu.");
+      Path path = SourcePath.directChild(root, source.relativePath())
+          .orElseThrow(() -> new AnalysisException(400, "Niedozwolona lokalizacja obrazu."));
+      if (!path.equals(path.toRealPath())) {
         throw new AnalysisException(400, "Nie analizujemy przekierowanych ścieżek.");
       }
       BasicFileAttributes before = attributes(path);
@@ -60,14 +55,12 @@ public class AnalysisSourceReader {
           || !path.equals(path.toRealPath()) || !root.equals(folders.validate(root).path())) {
         throw new AnalysisException(409, "Plik zmienił się podczas odczytu. Spróbuj ponownie.");
       }
-      String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+      String hash = Sha256.hex(bytes);
       String media = bytes.length >= 8 && bytes[0] == (byte) 0x89 && bytes[1] == 'P'
           ? "image/png" : "image/jpeg";
       return new Input(fileId, bytes, hash, media);
     } catch (IOException e) {
       throw new AnalysisException(404, "Plik nie jest dostępny w wybranym folderze.");
-    } catch (NoSuchAlgorithmException e) {
-      throw new IllegalStateException("Required SHA-256 is unavailable", e);
     }
   }
 
