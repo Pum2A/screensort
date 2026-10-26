@@ -34,9 +34,13 @@ def load_analyzer() -> ImageAnalyzer:
     from screensort_analysis.ocr.recognizer import OcrRecognizer
     from screensort_analysis.vision.analyzer import VisionAnalyzer
 
-    torch.set_num_threads(min(4, os.cpu_count() or 1))
+    # OCR and the caption run side by side; each gets half of the physical cores
+    # (about a quarter of the logical ones). Measured 3+3 threads on 6 cores:
+    # 6.7 s -> 3.6 s per screenshot.
+    threads = max(1, min(8, (os.cpu_count() or 4) // 4))
+    torch.set_num_threads(threads)
     cache = Path(os.environ.get("SCREENSORT_MODEL_CACHE", "models")).resolve()
-    analyzer = ImageAnalyzer(OcrRecognizer(), VisionAnalyzer(cache))
+    analyzer = ImageAnalyzer(OcrRecognizer(threads), VisionAnalyzer(cache))
     with closing(Image.new("RGB", (64, 64), "white")) as image:
         with BytesIO() as output:
             image.save(output, format="PNG")
