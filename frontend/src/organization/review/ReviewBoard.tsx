@@ -183,7 +183,7 @@ export function ReviewBoard({folderPath, batchId, disabled, active, onSaved, onE
                                 <CatalogImage key={src} src={src} name=""/></button>
                             <button type="button" role="checkbox" aria-checked={selected.has(id)} aria-label={`Zaznacz ${entry.file.originalName}`}
                                 className="lib-check" onClick={event => toggle(id, event)}>{selected.has(id) && <PixelIcon name="check" size={10}/>}</button>
-                            <span className="lib-badges">{entry.state === 'sure' ? <span className="lib-badge lib-badge-lime">AI</span>
+                            <span className="lib-badges">{entry.state === 'sure' ? <span className="lib-ai-dot" title="Pewna propozycja"/>
                                 : entry.state === 'check' ? <span className="lib-badge lib-badge-warn">Sprawdź</span>
                                 : entry.state === 'approved' ? <span className="lib-badge lib-badge-ink"><PixelIcon name="check" size={10}/></span>
                                 : <span className="lib-badge">{item ? reviewLabel(item) : ''}</span>}</span>
