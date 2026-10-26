@@ -15,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.EngineBusyException;
+import pl.pum.screensort.analysis.result.SavedAnalysis;
 import pl.pum.screensort.scanning.folder.AllowedRoot;
 import pl.pum.screensort.scanning.folder.ScanFolderValidator;
 
@@ -31,6 +32,30 @@ class BatchManagerTest {
       assertThatThrownBy(() -> manager.resume(id))
           .isInstanceOfSatisfying(AnalysisException.class,
               error -> assertThat(error.status()).isEqualTo(409));
+    } finally { manager.stop(); }
+  }
+
+  @Test void reusesAnAnalysisOfTheSameContentInsteadOfCallingTheModel() throws Exception {
+    var store = mock(BatchStore.class);
+    var processor = mock(AnalysisProcessor.class);
+    var folders = mock(ScanFolderValidator.class);
+    var folder = Path.of("synthetic-test").toAbsolutePath();
+    when(folders.validate(folder)).thenReturn(new AllowedRoot(folder));
+    var job = new BatchStore.Job(UUID.randomUUID(), folder.toString(), "RUNNING", true, true, 1, 0, 0, 0, Instant.now());
+    var item = new BatchStore.Pending(1, "a.png", "a".repeat(64));
+    var saved = mock(SavedAnalysis.class);
+    when(store.create(folder.toString(), true, true)).thenReturn(job);
+    when(store.isRunning(job.id())).thenReturn(true);
+    when(store.next(job.id())).thenReturn(Optional.of(item), Optional.empty());
+    when(processor.reusable(1, true, true, "a".repeat(64))).thenReturn(Optional.of(saved));
+    var done = new CountDownLatch(1);
+    doAnswer(call -> { done.countDown(); return null; }).when(store).release(job.id());
+    var manager = new BatchManager(store, processor, folders);
+    try {
+      manager.start(folder.toString(), true, true);
+      assertThat(done.await(5, TimeUnit.SECONDS)).isTrue();
+      verify(store).completed(job.id(), item, saved);
+      verify(processor, never()).process(anyLong(), anyBoolean(), anyBoolean(), anyString(), anyBoolean());
     } finally { manager.stop(); }
   }
 

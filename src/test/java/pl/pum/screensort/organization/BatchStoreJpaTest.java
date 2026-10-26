@@ -21,11 +21,12 @@ import org.testcontainers.utility.DockerImageName;
 import pl.pum.screensort.catalog.database.AllowedRootEntity;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
+import pl.pum.screensort.naming.NamingSettings;
 import pl.pum.screensort.organization.review.ReviewStore;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({BatchStore.class, ReviewStore.class, CategorySuggester.class, NameSuggestionGenerator.class, BatchStoreJpaTest.JdbcConfig.class})
+@Import({BatchStore.class, ReviewStore.class, CategorySuggester.class, NameSuggestionGenerator.class, NamingSettings.class, BatchStoreJpaTest.JdbcConfig.class})
 class BatchStoreJpaTest {
   static final PostgreSQLContainer postgres = new PostgreSQLContainer(DockerImageName.parse("postgres:18.6"));
 
