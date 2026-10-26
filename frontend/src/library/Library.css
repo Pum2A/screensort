@@ -1,16 +1,16 @@
 /* Figma v1+ "01 · Biblioteka": dense, everything for ~40 files on one screen. Lime marks AI and progress only. */
 .library { display: flex; flex-direction: column; gap: 14px; margin-top: 18px; padding-bottom: 72px; }
 .lib-card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); min-width: 0; }
-.lib-card-key { border-color: var(--color-ink); box-shadow: var(--shadow-hard); }
-.lib-card-label { font-size: 13px; font-weight: 500; color: var(--color-muted); }
+.lib-card-label { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--color-muted); }
+.lib-card-label > i { width: 7px; height: 7px; border-radius: 2px; }
 .lib-card > strong { font-size: 28px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }
 .lib-card > small { font-size: 13px; color: var(--color-muted); }
 .lib-card > button { align-self: flex-start; margin-top: auto; }
 .lib-muted { margin: 0; font-size: 13px; color: var(--color-muted); }
 
 .lib-cards { display: grid; grid-template-columns: minmax(0, 1fr) 212px 212px; gap: 12px; }
-.lib-card-lime { background: var(--color-lime); }
-.lib-card-lime .lib-card-label, .lib-card-lime > small { color: var(--color-ink); }
+/* The one card with a call to action: ink button, lime only as the small marker in its label. */
+.lib-card-sure > button { min-width: 140px; }
 .lib-stats { flex-direction: row; align-items: center; gap: 24px; }
 .lib-total { display: flex; flex-direction: column; gap: 2px; }
 .lib-total strong { display: flex; align-items: baseline; gap: 8px; font-size: 44px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
@@ -50,29 +50,31 @@
 .lib-grid-head span { font-size: 12px; color: var(--color-subtle); }
 .lib-notice { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; padding: 4px 4px 4px 12px; border-radius: var(--radius-control); background: var(--color-fill); font-size: 13px; }
 .lib-notice .text-button { min-height: 30px; padding: 4px 10px; }
-.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 10px 8px; }
+.lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 14px 12px; }
 
-.lib-tile { position: relative; display: flex; flex-direction: column; gap: 5px; padding: 3px; border: 1px solid transparent; border-radius: var(--radius-tile); min-width: 0; }
-.lib-tile[data-selected="true"] { border-color: var(--color-ink); box-shadow: var(--shadow-hard); }
-.lib-thumb { display: block; aspect-ratio: 4 / 3; padding: 0; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-fill); overflow: hidden; }
+/* Clean tiles: just the picture and its name. State lives in one small corner mark. */
+.lib-tile { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 0; min-width: 0; }
+.lib-thumb { display: block; aspect-ratio: 4 / 3; padding: 0; border: 0; border-radius: 10px; background: var(--color-fill); overflow: hidden; outline: 1px solid rgb(25 28 31 / .06); outline-offset: -1px; transition: outline-color 140ms, transform 140ms var(--motion-ease); }
+.lib-tile:hover .lib-thumb { outline-color: rgb(25 28 31 / .25); }
+.lib-tile[data-selected="true"] .lib-thumb { outline: 2px solid var(--color-ink); outline-offset: 2px; }
 .lib-thumb .catalog-image { width: 100%; height: 100%; }
 .lib-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .lib-tile[data-state="skipped"] .lib-thumb { opacity: .5; }
-.lib-check { position: absolute; top: 9px; left: 9px; display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 1px solid var(--color-subtle); border-radius: 5px; background: rgb(255 255 255 / .9); color: var(--color-lime); opacity: 0; transition: opacity 120ms; }
+.lib-check { position: absolute; top: 6px; left: 6px; display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 1px solid var(--color-subtle); border-radius: 5px; background: rgb(255 255 255 / .9); color: var(--color-lime); opacity: 0; transition: opacity 120ms; }
 .lib-tile:hover .lib-check, .lib-check:focus-visible, .lib-check[aria-checked="true"], .library:has(.lib-bulk) .lib-check { opacity: 1; }
 .lib-check[aria-checked="true"] { border-color: var(--color-ink); background: var(--color-ink); }
-.lib-badges { position: absolute; top: 9px; right: 9px; display: flex; gap: 4px; pointer-events: none; }
+.lib-badges { position: absolute; top: 6px; right: 6px; display: flex; align-items: center; gap: 4px; pointer-events: none; }
+.lib-ai-dot { display: block; width: 8px; height: 8px; margin: 4px; border-radius: 50%; background: var(--color-lime); box-shadow: 0 0 0 1.5px var(--color-ink); }
 .lib-badge { display: inline-grid; place-items: center; min-width: 18px; height: 16px; padding: 0 5px; border-radius: var(--radius-badge); background: var(--color-fill); font-family: var(--font-mono); font-size: 10px; font-weight: 500; color: var(--color-muted); }
 .lib-badge-ink { background: var(--color-ink); color: var(--color-lime); }
-.lib-badge-lime { background: var(--color-lime); color: var(--color-ink); }
 .lib-badge-warn { background: var(--color-warn-soft); color: var(--color-warn-ink); }
-.lib-copies { position: absolute; left: 9px; bottom: 28px; padding: 0 5px; border-radius: var(--radius-badge); background: var(--color-ink); color: white; font-family: var(--font-mono); font-size: 10px; pointer-events: none; }
-.lib-name { padding: 0 2px; font-size: 12px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-copies { position: absolute; left: 6px; bottom: 30px; padding: 0 5px; border-radius: var(--radius-badge); background: rgb(25 28 31 / .72); color: white; font-family: var(--font-mono); font-size: 10px; pointer-events: none; }
+.lib-name { padding: 0 2px; font-size: 12px; font-weight: 500; color: var(--color-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-tile:hover .lib-name, .lib-tile[data-selected="true"] .lib-name { color: var(--color-ink); }
 
 .lib-side { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 12px; }
 .lib-categories { gap: 2px; padding: 14px; }
 .lib-categories h2 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
-.lib-categories mark { padding: 1px 5px; border-radius: 4px; background: var(--color-lime); color: var(--color-ink); }
 .lib-category { display: flex; align-items: center; gap: 10px; padding: 7px 6px; border: 0; border-radius: var(--radius-control); background: none; color: var(--color-ink); text-align: left; }
 .lib-category:hover, .lib-category[aria-pressed="true"] { background: var(--color-canvas); }
 .lib-category-icon { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--color-fill); flex-shrink: 0; }

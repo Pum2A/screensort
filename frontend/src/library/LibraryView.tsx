@@ -35,7 +35,8 @@ const stateLabel = {approved: 'Zatwierdzony', skipped: 'Pominięty', sure: 'Pewn
 function Badge({entry}: {entry: LibraryEntry}) {
     switch (entry.state) {
         case 'approved': return <span className="lib-badge lib-badge-ink" title={stateLabel.approved}><PixelIcon name="check" size={10}/></span>
-        case 'sure': return <span className="lib-badge lib-badge-lime" title={stateLabel.sure}>AI</span>
+        // Most tiles are "sure"; a small dot keeps the grid calm and lets "!" stand out.
+        case 'sure': return <span className="lib-ai-dot" title={stateLabel.sure}/>
         case 'check': return <span className="lib-badge lib-badge-warn" title={stateLabel.check}>!</span>
         case 'queued': return <span className="lib-badge" title={stateLabel.queued}>…</span>
         case 'failed': return <span className="lib-badge lib-badge-warn" title={stateLabel.failed}>błąd</span>
@@ -141,7 +142,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
 
     return <div className="library">
         <div className="lib-cards">
-            <section className="lib-card lib-card-key lib-stats" aria-label="Podsumowanie folderu">
+            <section className="lib-card lib-stats" aria-label="Podsumowanie folderu">
                 <div className="lib-total"><span className="lib-card-label">Obrazy w folderze</span>
                     <strong>{total}{today > 0 && <span className="lib-today">+{today} dziś</span>}</strong>
                     <small>skan {time(lastScan(library.files))}</small></div>
@@ -157,8 +158,8 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                         <span><i className="lib-dot-warn"/>Sprawdź {counts.check}</span>{counts.fresh + counts.queued > 0 && <span>Bez analizy {counts.fresh + counts.queued}</span>}</p>
                 </div>
             </section>
-            <section className="lib-card lib-card-key lib-card-lime" aria-label="Pewne propozycje">
-                <span className="lib-card-label">Pewne propozycje</span><strong>{counts.sure}</strong>
+            <section className="lib-card lib-card-sure" aria-label="Pewne propozycje">
+                <span className="lib-card-label"><i className="lib-dot-lime" aria-hidden="true"/>Pewne propozycje</span><strong>{counts.sure}</strong>
                 {library.batchId ? <><small>Gotowe do zatwierdzenia</small>
                     <button className="primary-button" disabled={sure.length === 0 || bulkBusy} onClick={() => decide(sure, {decision: 'APPROVED'})}>Zatwierdź {sure.length}</button></>
                     : <><small>Folder nie był jeszcze analizowany</small><button className="primary-button" onClick={onReview}>Uruchom analizę</button></>}
@@ -199,7 +200,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
             </section>
             <aside className="lib-side">
                 <section className="lib-card lib-categories" aria-label="Kategorie">
-                    <h2><mark>Kategorie</mark></h2>
+                    <h2>Kategorie</h2>
                     {library.batchId ? categories.map(category => {
                         const count = counts.byCategory[category]
                         return <button key={category} className="lib-category" aria-pressed={filter === category} onClick={() => setFilter(filter === category ? 'all' : category)}>

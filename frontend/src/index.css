@@ -31,8 +31,8 @@
     --radius-tile: 12px;
     --radius-card: 18px;
 
-    /* Key cards and buttons only: a 1 px ink border with a hard shadow, never a soft one. */
-    --shadow-hard: 0 3px 0 0 var(--color-ink);
+    /* Selected and focused things only: a crisp ink ring. The offset "brutalist" shadow read as noise. */
+    --shadow-hard: 0 0 0 1px var(--color-ink);
     --shadow-float: 0 8px 20px 0 rgb(0 0 0 / .2);
 }
 

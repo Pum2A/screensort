@@ -20,7 +20,7 @@
 .dups-done { display: grid; place-items: center; width: 18px; height: 18px; border-radius: var(--radius-badge); background: var(--color-ink); color: var(--color-lime); }
 .dups-compare { padding: 14px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); min-width: 0; }
 .dups-compare > header p { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 13px; color: var(--color-muted); }
-.dups-compare mark { padding: 1px 6px; border-radius: 4px; background: var(--color-lime); color: var(--color-ink); font-weight: 700; }
+.dups-compare mark { padding: 0; background: none; color: var(--color-ink); font-weight: 700; }
 .dups-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
 .dups-file { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--color-line); border-radius: var(--radius-tile); min-width: 0; }
 .dups-file[data-kept="true"] { border-color: var(--color-ink); box-shadow: var(--shadow-hard); }

@@ -1,7 +1,6 @@
 import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls.js'
 import {Logo} from '../ui/Logo.js'
 import {PixelIcon} from '../ui/PixelIcon.js'
-import {pixelIconUrl} from '../ui/pixelIcons.js'
 import type {PixelIconName} from '../ui/pixelIcons.js'
 import type {WorkspaceView} from './state.js'
 import './Sidebar.css'
@@ -41,7 +40,7 @@ export function Sidebar({view, onView, counts, folder, folderLabel, onAddFolder,
         </nav>
         <p className="sidebar-section">FOLDERY</p>
         {folder && <div className="sidebar-folder" aria-current="true" title={folder}>
-            <span className="folder-mosaic" aria-hidden="true">{[0, 1, 2, 3].map(index => <img key={index} src={pixelIconUrl('placeholder')} alt=""/>)}</span>
+            <span className="sidebar-chip" aria-hidden="true"><PixelIcon name="folder"/></span>
             <span className="sidebar-folder-text"><strong>{folderLabel}</strong>{counts.total !== null && <small>{counts.total} obrazów</small>}</span>
         </div>}
         {onAddFolder && <button className="sidebar-add" disabled={locked} onClick={onAddFolder}>
