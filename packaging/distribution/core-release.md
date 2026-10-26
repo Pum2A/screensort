@@ -1,5 +1,9 @@
 ## ScreenSort Windows x64 preview
 
+0.3.1 fixes 0.3.0: the library, "Do decyzji" and Duplikaty screens stayed
+empty in the installed app. They show your folder again. Nothing else changed,
+and no data was lost: the catalog, analyses and decisions were never touched.
+
 New in 0.3.0: a new look and faster bulk decisions.
 
 - New design: a sidebar with Biblioteka, Do decyzji and Duplikaty, a light
