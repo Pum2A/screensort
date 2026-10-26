@@ -1,7 +1,16 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-22. Bieżący etap źródłowy: **0.2.5 preview**.
+Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.0 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Aktualizacja 0.3.0: redesign v1+ i szybkie decyzje hurtowe. Nowy pasek boczny
+(Biblioteka, Do decyzji, Duplikaty), biblioteka całego folderu z kategoriami AI
+i zaznaczaniem wielu obrazów, widok duplikatów po SHA-256 oraz przegląd
+hurtowy wszystkich propozycji naraz. Weszły też poprawki audytu: jeden format
+błędów API, wznawiane pobieranie pakietu AI i usunięcie martwego kodu.
+Wydanie 0.3.0 zostało opublikowane 2026-10-26 w kanale `updates-preview`
+repozytorium `Pum2A/screensort-releases`. Czego v1+ jeszcze nie ma:
+[v1-plus-do-zrobienia.md](v1-plus-do-zrobienia.md).
 
 Aktualizacja 0.2.5: wydanie niezawodności i prywatności, bez nowych funkcji.
 Uszkodzony obraz nie przerywa już skanu, logi błędów zadań nie zawierają ścieżek
