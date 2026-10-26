@@ -21,14 +21,14 @@ class OcrRecognizer:
     MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
     MAX_IMAGE_EDGE = MAX_IMAGE_EDGE
 
-    def __init__(self):
+    def __init__(self, threads: int = 2):
         self._engine_version = version("rapidocr")
 
         self._engine = RapidOCR(
             params={
                 "Global.log_level": "warning",
                 "EngineConfig.onnxruntime.use_cuda": False,
-                "EngineConfig.onnxruntime.intra_op_num_threads": 2,
+                "EngineConfig.onnxruntime.intra_op_num_threads": threads,
                 "EngineConfig.onnxruntime.inter_op_num_threads": 1,
             }
         )
