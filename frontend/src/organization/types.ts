@@ -39,7 +39,6 @@ export const batchItemSchema = z.object({
     review: organizationDecisionSchema.nullable(),
 })
 
-export const batchPageSchema = z.object({items: z.array(batchItemSchema), hasNext: z.boolean()})
 
 export const organizationPlanItemSchema = z.object({
     fileId: z.number().int(),
@@ -60,6 +59,5 @@ export const organizationPlanPageSchema = z.object({
 export type Batch = z.infer<typeof batchSchema>
 export type OrganizationDecision = z.infer<typeof organizationDecisionSchema>
 export type BatchItem = z.infer<typeof batchItemSchema>
-export type BatchPage = z.infer<typeof batchPageSchema>
 export type OrganizationPlanItem = z.infer<typeof organizationPlanItemSchema>
 export type OrganizationPlanPage = z.infer<typeof organizationPlanPageSchema>
