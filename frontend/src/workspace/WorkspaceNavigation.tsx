@@ -1,13 +1,14 @@
-import {Images, ScanLine, Sparkles} from 'lucide-react'
+import {Images, Sparkles} from 'lucide-react'
 import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls.js'
+import {Logo} from '../ui/Logo.js'
 import type {WorkspaceView} from './state.js'
 
 type Props = {total: number | null; view: WorkspaceView; onView: (view: WorkspaceView) => void}
 
 export function WorkspaceNavigation({total, view, onView}: Props) {
     return <header className="workspace-navigation-bar">
-        <a className="brand" href="#catalog" onClick={event => {event.preventDefault(); onView('catalog')}}>
-            <span className="brand-mark"><ScanLine size={22}/></span><span>ScreenSort</span>
+        <a className="brand" href="#catalog" aria-label="ScreenSort" onClick={event => {event.preventDefault(); onView('catalog')}}>
+            <Logo/>
         </a>
         <nav className="workspace-navigation" aria-label="Widoki aplikacji">
             <button className="workspace-nav-item" aria-current={view === 'catalog' ? 'page' : undefined} onClick={() => onView('catalog')}>
