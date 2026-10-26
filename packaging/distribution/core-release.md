@@ -1,24 +1,28 @@
 ## ScreenSort Windows x64 preview
 
-New in 0.2.5: a reliability and privacy update. There are no new features, and
-the workspace looks the same as in 0.2.4.
+New in 0.3.0: a new look and faster bulk decisions.
 
-- One damaged image no longer stops a folder scan. It is skipped with the
-  reason "Nie udało się odczytać obrazu" and the other files are still added
-  to the catalog.
-- Error logs of background scans, analyses and copies no longer contain file
-  paths, and folder errors in the catalog no longer echo the folder path.
-- The application checks every answer from its local services before showing
-  it. Unexpected data now shows a short message instead of a broken screen,
-  and server error details are never displayed.
-- Scan, folder-analysis and copy progress keep updating while the window is
-  minimized, so the catalog refreshes as soon as a scan finishes. Progress
-  screens also send fewer background requests.
+- New design: a sidebar with Biblioteka, Do decyzji and Duplikaty, a light
+  layout with one lime accent for AI results and progress, and offline fonts.
+- The library shows the whole folder on one screen, with filters by AI
+  category, a "certain proposals" card that approves them all in one click,
+  and decision progress (ready / certain / to check).
+- Select many images (click, Shift+click for a range, Ctrl+A) and approve,
+  skip or set a category for all of them from the floating bar. A doubtful or
+  missing name is never approved in bulk; open that image instead.
+- New Duplikaty view for byte-identical files: keep one copy, and the others
+  are skipped in the organized copy. Originals on disk are never touched.
+- "Do decyzji" lists every proposal of the folder at once instead of pages of
+  50, with a category pill on each card (keys 1-5) and the editor beside it.
+- The AI engine download resumes after a dropped connection instead of
+  starting again.
+- Clicking an image opens its preview with the analysis and name editor that
+  used to sit in the side panel.
 
-The recognition models, categories, naming rules and update channel are
-unchanged. The catalog, saved analyses and approved decisions carry over.
-0.2.4 introduced the redesigned workspace and update checks on every fresh
-launch.
+The library and bulk review handle folders of up to 1000 images; analysis of
+bigger folders still works. The recognition models, categories, naming rules
+and update channel are unchanged. The catalog, saved analyses and approved
+decisions carry over.
 
 The Core installer starts the local catalog and private PostgreSQL without installing Python or loading AI models. No Docker, JDK or system Python is required on the user's machine.
 
