@@ -2,27 +2,16 @@ import {useEffect, useState} from 'react'
 import {invoke} from '@tauri-apps/api/core'
 import {AnalysisEngineContent} from './AnalysisEngineContent.js'
 import type {PackageStatus} from './state.js'
+import {watchNative} from '../nativeStatus.js'
 
 export function AiPackagePanel({starting, ready = false, onStart}: {starting: boolean; ready?: boolean; onStart: () => void}) {
     const [status, setStatus] = useState<PackageStatus | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [pollError, setPollError] = useState<string | null>(null)
     const [requesting, setRequesting] = useState(false)
-    useEffect(() => {
-        let stopped = false
-        let timer: ReturnType<typeof setTimeout>
-        async function check() {
-            try {
-                const next = await invoke<PackageStatus>('ai_package_status')
-                if (!stopped) {setStatus(next); setPollError(null)}
-            } catch {
-                if (!stopped) setPollError('Nie można odczytać stanu silnika. Sprawdź działanie aplikacji.')
-            }
-            if (!stopped) timer = setTimeout(() => void check(), 1000)
-        }
-        void check()
-        return () => {stopped = true; clearTimeout(timer)}
-    }, [])
+    useEffect(() => watchNative<PackageStatus>('ai_package_status', 'ai-package-status',
+        next => {setStatus(next); setPollError(null)},
+        () => setPollError('Nie można odczytać stanu silnika. Sprawdź działanie aplikacji.')), [])
 
     async function install(id: string, fromFile: boolean) {
         setRequesting(true); setError(null)

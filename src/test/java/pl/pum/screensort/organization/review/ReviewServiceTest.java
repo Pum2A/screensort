@@ -66,7 +66,7 @@ class ReviewServiceTest {
     return new ReviewService.Request(8L, HASH, -1L, -1L, decision, name, category);
   }
   static ReviewItem item(String status, boolean matches, long namingRevision, ReviewItem.Decision review) {
-    return new ReviewItem(1, "IMG_0026.png", status, "PHOTOGRAPHS", "mug.png", null,
+    return new ReviewItem(1, "IMG_0026.png", status, "PHOTOGRAPHS", "mug.png", false, null,
         8L, HASH, matches, namingRevision, null, review);
   }
 }

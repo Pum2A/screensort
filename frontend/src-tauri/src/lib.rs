@@ -47,6 +47,7 @@ pub fn run() {
             } else {
                 updates::on_launch(app.handle());
                 desktop::launch(app.handle().clone());
+                desktop::spawn_events(app.handle().clone());
             }
             Ok(())
         })

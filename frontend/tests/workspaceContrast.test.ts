@@ -17,15 +17,16 @@ function luminance(hex: string): number {
     })
     return linear[0] * .2126 + linear[1] * .7152 + linear[2] * .0722
 }
+// The v1+ tokens in the @theme block; the older names (--text, --muted...) only point at them.
 test('body text and small metadata meet AA contrast on both workspace surfaces', () => {
-    for (const foreground of ['text', 'muted']) for (const background of ['surface', 'background']) {
+    for (const foreground of ['color-ink', 'color-muted']) for (const background of ['color-surface', 'color-canvas']) {
         const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
         assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
     }
 })
 
 test('action and selected controls retain readable text on the restrained accent palette', () => {
-    for (const [foreground, background] of [['text', 'action'], ['accent', 'selected']]) {
+    for (const [foreground, background] of [['color-ink', 'color-lime'], ['color-ink', 'color-fill']]) {
         const values = [luminance(token(foreground)), luminance(token(background))].sort((a, b) => b - a)
         assert.ok((values[0] + .05) / (values[1] + .05) >= 4.5, `${foreground} on ${background} must meet 4.5:1`)
     }

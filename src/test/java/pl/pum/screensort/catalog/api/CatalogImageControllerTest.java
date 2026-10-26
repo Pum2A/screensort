@@ -1,5 +1,7 @@
 package pl.pum.screensort.catalog.api;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import pl.pum.screensort.api.ApiExceptionHandler;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,7 +23,7 @@ class CatalogImageControllerTest {
     byte[] png = {1, 2, 3};
     when(previews.read(12, CatalogImagePreview.Size.THUMBNAIL)).thenReturn(png);
     when(previews.read(12, CatalogImagePreview.Size.PREVIEW)).thenReturn(png);
-    var mvc = MockMvcBuilders.standaloneSetup(new CatalogImageController(previews)).build();
+    var mvc = MockMvcBuilders.standaloneSetup(new CatalogImageController(previews)).setControllerAdvice(new ApiExceptionHandler()).build();
     for (String variant : new String[] {"thumbnail", "preview"}) {
       mvc.perform(get("/api/catalog/files/12/" + variant))
           .andExpect(status().isOk()).andExpect(content().contentType("image/png"))
@@ -37,10 +39,10 @@ class CatalogImageControllerTest {
     var previews = mock(CatalogImagePreview.class);
     when(previews.read(12, CatalogImagePreview.Size.THUMBNAIL))
         .thenThrow(new ImagePreviewException(reason, "Podgląd niedostępny."));
-    var mvc = MockMvcBuilders.standaloneSetup(new CatalogImageController(previews)).build();
+    var mvc = MockMvcBuilders.standaloneSetup(new CatalogImageController(previews)).setControllerAdvice(new ApiExceptionHandler()).build();
     var response = mvc.perform(get("/api/catalog/files/12/thumbnail"))
         .andExpect(status().is(expectedStatus)).andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(content().string("Podgląd niedostępny."));
+        .andExpect(jsonPath("$.message").value("Podgląd niedostępny."));
     if (reason == ImagePreviewException.Reason.BUSY) response.andExpect(header().string("Retry-After", "1"));
   }
 }

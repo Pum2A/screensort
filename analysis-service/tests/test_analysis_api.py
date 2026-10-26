@@ -213,3 +213,45 @@ def test_production_does_not_accept_missing_or_weak_token(monkeypatch):
 def test_shutdown_is_protected_and_requires_the_owned_launcher(client):
     assert client.post("/_internal/shutdown").status_code == 401
     assert client.post("/_internal/shutdown", headers=HEADERS).status_code == 503
+
+
+def test_busy_engine_answers_503_with_a_hint_when_to_come_back(client, image_bytes):
+    runtime = client.app.state.analysis_runtime
+    assert runtime.reserve()
+    try:
+        response = client.post("/api/v1/analyses", headers=HEADERS, content=image_bytes)
+    finally:
+        runtime.release()
+    assert response.status_code == 503
+    assert response.json()["detail"] == "ANALYSIS_BUSY"
+    assert response.headers["retry-after"] == str(api.BUSY_RETRY_AFTER_SECONDS)
+
+
+def test_backend_may_ask_for_a_longer_limit_within_bounds(client, image_bytes):
+    longer = client.post(
+        "/api/v1/analyses?timeoutSeconds=240", headers=HEADERS, content=image_bytes
+    )
+    assert longer.status_code == 200
+    for value in ("29", "241", "soon"):
+        response = client.post(
+            f"/api/v1/analyses?timeoutSeconds={value}",
+            headers=HEADERS,
+            content=image_bytes,
+        )
+        assert response.status_code == 422
+
+
+def test_the_requested_limit_is_the_one_applied(client, image_bytes, monkeypatch):
+    applied = []
+    real_timeout = api.asyncio.timeout
+
+    def recording_timeout(seconds):
+        applied.append(seconds)
+        return real_timeout(seconds)
+
+    monkeypatch.setattr(api.asyncio, "timeout", recording_timeout)
+    client.post("/api/v1/analyses", headers=HEADERS, content=image_bytes)
+    client.post(
+        "/api/v1/analyses?timeoutSeconds=240", headers=HEADERS, content=image_bytes
+    )
+    assert applied == [api.UPLOAD_TIMEOUT_SECONDS, 120, api.UPLOAD_TIMEOUT_SECONDS, 240]

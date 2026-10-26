@@ -6,7 +6,7 @@ import {readReview, saveReview} from '../src/organization/review/api.js'
 
 const hash = 'a'.repeat(64)
 const item: BatchItem = {fileId: 7, originalName: 'IMG_0026.png', status: 'COMPLETED', category: 'PHOTOGRAPHS',
-    proposedName: 'mug_desk.png', message: null, analysisId: 8, sourceSha256: hash,
+    proposedName: 'mug_desk.png', proposalUncertain: false, message: null, analysisId: 8, sourceSha256: hash,
     analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}
 const batch = '11111111-2222-4333-8444-555555555555'
 

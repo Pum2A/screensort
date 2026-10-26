@@ -1,0 +1,38 @@
+/* Figma v1+ "06 · Duplikaty": groups on the left, every file of the group side by side on the right. */
+.dups { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+.dups-banner { display: flex; align-items: center; gap: 16px; padding: 16px 18px; border: 1px solid var(--color-ink); border-radius: var(--radius-card); background: var(--color-surface); box-shadow: var(--shadow-hard); }
+.dups-banner-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-control); background: var(--color-lime); flex-shrink: 0; }
+.dups-banner > div { flex: 1; min-width: 0; }
+.dups-banner strong { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+.dups-banner p { margin: 2px 0 0; font-size: 13px; color: var(--color-muted); }
+.dups-hint { margin: 0; font-size: 13px; color: var(--color-warn-ink); }
+.dups-body { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 12px; align-items: start; }
+.dups-list { display: flex; flex-direction: column; gap: 4px; padding: 12px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); }
+.dups-list h2 { margin: 0 0 4px; padding: 0 4px; font-size: 14px; font-weight: 600; }
+.dups-list button { display: flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid transparent; border-radius: var(--radius-control); background: none; color: var(--color-ink); text-align: left; }
+.dups-list button:hover { background: var(--color-canvas); }
+.dups-list button[aria-current="true"] { border-color: var(--color-ink); box-shadow: var(--shadow-hard); }
+.dups-list-thumb { width: 48px; height: 36px; border-radius: 6px; background: var(--color-fill); overflow: hidden; flex-shrink: 0; }
+.dups-list-thumb .catalog-image, .dups-list-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.dups-list-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.dups-list-text strong { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dups-list-text small { font-family: var(--font-mono); font-size: 10px; color: var(--color-subtle); }
+.dups-done { display: grid; place-items: center; width: 18px; height: 18px; border-radius: var(--radius-badge); background: var(--color-ink); color: var(--color-lime); }
+.dups-compare { padding: 14px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); min-width: 0; }
+.dups-compare > header p { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 13px; color: var(--color-muted); }
+.dups-compare mark { padding: 1px 6px; border-radius: 4px; background: var(--color-lime); color: var(--color-ink); font-weight: 700; }
+.dups-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.dups-file { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid var(--color-line); border-radius: var(--radius-tile); min-width: 0; }
+.dups-file[data-kept="true"] { border-color: var(--color-ink); box-shadow: var(--shadow-hard); }
+.dups-file > header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dups-file h3 { margin: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dups-file > header span { padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-fill); font-family: var(--font-mono); font-size: 10px; color: var(--color-muted); }
+.dups-file[data-kept="true"] > header span { background: var(--color-lime); color: var(--color-ink); }
+.dups-preview { aspect-ratio: 4 / 3; border: 1px solid var(--color-line); border-radius: 8px; background: var(--color-fill); overflow: hidden; }
+.dups-preview .catalog-image, .dups-preview img { width: 100%; height: 100%; object-fit: contain; }
+.dups-file dl { margin: 0; }
+.dups-file dl div { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--color-line); font-size: 13px; }
+.dups-file dt { display: inline-flex; align-items: center; gap: 7px; color: var(--color-muted); }
+.dups-file dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.dups-file > button { width: 100%; }
+@media (max-width: 1000px) { .dups-body { grid-template-columns: 1fr; } .dups-banner { flex-wrap: wrap; } }

@@ -67,9 +67,4 @@ public class BatchController {
     store.state(id, "PAUSE".equals(request.action()) ? "PAUSED" : "CANCELLED");
     return find(id);
   }
-
-  @ExceptionHandler(AnalysisException.class)
-  public ResponseEntity<String> failure(AnalysisException error) {
-    return ResponseEntity.status(error.status()).header("Cache-Control", "no-store").body(error.getMessage());
-  }
 }

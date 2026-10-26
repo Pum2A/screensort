@@ -1,9 +1,9 @@
 import {requestJson, requestJsonOrNull} from '../shared/http.js'
 import type {ErrorMessages} from '../shared/http.js'
-import {batchPageSchema, batchSchema, organizationPlanPageSchema} from './types.js'
-import type {Batch, BatchPage, OrganizationPlanPage} from './types.js'
+import {batchSchema, organizationPlanPageSchema} from './types.js'
+import type {Batch, OrganizationPlanPage} from './types.js'
 
-export type {Batch, BatchItem, BatchPage, OrganizationDecision, OrganizationPlanItem, OrganizationPlanPage} from './types.js'
+export type {Batch, BatchItem, OrganizationDecision, OrganizationPlanItem, OrganizationPlanPage} from './types.js'
 
 const messages: ErrorMessages = {
     byStatus: {
@@ -19,7 +19,6 @@ const batchPath = (id: string) => `/api/organization/batches/${encodeURIComponen
 export const organizationKeys = {
     latest: (folderPath: string) => ['organization', 'latest', folderPath] as const,
     batch: (id: string) => ['organization', 'batch', id] as const,
-    items: (id: string, page: number) => ['organization', 'batch', id, 'items', page] as const,
     plan: (id: string, page: number) => ['organization', 'batch', id, 'plan', page] as const,
 }
 
@@ -33,10 +32,6 @@ export function startBatch(folderPath: string, ocr: boolean, visual: boolean, si
 
 export function readBatch(id: string, signal?: AbortSignal): Promise<Batch> {
     return requestJson(batchPath(id), batchSchema, messages, {signal})
-}
-
-export function batchItems(id: string, page: number, signal?: AbortSignal): Promise<BatchPage> {
-    return requestJson(`${batchPath(id)}/items?page=${page}`, batchPageSchema, messages, {signal})
 }
 
 export function organizationPlan(id: string, page: number, signal?: AbortSignal): Promise<OrganizationPlanPage> {
