@@ -69,6 +69,7 @@ export function ReviewEditor({batchId, item, disabled, onSaved, onStateChange, o
         <div className={styles.preview}><CatalogImage key={src} src={src} name={item.originalName} preview/></div>
         <p className={styles.original}><span>Oryginalna nazwa</span>{item.originalName}</p>
         <p className={styles.hint}>Sprawdź propozycję i popraw ją, jeśli nie oddaje zawartości obrazu.</p>
+        {item.proposedName && item.proposalUncertain && !item.approvedName && <p role="status" className="feedback feedback-warning">Niepewna propozycja nazwy: powstała z małej ilości informacji. Decyzja należy do Ciebie.</p>}
         {item.analysisId != null && <ReviewEvidence key={item.analysisId} fileId={item.fileId} analysisId={item.analysisId} sourceHash={item.sourceSha256}/>}
         {changed && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Wynik lub decyzja zmieniły się na serwerze. Edycji nie nadpisano. Wczytaj aktualny formularz.</p>}
         {!item.analysisMatchesCatalog && <p role="status" className="my-3 rounded-lg bg-amber-50 p-3 text-amber-900">Ta analiza nie odpowiada aktualnym danym katalogu. Zeskanuj i przeanalizuj obraz ponownie.</p>}

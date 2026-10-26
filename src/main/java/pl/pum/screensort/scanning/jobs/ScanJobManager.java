@@ -44,27 +44,13 @@ public class ScanJobManager {
   public ScanJob start(Path folder) {
     ScanJob job = reserve(folder);
     try {
-      jobRunner.execute(
-          () -> {
-            try {
-              run(job.id(), folder);
-            } catch (IOException | RuntimeException exception) {
-              // run już ustawił FAILED i zapisał przyczynę w logu.
-              // Błąd zadania w tle nie jest odpowiedzią na zakończone żądanie POST.
-            }
-          });
+      jobRunner.execute(() -> run(job.id(), folder));
     } catch (TaskRejectedException exception) {
       fail(job.id(), "Nie można teraz uruchomić skanu. Spróbuj ponownie później.");
       release(job.id());
       throw exception;
     }
     return job;
-  }
-
-  /** Zachowuje stary przepływ HTTP, ale korzysta z tej samej blokady skanów. */
-  public ScanResult scanAndSave(Path folder) throws IOException {
-    ScanJob job = reserve(folder);
-    return run(job.id(), folder);
   }
 
   public synchronized Optional<ScanJob> find(UUID id) {
@@ -100,13 +86,13 @@ public class ScanJobManager {
     return job;
   }
 
-  private ScanResult run(UUID id, Path folder) throws IOException {
+  // A background job answers through its status, so a failure is recorded, never rethrown.
+  private void run(UUID id, Path folder) {
     try {
       ScanResult result =
           workflow.scanAndSave(folder, (status, summary) -> update(id, status, summary));
       // Workflow wraca dopiero po zakończeniu transakcji CatalogUpdater.
       complete(id, result);
-      return result;
     } catch (IOException | RuntimeException exception) {
       String message =
           exception instanceof InvalidScanFolderException
@@ -114,12 +100,6 @@ public class ScanJobManager {
               : "Skanowanie lub zapis katalogu nie powiodły się. Szczegóły są w logu backendu.";
       fail(id, message);
       log.warn("Nie udało się zakończyć zadania skanu {}", id, RedactedThrowable.of(exception));
-      if (exception instanceof InvalidScanFolderException) throw exception;
-      // Oryginał trafiłby do logu kontenera razem ze ścieżką z komunikatu IO.
-      if (exception instanceof IOException) {
-        throw new IOException("Scan failed", RedactedThrowable.of(exception));
-      }
-      throw new IllegalStateException("Scan failed", RedactedThrowable.of(exception));
     } finally {
       release(id);
     }

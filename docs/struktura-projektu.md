@@ -27,9 +27,8 @@ screenSorter/
 │   │   ├── useScanJob.ts         stan Reacta i obsługa błędów/cleanup
 │   │   ├── ScanProgress.tsx     etapy i liczba sprawdzonych wpisów
 │   │   └── ScanSummary.tsx      cztery liczniki zadania
-│   ├── catalog/                  kółka, drzewko szczegółów, typy i API
-│   │   ├── CatalogGallery.tsx    wybór zdjęcia w siatce kółek
-│   │   ├── CatalogDetailsPanel.tsx szczegóły wybranego pliku obok galerii
+│   ├── library/                  biblioteka v1+: siatka, kategorie AI, zaznaczanie wielu, duplikaty
+│   ├── catalog/                  drzewko szczegółów, miniatury, typy i API
 │   │   ├── ImageDetailsDialog.tsx powiększenie: centralny podgląd, tło, X i klawiatura
 │   │   ├── ImageDetailsTree.tsx  podgląd + Plik / Lokalizacja / Historia / Techniczne
 │   │   ├── CatalogImage.tsx      ładowanie i błąd obrazu

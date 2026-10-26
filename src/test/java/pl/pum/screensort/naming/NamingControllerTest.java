@@ -20,14 +20,15 @@ class NamingControllerTest {
 
   @Test
   void exposesTheReadAndApprovalWithoutCachingOrStartingAnalysis() throws Exception {
-    var result = new NamingReviewDto(1, 8, "a".repeat(64), "a.png", "mug.png", true, null, null, false, -1);
-    var approved = new NamingReviewDto(1, 8, "a".repeat(64), "a.png", "mug.png", true,
+    var result = new NamingReviewDto(1, 8, "a".repeat(64), "a.png", "mug.png", false, true, null, null, false, -1);
+    var approved = new NamingReviewDto(1, 8, "a".repeat(64), "a.png", "mug.png", false, true,
         "moj_kubek.png", Instant.parse("2026-10-18T12:00:00Z"), true, 0);
     when(service.read(1)).thenReturn(result);
     when(service.approve(1, 8, "a".repeat(64), -1, "moj_kubek.png")).thenReturn(approved);
     mvc.perform(get("/api/catalog/files/1/naming"))
         .andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.proposedName").value("mug.png"));
+        .andExpect(jsonPath("$.proposedName").value("mug.png"))
+        .andExpect(jsonPath("$.proposalUncertain").value(false));
     mvc.perform(put("/api/catalog/files/1/naming").contentType(MediaType.APPLICATION_JSON)
         .content("{\"analysisId\":8,\"sourceSha256\":\"" + "a".repeat(64)
             + "\",\"revision\":-1,\"name\":\"moj_kubek.png\"}"))

@@ -95,7 +95,6 @@ class ScanJobControllerTest {
         .andExpect(jsonPath("$.totalRejected").value(125))
         .andExpect(jsonPath("$.truncated").value(true));
     verify(jobs, never()).start(any());
-    verify(jobs, never()).scanAndSave(any());
   }
 
   @Test
@@ -115,13 +114,12 @@ class ScanJobControllerTest {
   }
 
   @Test
-  void returnsConflictForBackgroundAndLegacyRequestsWhenBusy() throws Exception {
+  void returnsConflictWhenAnotherScanIsRunning() throws Exception {
     when(jobs.start(any())).thenThrow(new ScanAlreadyRunningException());
-    when(jobs.scanAndSave(any())).thenThrow(new ScanAlreadyRunningException());
     mvc.perform(post("/api/scan/jobs").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
         .andExpect(status().isConflict());
     mvc.perform(post("/api/scan").contentType(MediaType.APPLICATION_JSON).content(REQUEST))
-        .andExpect(status().isConflict());
+        .andExpect(status().isNotFound());
   }
 
   @Test

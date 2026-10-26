@@ -7,6 +7,8 @@ export const namingReviewSchema = z.object({
     sourceSha256: z.string(),
     originalName: z.string(),
     proposedName: z.string().nullable(),
+    // True when the proposal rests on weak evidence (a single word or only generic caption words).
+    proposalUncertain: z.boolean(),
     analysisMatchesCatalog: z.boolean(),
     approvedName: z.string().nullable(),
     approvedAt: z.string().nullable(),

@@ -37,38 +37,11 @@ public class ScanWorkflow {
     this.metrics = metrics;
   }
 
-  // STAN I PLAN: walidacja, mapa znanych plików, skan przyrostowy i zapis są podłączone.
-  // Konstruktor przekazuje narzędzia; ta metoda dostaje folder konkretnego skanu.
-  // WEJŚCIE: Path folder - ścieżka wybrana przez użytkownika, jeszcze niesprawdzona.
-  // WYJŚCIE: ScanResult - wynik skanowania, po zapisaniu go w katalogu bazy danych.
-  //
-  // GOTOWE 1: Przed skanowaniem wywołujemy folderValidator.validate(folder).
-  // Wynik zapisz jako AllowedRoot: zweryfikowaną ścieżkę, nie listę obrazów.
-  // Jeśli walidacja rzuci wyjątek, nie odczytuj mapy i nie rozpoczynaj skanu.
-  //
-  // GOTOWE 2: Przekazujemy ten AllowedRoot do knownFilesReader.read(...).
-  // Wynik zapisz jako Map<String, KnownFile>: relativePath -> poprzedni opis pliku.
-  // Mapa dotyczy jednego folderu; nowy folder daje pustą mapę, a nie błąd.
-  // To dane z PostgreSQL-a, nie aktualna zawartość obrazów odczytana z dysku.
-  //
-  // GOTOWE 3: ImageScanner przyjmuje AllowedRoot i mapę; nie waliduje folderu ponownie.
-  // Walidator jest zależnością workflow, a nie konstruktora skanera.
-  //
-  // GOTOWE 4: Przekazujemy skanerowi zweryfikowany folder oraz mapę.
-  // Jego wynik nadal ma typ ScanResult i zostaje w zmiennej result poniżej.
-  // Mapa nie zastępuje przeglądania folderu, ale pozwala pominąć ciężki odczyt znanych plików.
-  //
-  // JUŻ JEST 5: CatalogUpdater zapisuje lub aktualizuje dane z result w bazie.
-  // Walidator nie zapisuje wyniku. Nie otaczaj całego skanu transakcją bazy.
-  // JUŻ JEST 6: Zwróć result do kontrolera, który przygotuje odpowiedź dla UI.
-  //
-  // GOTOWE 7: ImageScanner przekazuje folder i mapę do processFile dla jednego pliku.
-  // GOTOWE 8: processFile oblicza ścieżkę względną pliku i wyszukuje ją w mapie.
-  // Wynik to poprzedni opis KnownFile albo brak wpisu, a nie decyzja o akceptacji.
-  // GOTOWE 9: Po tanich kontrolach porównujemy rozmiar i datę modyfikacji.
-  // Zgodne metadane pozwalają użyć zapisanego SHA-256 bez dekodowania i hashowania.
-  // ScanSummary rozróżnia nowe, sprawdzone ponownie, znane bez zmian i odrzucone.
-  // GOTOWE 10: Osobne metryki walidacji, odczytu mapy, skanu i zapisu, bez printów.
+  /**
+   * Validates the folder, reads what the catalog already knows about it, scans incrementally and
+   * saves the result. Known files with unchanged size and date reuse their stored SHA-256.
+   * No transaction spans the whole scan; only the catalog update writes.
+   */
   public ScanResult scanAndSave(Path folder) throws IOException {
     return scanAndSave(folder, ScanProgressListener.NONE);
   }

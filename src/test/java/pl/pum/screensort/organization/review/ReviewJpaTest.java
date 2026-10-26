@@ -105,6 +105,8 @@ class ReviewJpaTest {
     var modified = Files.getLastModifiedTime(source);
     var fixture = prepare(folder);
     var initial = reviews.read(fixture.batchId(), fixture.fileId());
+    assertThat(initial.proposedName()).isEqualTo("mug_desk.png");
+    assertThat(initial.proposalUncertain()).isFalse();
     assertThat(initial.namingRevision()).isEqualTo(-1);
     assertThat(initial.review()).isNull();
     var result = reviews.save(fixture.batchId(), fixture.fileId(), approve(initial, "kubek.png"));
@@ -117,6 +119,7 @@ class ReviewJpaTest {
     entities.clear();
     assertThat(reviews.read(fixture.batchId(), fixture.fileId())).isEqualTo(result);
     assertThat(batches.items(fixture.batchId(), 0).items()).containsExactly(result);
+    assertThat(store.all(fixture.batchId())).containsExactly(result);
     assertThat(naming.read(fixture.fileId()).approvedName()).isEqualTo("kubek.png");
     assertThat(files.findById(fixture.fileId()).orElseThrow().getOriginalName()).isEqualTo("IMG_0026.png");
     assertThat(Files.readAllBytes(source)).containsExactly(1, 2, 3, 4);
