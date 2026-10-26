@@ -39,7 +39,7 @@ class CatalogImagePreviewTest {
   void setUp() {
     sourceReader = mock(CatalogImageSourceReader.class);
     preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator(),
-        new PreviewStore(Optional.empty(), new ProductMetrics(new SimpleMeterRegistry())));
+        new PreviewStore(Optional.empty(), Optional.empty(), new ProductMetrics(new SimpleMeterRegistry())));
   }
 
   @ParameterizedTest
@@ -181,7 +181,58 @@ class CatalogImagePreviewTest {
     });
     preview = new CatalogImagePreview(sourceReader, new ScanFolderValidator(), store);
     assertFailure(ImagePreviewException.Reason.NOT_FOUND);
-    verify(store).get(matches("screensort:preview:v1:[0-9a-f]{64}"));
+    verify(store).get(matches("screensort:preview:v2:[0-9a-f]{64}"));
+  }
+
+  // keepJfif=false is how phones write JPEG (Exif first); true is an edited photo (JFIF, then Exif).
+  @ParameterizedTest
+  @CsvSource({"6, false, true", "8, false, false", "6, true, true"})
+  void phonePhotoIsTurnedUprightByItsExifOrientation(int orientation, boolean keepJfif, boolean redOnTop)
+      throws Exception {
+    // Stored lying down: 400x200, left half red, right half blue.
+    var stored = new BufferedImage(400, 200, BufferedImage.TYPE_INT_RGB);
+    var graphics = stored.createGraphics();
+    try {
+      graphics.setColor(Color.RED); graphics.fillRect(0, 0, 200, 200);
+      graphics.setColor(Color.BLUE); graphics.fillRect(200, 0, 200, 200);
+    } finally { graphics.dispose(); }
+    var jpeg = new java.io.ByteArrayOutputStream();
+    assertThat(ImageIO.write(stored, "jpeg", jpeg)).isTrue();
+    Files.write(folder.resolve("phone.jpg"), withExifOrientation(jpeg.toByteArray(), orientation, keepJfif));
+    source("phone.jpg");
+
+    BufferedImage result = ImageIO.read(new ByteArrayInputStream(preview.read(1, CatalogImagePreview.Size.THUMBNAIL)));
+
+    assertThat(result.getWidth()).isEqualTo(160);
+    assertThat(result.getHeight()).isEqualTo(320);
+    Color top = new Color(result.getRGB(80, 40));
+    Color bottom = new Color(result.getRGB(80, 280));
+    assertThat(top.getRed() > top.getBlue()).isEqualTo(redOnTop);
+    assertThat(bottom.getRed() > bottom.getBlue()).isEqualTo(!redOnTop);
+  }
+
+  // Adds an APP1 Exif block (big-endian TIFF, one entry: Orientation). The JDK writer starts with
+  // SOI and a JFIF APP0 block; the Exif block goes after APP0, or replaces it like a phone camera.
+  private static byte[] withExifOrientation(byte[] jpeg, int orientation, boolean keepJfif) {
+    byte[] tiff = {
+        'M', 'M', 0, 42, 0, 0, 0, 8,
+        0, 1,
+        0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, (byte) orientation, 0, 0,
+        0, 0, 0, 0};
+    byte[] header = "Exif\0\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+    int length = 2 + header.length + tiff.length;
+    int afterJfif = 4 + (((jpeg[4] & 0xff) << 8) | (jpeg[5] & 0xff));
+    int head = keepJfif ? afterJfif : 2;
+    var out = new java.io.ByteArrayOutputStream();
+    out.write(jpeg, 0, head);
+    out.write(0xFF);
+    out.write(0xE1);
+    out.write(length >> 8);
+    out.write(length & 0xff);
+    out.writeBytes(header);
+    out.writeBytes(tiff);
+    out.write(jpeg, afterJfif, jpeg.length - afterJfif);
+    return out.toByteArray();
   }
 
   @Test

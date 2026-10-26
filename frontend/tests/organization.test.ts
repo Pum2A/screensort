@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {batchItems, organizationPlan, startBatch} from '../src/organization/api.js'
+import {organizationPlan, startBatch} from '../src/organization/api.js'
 import {rejectionLabel} from '../src/scanning/rejectionLabels.js'
 
 test('analyze all sends the folder and options, not visible gallery IDs', async () => {
@@ -16,16 +16,6 @@ test('analyze all sends the folder and options, not visible gallery IDs', async 
         assert.equal(job.total, 120)
         assert.deepEqual(body, {folderPath: 'demo-images', ocr: true, visual: false})
     } finally { globalThis.fetch = original }
-})
-
-test('pages batch results without requesting all items', async () => {
-    const original = globalThis.fetch
-    globalThis.fetch = async url => {
-        assert.equal(url, '/api/organization/batches/job/items?page=2')
-        return new Response(JSON.stringify({items: [], hasNext: false}))
-    }
-    try { assert.equal((await batchItems('job', 2, new AbortController().signal)).hasNext, false) }
-    finally { globalThis.fetch = original }
 })
 
 test('loads one page of the read-only organization plan for a batch', async () => {

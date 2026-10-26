@@ -10,7 +10,7 @@ import '../../src/App.css'
 const batchId = '11111111-2222-4333-8444-555555555555'
 const hash = 'a'.repeat(64)
 const initial: BatchItem = {fileId: 1, originalName: 'IMG_0026.png', status: 'COMPLETED',
-    category: 'PHOTOGRAPHS', proposedName: 'kubek_na_biurku.png', message: null,
+    category: 'PHOTOGRAPHS', proposedName: 'kubek_na_biurku.png', proposalUncertain: false, message: null,
     analysisId: 8, sourceSha256: hash, analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}
 let rows: BatchItem[] = [initial, {...initial, fileId: 2, originalName: 'screenshot_42.png', category: 'REVIEW', proposedName: null},
     {...initial, fileId: 3, originalName: 'broken.png', status: 'FAILED', analysisId: null, message: 'Nie udało się odczytać obrazu.'}]
@@ -19,6 +19,12 @@ const job = {id: batchId, folderPath: 'synthetic-fixture', status: 'COMPLETED', 
 const nativeFetch = window.fetch.bind(window)
 window.fetch = async (input, options) => {
     const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+    if (url.startsWith('/api/library?')) {
+        const date = '2026-10-19T12:00:00Z'
+        const files = rows.map(row => ({id: row.fileId, allowedRootId: 1, sourceFolder: 'synthetic-fixture', relativePath: row.originalName,
+            originalName: row.originalName, extension: 'png', sizeBytes: 1000, lastModifiedAt: date, sha256: hash, firstDiscoveredAt: date, lastSeenAt: date}))
+        return Response.json({files, batchId, items: rows})
+    }
     if (!url.startsWith('/api/organization/')) return nativeFetch(input, options)
     const reviewId = url.match(/\/items\/(\d+)\/review$/)?.[1]
     if (reviewId) {
@@ -50,5 +56,5 @@ root.render(<QueryProvider><MotionProvider>{mobile ? <main style={{padding: 20}}
     <p>Dane fikcyjne. Decyzje istnieją tylko w pamięci tej karty. <a href="?mobile=1">Widok telefonu</a></p>
     <button className="secondary-button" onClick={() => { rows = rows.map(item => ({...item,
         namingRevision: item.namingRevision + 1, approvedName: 'zmiana_z_innego_okna.png'})) }}>Symuluj zmianę w drugim oknie</button>
-    <OrganizationPanel folderPath="synthetic-fixture" fileCount={3} scanning={false}/>
+    <OrganizationPanel folderPath="synthetic-fixture" fileCount={3} scanning={false} active/>
 </main>}</MotionProvider></QueryProvider>)
