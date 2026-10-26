@@ -23,7 +23,7 @@ const files: CatalogFile[] = Array.from({length: 94}, (_, index) => {
     const id = index + 1, variant = index % 6, extension = variant === 3 || variant === 4 ? 'jpg' : 'png'
     const name = names[variant] + '_' + String(id).padStart(3, '0') + '.' + extension
     return {id, allowedRootId: 1, sourceFolder: 'synthetic-fixture', relativePath: name, originalName: name, extension,
-        sizeBytes: 130000 + id * 12617, lastModifiedAt: date, sha256: (id > 88 ? id - 88 : id).toString(16).padStart(64, '0'), firstDiscoveredAt: date, lastSeenAt: date}
+        sizeBytes: 130000 + (id > 88 ? id - 88 : id) * 12617, lastModifiedAt: date, sha256: (id > 88 ? id - 88 : id).toString(16).padStart(64, '0'), firstDiscoveredAt: date, lastSeenAt: date}
 })
 let rows: BatchItem[] = files.map(file => ({fileId: file.id, originalName: file.originalName, status: scenario === 'paused' && file.id > 7 ? 'PENDING' : file.id % 31 === 0 ? 'FAILED' : 'COMPLETED',
     category: categories[(file.id - 1) % 6], proposedName: proposals[(file.id - 1) % 6] + '.' + file.extension, proposalUncertain: (file.id - 1) % 6 === 4,

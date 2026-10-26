@@ -1,237 +1,123 @@
-# ScreenSort
+<div align="center">
 
-### Make sense of your screenshot chaos.
+# screensort
 
-A local-first Windows application for exploring screenshot folders and understanding
-what is inside each image. Choose a folder, build a persistent catalog, then run
-local OCR and visual analysis without uploading your images to a cloud AI API.
+**Turn a folder of screenshot chaos into named, sorted copies — on your own computer.**
 
-**Status: working early preview · Windows x64 · CPU analysis**
+![Version](https://img.shields.io/badge/version-0.3.0_preview-191C1F?style=flat-square&labelColor=CDFF47)
+![Windows](https://img.shields.io/badge/Windows-x64-191C1F?style=flat-square)
+![Local first](https://img.shields.io/badge/AI-runs_locally-191C1F?style=flat-square)
+![Java](https://img.shields.io/badge/Java_25-Spring_Boot_4-191C1F?style=flat-square&logo=openjdk&logoColor=white)
+![React](https://img.shields.io/badge/React_19-Tauri_2-191C1F?style=flat-square&logo=react&logoColor=white)
+![Python](https://img.shields.io/badge/Python-RapidOCR_+_Florence--2-191C1F?style=flat-square&logo=python&logoColor=white)
 
-ScreenSort is an ongoing personal project, not a finished automatic organizer.
-The current source version catalogs images, saves real analysis results and lets
-you review and approve a filename derived from a saved visual description.
-It also supports resumable whole-folder analysis with preliminary category/name
-proposals. Categories currently use explicit keyword rules, not a new trained classifier.
-Optional AI packages can be downloaded from inside the app. The new folder review
-queue lets you edit names/categories, approve or skip images and persist decisions.
-Since preview 0.2.3 it also creates organized copies of explicitly approved images in
-category folders, verifies their source content against the approved SHA-256 and
-preserves originals and existing destination files. In-app updates are available;
-older installers do not gain source changes without an update.
+[**Download**](https://github.com/Pum2A/screensort-releases/releases) ·
+[How it works](#how-it-works) ·
+[Architecture](#architecture) ·
+[Development](docs/development.md) ·
+[What's next](docs/v1-plus-do-zrobienia.md)
 
-[Current state and known gaps (Polish)](docs/current-state.md) is the dated
-implementation and verification snapshot. Use `main` as the integration baseline;
-short-lived feature branches return to `main` through a tested pull request.
+![ScreenSort library: the whole folder on one screen with AI categories, decision progress and certain proposals](docs/media/v1/library.png)
 
-[Current workflow](#how-it-works) · [Preview](#see-it-in-action) ·
-[Architecture](#architecture) · [Development](docs/development.md) ·
-[Local metrics and optional Redis](docs/review-observability-and-cache.md) ·
-[Opis na LinkedIn po polsku](docs/linkedin-projekt.md)
+</div>
 
-## See it in action
+## What it does
 
-| Explore an image | Open a larger preview |
+ScreenSort scans a folder of images and reads each one with **local** OCR and a vision model.
+From that, it proposes a **name** and a **category**. You approve, fix or skip them, many at
+once, and ScreenSort then writes a **sorted copy** into category folders.
+
+- 🔒 **Nothing leaves your computer.** The models run on your CPU. There is no cloud API and no upload.
+- 🗂️ **Originals are never touched.** ScreenSort never renames, moves or deletes a source file. Only approved images are copied, and each copy is checked against its SHA-256.
+- ⚡ **Built for bulk.** Select many images (Shift+click, Ctrl+A), set a category with keys 1–5, and approve them all at once.
+- 🧩 **Finds duplicates.** Byte-identical files are grouped, and you choose which copy goes into the sorted folder.
+
+> **Status:** working preview for Windows x64. The AI proposals are a first version and
+> need your review. This is an ongoing personal project, not a finished product.
+
+## Screens
+
+| Bulk actions | Bulk review |
 | --- | --- |
-| [![Select an image and reveal its details in a short product loop](docs/media/feature-explore.gif)](docs/media/feature-explore.mp4) | [![Open the read-only preview in a short product loop](docs/media/feature-preview.gif)](docs/media/feature-preview.mp4) |
+| ![Many images selected, with the floating bar and its category menu](docs/media/v1/library-bulk.png) | ![Every waiting proposal with a category pill per card and the editor beside it](docs/media/v1/review.png) |
+| Select a range and set the category, skip or approve from one bar. | Every proposal of the folder on one screen; keys 1–5 pick a category. |
 
-Two 2.5-second loops, focused on one interaction each. Captured from the real
-interface on synthetic data; cursor emphasis, framing and transitions are edited
-for presentation. They are not performance measurements or new UI features.
+![Duplicates: groups of byte-identical files compared side by side](docs/media/v1/duplicates.png)
 
-<details>
-<summary>Full gallery and longer project overview</summary>
-
-![ScreenSort catalog with circular thumbnails, scan counters and six synthetic example images](docs/media/catalog.jpg)
-
-Actual React interface connected to Java, PostgreSQL and the local Python service.
-The media uses generated demonstration images and an isolated database, not private
-photographs. Captured in browser development mode; the Windows application wraps
-the same UI in Tauri and adds the native folder picker.
-
-[![Short ScreenSort presentation assembled from real application captures](docs/media/screensort-preview.gif)](docs/media/screensort-preview.mp4)
-
-[Watch or download the MP4](docs/media/screensort-preview.mp4) ·
-[Screenshots, provenance and recording notes](docs/presentation/README.md)
-
-The clip is an edited sequence of real UI captures, not a continuous recording or
-a performance benchmark. The OCR and visual responses shown are actual model results.
-
-</details>
-
-<details>
-<summary>Image preview and real OCR / visual results</summary>
-
-![Centered, read-only image preview with metadata branches; full source location collapsed](docs/media/preview.jpg)
-
-[Generated input](docs/media/sample-input.png) → [actual saved analysis panel](docs/media/analysis-result-detail.jpg)
-
-Florence described the example as “A black screen with the words Local Database /
-Connection on it.” RapidOCR extracted:
-
-```text
-LOCAL DATABASE
-CONNECTION
-ERROR: Connection refused
-Host: 127.0.0.1:5432
-Check if PostgreSQL is running.
-No production data in this example.
-SCREENSORT / SYNTHETIC DEMO DATA
-```
-
-This is one example, not an accuracy claim. Captions may be incomplete or incorrect.
-
-</details>
-
-## What works today
-
-| Area | Implemented |
-| --- | --- |
-| Folder selection | Native Windows folder picker in Tauri; explicit path in browser development mode |
-| Scanning | PNG/JPG/JPEG validation, metadata, streaming SHA-256, bounded workers and background jobs |
-| Incremental scans | Known-file lookup by relative path; unchanged size/time can reuse previous processing results |
-| Persistent catalog | PostgreSQL records survive restarts; rescans update existing paths instead of inserting another row |
-| Image explorer | Database pagination, uncropped rectangular thumbnails, selected-image details and a centered larger preview |
-| Local analysis | RapidOCR text extraction and Florence-2 description; desktop starts AI only on explicit request |
-| Folder analysis | Durable per-file checkpoints, pause/resume, restart recovery and paged category/name proposals requiring review |
-| Analysis results | Independent OCR/vision outcomes, job status and persisted results returned through the Java API |
-| Filename review | Simple caption-based proposal, editable name and a persisted approval; source files remain unchanged |
-| Organization review | Editable name/category, approve or skip, persistent decisions and stale-form conflict protection |
-| Organized copies | Paged approval plan, native output-folder picker, background copying into category folders, persisted progress and per-file problems |
-| Windows packaging | CoreOnly starts without Python/models; optional, checksum-pinned CPU AI package installs from the app or a matching ZIP |
-| In-app updates | Signed, version-bound Core updates from the preview channel, with restart guards for active work |
-
-Matching size and modification time is a performance shortcut, not proof that
-file bytes are unchanged. Reusing a catalog row is not the same as grouping all
-content-identical files. Whole-folder jobs currently reprocess images; a versioned
-inference cache and content-based duplicate management are not implemented.
-
-For the exact new code paths, limits and verification, see the
-[on-demand AI / batch review guide (Polish)](docs/review-on-demand-ai-batches.md).
-
-Optional AI installation, trust boundaries and CI/CD are explained in the
-[package installation review (Polish)](docs/review-ai-package-installation.md).
-Public installers and optional model packages belong in the separate
-[distribution-only repository](https://github.com/Pum2A/screensort-releases), not in source Git history.
-The existing presentation media above shows the earlier interface.
-
-The new decision flow, exact code paths and manual test scenario are documented in
-the [organization review guide (Polish)](docs/review-organization-decisions.md).
-The [organized export guide (Polish)](docs/review-organized-export.md) follows the
-approved decision through the Java worker to the destination file.
+<sub>Screenshots of the real interface, running on synthetic demo images.</sub>
 
 ## How it works
 
-1. Choose a source folder. Java validates it before scanning its direct entries.
-2. A background scan checks files, compares known metadata and performs expensive
-   image decoding and hashing only where needed. React shows stages and counters.
-3. Java writes the catalog to PostgreSQL. React reads a database-paginated page,
-   not every image at once. Previews are requested by catalog ID.
-4. Select an image and request OCR, visual analysis or both. Java validates and
-   reads the original, then sends image bytes to the protected local Python API.
-5. Python returns structured results. Java checks and saves them; React displays
-   the OCR text, image description and individual step status.
-6. Review a filename proposal below the saved analysis, edit it and approve it.
-   Java selects up to six meaningful caption words; this is a deterministic first
-   version, not another AI call, translation or a semantic summarizer. A missing
-   visual description allows manual entry instead. Only the decision is stored.
-7. In the whole-folder review queue, check each name/category and approve or skip
-   it. Changes are saved atomically; an outdated open form cannot overwrite a newer
-   decision. No source file is renamed or moved by approval.
-8. Open the organization plan, choose a destination and explicitly start copying.
-   Java creates a new `ScreenSort` output directory, resolves name collisions and
-   hashes each source while streaming it to a temporary file. Only matching content
-   is finalized; React shows persisted progress and per-file problems.
+```text
+choose folder → scan & catalog → local OCR + image description
+             → name & category proposals → your decisions (one by one or in bulk)
+             → verified, sorted copy in a new folder
+```
 
-The scan and analysis jobs have different IDs and lifecycles. Catalog records and
-analysis results persist; the current scan job snapshots are held in memory.
+1. **Scan.** Java validates the folder and catalogs PNG/JPG files in PostgreSQL. It hashes them (SHA-256) and skips unchanged files on the next scan.
+2. **Analyse.** On request, Java sends image bytes to a local Python service. RapidOCR reads the text and Florence-2 describes the picture. Results are saved per file, and the analysis can be paused and resumed.
+3. **Propose.** Simple, deterministic rules turn the text and the description into a filename and one of five categories. Uncertain proposals are marked "Sprawdź" (check).
+4. **Decide.** In the library or the bulk review you approve, recategorise or skip. Decisions are versioned, so an outdated form can never overwrite a newer one.
+5. **Copy.** ScreenSort copies the approved files into category folders and verifies each one against its hash. Existing files at the destination are never overwritten.
 
 ## Architecture
 
-![Earlier ScreenSort architecture overview with the then-planned organization workflow](docs/media/workflow.svg)
-
-The diagram is an earlier snapshot. The implemented copy workflow and its current
-limits are described in [current-state.md](docs/current-state.md).
-
-The application core remains in Java. A separate local Python analysis service
-provides a narrow boundary around the model ecosystem. This is not a distributed
-cloud microservice platform: Rust supervises local processes on one computer.
-
-| Component | Responsibility | Technology |
-| --- | --- | --- |
-| Desktop shell | Window, folder picker, owned process lifecycle and restricted native bridge | Tauri 2, Rust |
-| Interface | Gallery, previews, task progress and analysis results | React 19, TypeScript, Vite, Tailwind, component-scoped CSS, Motion, Lucide |
-| Application backend | Scanning, validation, catalog, analysis coordination, filename review and REST APIs | Java 25, Spring Boot 4.1.1 |
-| Persistence | Catalog, analysis, review decisions and copy jobs; versioned schema | PostgreSQL, Spring Data JPA/Hibernate, JdbcTemplate, Flyway |
-| Analysis service | OCR and visual description, loaded local models | Python, FastAPI, RapidOCR, Florence-2-base-ft |
-| Development and checks | Reproducible dependencies, database integration and test suites | Maven Wrapper, Docker Compose, Testcontainers, Git |
-
-Desktop credentials and dynamically selected loopback ports stay in Rust, outside
-the webview. Java controls source-file access; Python receives image bytes rather
-than arbitrary filesystem paths. Models currently run on CPU.
-
-## Safety before organization
-
-Source images are read-only. The application does not rename, move or delete them.
-File previews are accessed through catalog IDs with path checks and bounded caching.
-The desktop database is separate from the Docker development database.
-
-Local-first does not mean risk-free. Model output needs review; filesystem races,
-untrusted inputs and local API access still need safeguards. The prerelease is not
-a completed security audit or a production-readiness claim.
-
-## Where this is going
-
-The intended product flow is:
-
 ```text
-Choose folder → catalog images → OCR + visual description
-              → baseline name/category proposals → manual approval
-              → preview plan → verified organized copies [implemented]
-
-Shared OCR/vision interpretation, useful contextual names,
-alternative model profiles and semantic search             [not implemented]
+┌──────────── Tauri 2 (Rust) ─────────────┐
+│ window · folder picker · process owner  │
+│  ┌────────── React 19 UI ────────────┐  │
+│  │ TanStack Query · Zod · Tailwind 4 │  │
+│  └──────────────┬────────────────────┘  │
+└─────────────────┼───────────────────────┘
+                  │ REST (loopback)
+        ┌─────────▼─────────┐        ┌───────────────────────┐
+        │ Java 25 · Spring  │──bytes▶│ Python · FastAPI      │
+        │ Boot 4 · Flyway   │◀─JSON──│ RapidOCR · Florence-2 │
+        └─────────┬─────────┘        └───────────────────────┘
+                  │
+           ┌──────▼──────┐
+           │ PostgreSQL  │  private instance, started by the app
+           └─────────────┘
 ```
 
-The original folder remains untouched. Each export creates a separate output
-directory; completed copies are kept if a later file fails. A restart marks an
-unfinished export as interrupted, not resumed. A new export creates a new directory.
+| Part | Responsibility | Technology |
+| --- | --- | --- |
+| Desktop shell | Window, native dialogs, starts and stops local services, in-app updates | Tauri 2, Rust |
+| Interface | Library, bulk review, duplicates, previews, progress | React 19, TypeScript, TanStack Query, Zod, Tailwind 4, Motion |
+| Backend | Scanning, catalog, analysis jobs, decisions, verified copying | Java 25, Spring Boot 4, JdbcTemplate/JPA, Flyway |
+| Database | Catalog, analyses, decisions, copy jobs | PostgreSQL |
+| Analysis | OCR and image description on CPU | Python, FastAPI, RapidOCR, Florence-2-base-ft |
+| Quality | Unit, integration and UI tests in CI | JUnit 5, Testcontainers, node:test, cargo test, pytest, ruff |
 
-[Filename review: flow, changed files and manual checks (Polish)](docs/propozycje-nazw.md).
+Credentials and loopback ports stay in Rust, outside the web view. Java alone opens source
+files: Python receives image bytes, never file paths, and logs never contain paths, file names
+or OCR text.
 
-Core-only installation and optional analysis downloads are implemented. The next
-product gap is reliable model startup/retry and evidence-based contextual naming,
-not another copy of the baseline caption-to-name rule. Search by extracted content,
-GPU acceleration, alternative model selection and cross-device synchronization
-are not available yet. See the [contextual analysis plan](docs/plan-contextual-analysis.md).
+## Install
 
-## Running and building
+Download the installer from the [distribution repository](https://github.com/Pum2A/screensort-releases/releases).
+It needs no separately installed JDK, Python, Node or Docker. The AI engine is an optional
+download from inside the app, checked against a pinned SHA-256. Updates are signed and
+installed from inside the app.
 
-- [Development setup, commands and manual checks](docs/development.md)
-- [Windows prerelease: packaging, runtime layout and limitations](docs/instalator-windows.md)
-- [0.1.1 Windows startup fix and actual verification](docs/naprawa-startu-windows.md)
-- [Python analysis service setup](analysis-service/README.md)
+<sub>The installer is not Authenticode-signed yet, so Windows SmartScreen may warn on first launch.</sub>
 
-The Windows installer runs without a separately installed JDK, Python, Node or
-Docker. Building it still requires developer tools. Core 0.2.5 is published in the
-[distribution repository](https://github.com/Pum2A/screensort-releases/releases/tag/v0.2.5-preview).
-Its updater signature is not a Windows Authenticode certificate. The installer
-still bundles the core runtimes and offline WebView installer; clean-VM validation
-remains separate from the isolated startup checks. Binary
-runtimes, model weights, local databases and installers are not committed to Git.
+## Development
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=local   # backend; starts PostgreSQL via Docker Compose
+npm --prefix frontend ci && npm --prefix frontend run dev  # interface on http://localhost:5173
+```
+
+Full setup, tests and packaging: [docs/development.md](docs/development.md) ·
+[Windows installer](docs/instalator-windows.md) · [analysis service](analysis-service/README.md).
 
 ## Project notes
 
-- [Product brief](docs/project-brief.md) and [roadmap](docs/roadmap.md): intended scope, not a list of completed features.
-- [Current code structure, explained in Polish](docs/struktura-projektu.md).
-- [Architecture diagrams](docs/diagramy-architektury.md) and [phone-friendly PDF](output/pdf/screensort-architektura.pdf).
-- [Scan jobs, threads and API walkthrough](docs/scanjob-krok-po-kroku.md).
-- [Image analysis walkthrough](docs/analiza-obrazu-krok-po-kroku.md).
-- [Technical decisions](docs/decyzje-techniczne.md) and [architecture decision records](docs/adr).
-- [Gallery and preview implementation](docs/galeria-i-podglady.md).
-- [Measured language-binding experiment and its limits](docs/benchmark-analiza-jezyki.md).
-- [Cross-device development handoff](docs/device-handoff.md).
+- [What v1+ still lacks](docs/v1-plus-do-zrobienia.md): the open work, one future issue per section (Polish).
+- [Current state and known gaps](docs/current-state.md) (Polish).
+- [Code structure](docs/struktura-projektu.md) · [technical decisions](docs/decyzje-techniczne.md) · [ADRs](docs/adr).
+- [Scan jobs walkthrough](docs/scanjob-krok-po-kroku.md) · [image analysis walkthrough](docs/analiza-obrazu-krok-po-kroku.md).
 
-Historical guides describe the project at their stated date and may include
-superseded stages. This README describes the current preview; it does not turn
-planned features or the separate UI analysis demo into implemented functionality.
+Older guides in `docs/` describe the project at their stated date and may mention screens that
+the v1+ redesign has replaced.

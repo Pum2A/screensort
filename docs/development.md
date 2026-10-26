@@ -20,8 +20,6 @@ zarządza schematem. Dane developerskiego kontenera i baza desktop są oddzielne
 Testy Testcontainers potrzebują działającego Dockera i własnej tymczasowej bazy.
 Nie traktuj pominięcia tych testów jako ich zaliczenia.
 
-Starszy prototyp Thymeleaf jest pod `http://127.0.0.1:8080/`.
-
 ## React
 
 Wymagany jest Node zgodny z wersją Vite w `frontend/package-lock.json`.

@@ -14,7 +14,7 @@ import type {ReactNode} from 'react'
 /** Synthetic update states only: these buttons never download or install anything. */
 function FixtureUpdates({scenario, children}: {scenario: string; children: ReactNode}) {
     const [status, setStatus] = useState<UpdateStatus>({phase: scenario === 'updates' ? 'AVAILABLE' : 'UP_TO_DATE',
-        currentVersion: '0.2.4', version: scenario === 'updates' ? '0.2.5' : null, notes: null,
+        currentVersion: '0.3.0', version: scenario === 'updates' ? '0.3.1' : null, notes: null,
         downloadedBytes: 0, totalBytes: null, error: null})
     return <AppUpdates.Provider value={{status, error: null, reasons: [], setBlocker: () => {},
         check: () => setStatus(current => ({...current, phase: 'UP_TO_DATE', version: null})),
