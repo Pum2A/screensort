@@ -517,7 +517,7 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
         "GET" => {
             matches!(
                 route,
-                "/api/catalog/page" | "/api/organization/batches/latest"
+                "/api/catalog/page" | "/api/library" | "/api/organization/batches/latest"
             ) || matches(&routes.review, route)
                 || matches(&routes.batch, route)
                 || matches(&routes.export, route)
@@ -555,7 +555,7 @@ pub async fn backend_request(
         );
     }
     if !allowed(&method, &path, false) {
-        return Err("Niedozwolane żądanie aplikacji.".into());
+        return Err("Niedozwolone żądanie aplikacji.".into());
     }
     if body
         .as_ref()
@@ -702,6 +702,9 @@ mod tests {
         assert!(!allowed("POST", "/_internal/analysis-connection", false));
         assert!(!allowed("GET", "/_internal/update-ready", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
+        assert!(allowed("GET", "/api/library?folderPath=test", false));
+        assert!(!allowed("POST", "/api/library", false));
+        assert!(!allowed("GET", "/api/library/../catalog", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
         assert!(allowed("GET", "/api/catalog/files/1/naming", false));
         assert!(allowed("PUT", "/api/catalog/files/1/naming", false));
