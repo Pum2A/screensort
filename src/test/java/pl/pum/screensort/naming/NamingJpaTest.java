@@ -157,6 +157,17 @@ class NamingJpaTest {
   }
 
   @Test
+  void reusesOnlyAFinishedAnalysisOfTheSameContentAndOptions(@TempDir Path folder) {
+    long id = prepareFile(folder);
+    assertThat(analyses.reusable(id, false, true, "a".repeat(64))).isPresent();
+    // Changed content, other options or a step that did not finish all mean the model has to run again.
+    assertThat(analyses.reusable(id, false, true, "b".repeat(64))).isEmpty();
+    assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
+    analyses.save(id, true, true, NamingServiceTest.analysis("a".repeat(64), true).result());
+    assertThat(analyses.reusable(id, true, true, "a".repeat(64))).isEmpty();
+  }
+
+  @Test
   void namesArePolishUntilTheOwnerPicksAnotherLanguage() {
     assertThat(settings.language()).isEqualTo(NamingLanguage.PL);
     settings.language(NamingLanguage.EN);
