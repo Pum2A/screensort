@@ -111,7 +111,25 @@ impl Owner {
     }
 
     /// Optional AI failure must never take down the catalog or its database.
-    pub async fn start_analysis<F>(&mut self, mut cancelled: F) -> Result<(), String>
+    pub async fn start_analysis<F>(&mut self, cancelled: F) -> Result<(), String>
+    where
+        F: FnMut() -> bool + Send,
+    {
+        // Measured like the catalog start, so the log shows how long the AI models take to load.
+        // Every retry is its own measured start.
+        let mut timer = StartupTimer::start("ai");
+        let result = self.start_analysis_stages(cancelled, &mut timer).await;
+        if let Some(data) = self.db.parent() {
+            timer.save(data, if result.is_ok() { "ok" } else { "failed" });
+        }
+        result
+    }
+
+    async fn start_analysis_stages<F>(
+        &mut self,
+        mut cancelled: F,
+        timer: &mut StartupTimer,
+    ) -> Result<(), String>
     where
         F: FnMut() -> bool + Send,
     {
@@ -141,6 +159,7 @@ impl Owner {
             );
         let pid = self.spawn("Python", python, &self.session.join("python.log"))?;
         self.python_port = published(&py_state, pid, self, &mut cancelled).await?;
+        timer.mark("spawn");
         let client = http_client()?;
         let deadline = Instant::now() + Duration::from_secs(180);
         while Instant::now() < deadline && !cancelled() {
@@ -156,10 +175,13 @@ impl Owner {
                 .await
             {
                 if response.status().is_success() {
+                    // Model loading and the warm-up analysis end when /ready answers.
+                    timer.mark("models");
                     let backend = self.backend.as_ref().ok_or("Katalog jest niedostępny.")?;
                     let (status, _) = backend.request("POST", "/_internal/analysis-connection", Some(&json!({
                         "url": format!("http://127.0.0.1:{}", self.python_port), "token": self.python_token
                     })), 4096).await?;
+                    timer.mark("connect");
                     return if status == 204 {
                         Ok(())
                     } else {
@@ -458,7 +480,7 @@ where
     F: FnMut(Status, Option<Backend>),
     C: FnMut() -> bool + Send,
 {
-    let mut timer = StartupTimer::start();
+    let mut timer = StartupTimer::start("app");
     let mut started = None;
     let result = start_stages(
         runtime,

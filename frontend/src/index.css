@@ -2,16 +2,52 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css' layer(utilities) source('./');
 
+/*
+ * v1+ design tokens (Figma "v1+ · pełny przepływ"). Ink is the main action, lime only marks the
+ * active state, progress and AI results. Each token is also a Tailwind utility: bg-ink, text-subtle...
+ */
+@theme {
+    --color-ink: #191c1f;
+    --color-ink-raised: #2c3036;
+    --color-lime: #cdff47;
+    --color-canvas: #f7f7f7;
+    --color-surface: #fff;
+    --color-fill: #edeff2;
+    --color-line: #e0e3e7;
+    /* Figma has #75808a, which is 3.8:1 on canvas; this is the closest grey that meets AA 4.5:1. */
+    --color-muted: #69727b;
+    --color-subtle: #a9afb6;
+    --color-warn: #e58a00;
+    --color-warn-soft: #fff1dd;
+    --color-warn-ink: #c46a00;
+
+    --font-sans: 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+    --font-brand: 'Geist', 'Inter Variable', system-ui, sans-serif;
+
+    --radius-badge: 5px;
+    --radius-chip: 6px;
+    --radius-control: 10px;
+    --radius-tile: 12px;
+    --radius-card: 18px;
+
+    /* Key cards and buttons only: a 1 px ink border with a hard shadow, never a soft one. */
+    --shadow-hard: 0 3px 0 0 var(--color-ink);
+    --shadow-float: 0 8px 20px 0 rgb(0 0 0 / .2);
+}
+
 :root {
-    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    font-size: 16px; color: #202623; background: #f5f6f5;
+    font-family: var(--font-sans);
+    font-size: 16px; color: var(--color-ink); background: var(--color-canvas);
     font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased;
-    --font-display: 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+    --font-display: var(--font-sans);
     /* Compatibility for display-font references in existing inspector components. */
     --font-retro: var(--font-display);
-    --accent: #315f43; --action: #b8ed93; --border: #e4e8e5; --muted: #636d66;
-    --surface: #fff; --background: #f5f6f5; --soft: #f0f3f1; --selected: #eaf3e5; --text: #202623;
-    --success: #147d58; --danger: #ce334d; --warning: #9c6514;
+    /* Older names, mapped to the v1+ palette until every screen uses the tokens above. */
+    --accent: var(--color-ink); --action: var(--color-lime); --border: var(--color-line); --muted: var(--color-muted);
+    --surface: var(--color-surface); --background: var(--color-canvas); --soft: var(--color-fill);
+    --selected: var(--color-fill); --text: var(--color-ink);
+    --success: #147d58; --danger: #ce334d; --warning: var(--color-warn-ink);
     --motion-duration: 240ms; --motion-ease: cubic-bezier(.22, 1, .36, 1); --thumbnail-size: 116px;
 }
 * { box-sizing: border-box; }
@@ -22,9 +58,12 @@ button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 a { color: inherit; }
 button, input, select, summary { -webkit-tap-highlight-color: transparent; }
-:focus-visible { outline: 3px solid #548567; outline-offset: 4px; }
-::selection { background: #d9edcb; }
-code { font-family: 'Cascadia Code', Consolas, monospace; }
+:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 3px; }
+::selection { background: var(--color-lime); color: var(--color-ink); }
+code { font-family: var(--font-mono); }
+.pixel-icon { display: inline-block; flex-shrink: 0; background: currentColor; mask-size: 100% 100%; mask-repeat: no-repeat; }
+.logo-lockup { display: inline-flex; align-items: center; gap: 8px; }
+.logo-wordmark { font-family: var(--font-brand); font-weight: 600; font-size: 17.6px; letter-spacing: -.05em; line-height: 1; color: var(--color-ink); }
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; color: var(--accent); border: 0; border-radius: 12px; background: transparent; font-size: 13px; font-weight: 600; padding: 9px 12px; min-height: 42px; transition: background 180ms, transform 180ms; }

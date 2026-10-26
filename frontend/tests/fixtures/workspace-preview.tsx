@@ -18,14 +18,15 @@ const texts = ['ERROR: connection refused\nJava / PostgreSQL', 'JAVA\nNotatki: k
 const names = ['Screenshot_terminal', 'notatki', 'Screenshot_141809', 'IMG_0026', 'IMG_0042', 'karta_testowa']
 const categories = ['PROGRAMMING', 'DOCUMENTS', 'GAMES', 'PHOTOGRAPHS', 'OTHER', 'DOCUMENTS']
 const proposals = ['terminal_database_connection', 'sheet_of_paper_with_text', 'cartoon_character_square_head', 'landscape_mountains_sun', 'sandwich_wrapped_in_foil', 'card_portrait_text']
+// The last six files repeat the content of the first six, so the duplicates screen has data.
 const files: CatalogFile[] = Array.from({length: 94}, (_, index) => {
     const id = index + 1, variant = index % 6, extension = variant === 3 || variant === 4 ? 'jpg' : 'png'
     const name = names[variant] + '_' + String(id).padStart(3, '0') + '.' + extension
     return {id, allowedRootId: 1, sourceFolder: 'synthetic-fixture', relativePath: name, originalName: name, extension,
-        sizeBytes: 130000 + id * 12617, lastModifiedAt: date, sha256: id.toString(16).padStart(64, '0'), firstDiscoveredAt: date, lastSeenAt: date}
+        sizeBytes: 130000 + id * 12617, lastModifiedAt: date, sha256: (id > 88 ? id - 88 : id).toString(16).padStart(64, '0'), firstDiscoveredAt: date, lastSeenAt: date}
 })
 let rows: BatchItem[] = files.map(file => ({fileId: file.id, originalName: file.originalName, status: scenario === 'paused' && file.id > 7 ? 'PENDING' : file.id % 31 === 0 ? 'FAILED' : 'COMPLETED',
-    category: categories[(file.id - 1) % 6], proposedName: proposals[(file.id - 1) % 6] + '.' + file.extension,
+    category: categories[(file.id - 1) % 6], proposedName: proposals[(file.id - 1) % 6] + '.' + file.extension, proposalUncertain: (file.id - 1) % 6 === 4,
     analysisId: 100 + file.id, sourceSha256: file.sha256, message: file.id % 31 === 0 ? 'Nie udało się odczytać obrazu. Oryginał pozostaje bez zmian.' : null,
     analysisMatchesCatalog: true, namingRevision: -1, approvedName: null, review: null}))
 let job: Batch = {id: batchId, folderPath: 'synthetic-fixture', status: scenario === 'paused' ? 'PAUSED' : 'COMPLETED',
@@ -77,6 +78,10 @@ window.fetch = async (input, options) => {
         return Response.json({files: approved.slice(pageNumber * 50, (pageNumber + 1) * 50), pageNumber, pageSize: 50,
             totalFiles: approved.length, hasNext: (pageNumber + 1) * 50 < approved.length})
     }
+    if (url.pathname === '/api/library') {
+        if (query.has('error')) return Response.json({code: 'FIXTURE_UNAVAILABLE'}, {status: 503})
+        return Response.json({files, batchId, items: rows})
+    }
     if (url.pathname === '/api/catalog/page') {
         if (query.has('error')) return Response.json({code: 'FIXTURE_UNAVAILABLE'}, {status: 503})
         const pageNumber = Number(url.searchParams.get('pageNumber') ?? 0), pageSize = Number(url.searchParams.get('pageSize') ?? 50)
@@ -89,7 +94,7 @@ window.fetch = async (input, options) => {
         const row = rows[Number(naming[1]) - 1]
         if (method === 'PUT') {const body = JSON.parse(String(options?.body)); row.approvedName = body.name; row.namingRevision++}
         return Response.json({fileId: row.fileId, originalName: row.originalName, analysisId: row.analysisId, sourceSha256: row.sourceSha256,
-            proposedName: row.proposedName, analysisMatchesCatalog: true, approvedName: row.approvedName,
+            proposedName: row.proposedName, proposalUncertain: row.proposalUncertain, analysisMatchesCatalog: true, approvedName: row.approvedName,
             approvedAt: row.approvedName ? date : null, approvalMatchesCatalog: row.approvedName !== null, revision: row.namingRevision})
     }
     const review = url.pathname.match(/\/items\/(\d+)\/review$/)

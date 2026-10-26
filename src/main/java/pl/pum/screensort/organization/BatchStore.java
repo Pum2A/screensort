@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
+import pl.pum.screensort.naming.NameSuggestion;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
 import pl.pum.screensort.organization.review.ReviewStore;
 
@@ -17,7 +18,10 @@ import pl.pum.screensort.organization.review.ReviewStore;
 public class BatchStore {
   public record Job(UUID id, String folderPath, String status, boolean ocr, boolean visual,
       long total, long completed, long failed, long processing, Instant createdAt) {}
-  public record Pending(long fileId, String originalName, String sourceSha256) {}
+  /** {@code attempts}: how many times this file already timed out (0 or 1). */
+  public record Pending(long fileId, String originalName, String sourceSha256, int attempts) {
+    public Pending(long fileId, String originalName, String sourceSha256) { this(fileId, originalName, sourceSha256, 0); }
+  }
 
   private final JdbcTemplate jdbc;
   private final CategorySuggester categories;
@@ -72,9 +76,9 @@ public class BatchStore {
   @Transactional
   public Optional<Pending> next(UUID id) {
     var pending = jdbc.query("""
-        select file_id, original_name, source_sha256 from analysis_batch_item
-        where batch_id = ? and status = 'PENDING' order by file_id limit 1 for update
-        """, (row, n) -> new Pending(row.getLong(1), row.getString(2), row.getString(3)), id);
+        select file_id, original_name, source_sha256, attempts from analysis_batch_item
+        where batch_id = ? and status = 'PENDING' order by attempts, file_id limit 1 for update
+        """, (row, n) -> new Pending(row.getLong(1), row.getString(2), row.getString(3), row.getInt(4)), id);
     if (pending.isEmpty()) return Optional.empty();
     var item = pending.getFirst();
     jdbc.update("update analysis_batch_item set status = 'RUNNING' where batch_id = ? and file_id = ?", id, item.fileId());
@@ -92,13 +96,17 @@ public class BatchStore {
       failed(id, item.fileId(), "Modele nie zwróciły poprawnego wyniku. Spróbuj ponownie po sprawdzeniu pakietu AI.", false);
       return;
     }
+    var ocr = saved.result().ocr().result();
     var visual = saved.result().visual().result();
-    String proposal = visual == null ? null : names.suggest(item.originalName(), visual.description()).orElse(null);
+    var proposal = names.suggest(item.originalName(), ocr == null ? null : ocr.text(),
+        visual == null ? null : visual.description());
     boolean partial = saved.result().ocr().error() != null || saved.result().visual().error() != null;
     jdbc.update("""
-        update analysis_batch_item set status = 'COMPLETED', analysis_id = ?, category = ?, proposed_name = ?, message = ?
+        update analysis_batch_item set status = 'COMPLETED', analysis_id = ?, category = ?, proposed_name = ?,
+          proposal_uncertain = ?, message = ?
         where batch_id = ? and file_id = ?
-        """, saved.id(), categories.suggest(saved.result()), proposal,
+        """, saved.id(), categories.suggest(saved.result()), proposal.map(NameSuggestion::name).orElse(null),
+        proposal.map(NameSuggestion::uncertain).orElse(false),
         partial ? "Część analizy nie powiodła się. Sprawdź szczegóły obrazu." : null, id, item.fileId());
   }
 
@@ -106,6 +114,15 @@ public class BatchStore {
   public void failed(UUID id, long fileId, String message, boolean retry) {
     jdbc.update("update analysis_batch_item set status = ?, message = ? where batch_id = ? and file_id = ?",
         retry ? "PENDING" : "FAILED", message, id, fileId);
+  }
+
+  /** Back to the queue behind every file not tried yet, with one more attempt counted. */
+  @Transactional
+  public void postpone(UUID id, long fileId, String message) {
+    jdbc.update("""
+        update analysis_batch_item set status = 'PENDING', attempts = attempts + 1, message = ?
+        where batch_id = ? and file_id = ?
+        """, message, id, fileId);
   }
 
   @Transactional

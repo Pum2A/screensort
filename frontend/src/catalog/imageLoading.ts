@@ -54,17 +54,27 @@ export function createLimiter(limit: number) {
     }
 }
 
-/** Retries a failed load with growing pauses (1 s, 2 s, ...). Cancelling stops the retries. */
+/**
+ * Retries a failed load with growing pauses (1 s, 2 s, ...). Cancelling stops the retries, and so does
+ * an error `shouldRetry` rejects, e.g. a deleted file that no second attempt can bring back.
+ */
+export interface RetryOptions {
+    attempts?: number
+    delayMs?: number
+    pause?: (milliseconds: number, signal: AbortSignal) => Promise<void>
+    shouldRetry?: (cause: unknown) => boolean
+}
+
 export async function withRetry<T>(
     task: () => Promise<T>, signal: AbortSignal,
-    {attempts = THUMBNAIL_ATTEMPTS, delayMs = RETRY_DELAY_MS, pause = wait} = {},
+    {attempts = THUMBNAIL_ATTEMPTS, delayMs = RETRY_DELAY_MS, pause = wait, shouldRetry = () => true}: RetryOptions = {},
 ): Promise<T> {
     for (let attempt = 1; ; attempt++) {
         try {
             return await task()
         } catch (cause) {
             if (signal.aborted) throw aborted(signal)
-            if (attempt >= attempts) throw cause
+            if (attempt >= attempts || !shouldRetry(cause)) throw cause
             await pause(delayMs * 2 ** (attempt - 1), signal)
         }
     }

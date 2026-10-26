@@ -1,5 +1,6 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
+mod events;
 mod packages;
 mod paths;
 mod processes;
@@ -15,6 +16,7 @@ use std::sync::{
 };
 use tauri::{AppHandle, Manager, State};
 
+pub use events::spawn as spawn_events;
 pub use smoke::launch_startup_check;
 pub use smoke::run_smoke;
 
@@ -591,9 +593,39 @@ pub async fn backend_image(
         .ok_or("Backend jest jeszcze uruchamiany.")?;
     let (status, bytes) = backend.request("GET", &path, None, 6 * 1024 * 1024).await?;
     if status != 200 {
-        return Err("Podgląd jest niedostępny.".into());
+        return Err(image_failure(status).into());
     }
     Ok(tauri::ipc::Response::new(bytes))
+}
+
+#[cfg(test)]
+mod image_failure_tests {
+    use super::image_failure;
+
+    #[test]
+    fn image_failures_keep_the_reason_and_hide_the_rest() {
+        assert_eq!(image_failure(404), "image:missing");
+        assert_eq!(image_failure(403), "image:blocked");
+        assert_eq!(image_failure(409), "image:changed");
+        assert_eq!(image_failure(413), "image:too-large");
+        assert_eq!(image_failure(422), "image:unsupported");
+        assert_eq!(image_failure(503), "image:busy");
+        assert_eq!(image_failure(500), "image:unavailable");
+    }
+}
+
+/// Stable reason codes for a failed preview. The WebView turns each into its own text and decides
+/// whether trying again can help. Statuses mirror `CatalogImageController`.
+fn image_failure(status: u16) -> &'static str {
+    match status {
+        404 => "image:missing",
+        403 => "image:blocked",
+        409 => "image:changed",
+        413 => "image:too-large",
+        422 => "image:unsupported",
+        503 => "image:busy",
+        _ => "image:unavailable",
+    }
 }
 
 #[cfg(test)]
