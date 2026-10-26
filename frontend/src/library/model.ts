@@ -99,7 +99,9 @@ export function selectRange(order: number[], anchor: number | null, target: numb
     return next
 }
 
-export type BulkAction = {decision: 'APPROVED', category?: ImageCategory} | {decision: 'SKIPPED'}
+/** category applies to every file; overrides are per-file picks (the review cards), used when category is absent. */
+export type BulkAction = {decision: 'APPROVED', category?: ImageCategory, overrides?: ReadonlyMap<number, ImageCategory>}
+    | {decision: 'SKIPPED'}
 export type BulkPlan = {writes: {fileId: number, write: ReviewWrite}[], blocked: number}
 
 /**
@@ -116,7 +118,7 @@ export function bulkPlan(entries: LibraryEntry[], action: BulkAction): BulkPlan 
         if (action.decision === 'APPROVED') {
             // Bulk approval never signs off a doubtful or missing name: those need a look in the editor.
             if (item.approvedName === null && (!item.proposedName || item.proposalUncertain)) { blocked += 1; continue }
-            const category = action.category ?? (isCategory(draft.category) ? draft.category : null)
+            const category = action.category ?? action.overrides?.get(item.fileId) ?? (isCategory(draft.category) ? draft.category : null)
             if (!category) { blocked += 1; continue }
             if (entry.state === 'approved' && entry.category === category) continue
             writes.push({fileId: item.fileId, write: reviewWrite({...draft, category}, 'APPROVED')})
@@ -133,4 +135,16 @@ export function todayCount(files: CatalogFile[], now = new Date()): number {
 
 export function lastScan(files: CatalogFile[]): string | null {
     return files.reduce<string | null>((latest, file) => latest === null || time(file.lastSeenAt) > time(latest) ? file.lastSeenAt : latest, null)
+}
+
+export type ReviewTab = 'pending' | 'sure' | 'check' | 'approved' | 'skipped' | 'failed' | 'queued'
+
+/**
+ * "pending" is everything analysed and still waiting for the owner; "queued" is not analysed yet
+ * (in the queue, or changed since the analysis); the other tabs are single states.
+ */
+export function inReviewTab(entry: LibraryEntry, tab: ReviewTab): boolean {
+    if (tab === 'pending') return isPending(entry.state)
+    if (tab === 'queued') return entry.state === 'queued' || entry.state === 'fresh'
+    return entry.state === tab
 }

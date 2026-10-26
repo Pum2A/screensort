@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {bulkPlan, countEntries, duplicateGroups, entryState, filterEntries, lastScan, libraryEntries, selectRange,
+import {bulkPlan, countEntries, duplicateGroups, entryState, filterEntries, inReviewTab, lastScan, libraryEntries, selectRange,
     sortEntries, todayCount} from '../src/library/model.js'
 import type {CatalogFile} from '../src/catalog/types.js'
 import type {BatchItem} from '../src/organization/types.js'
@@ -84,4 +84,17 @@ test('scan summary counts files found today and the latest scan time', () => {
     assert.equal(todayCount(files, new Date('2026-10-25T12:00:00Z')), 1)
     assert.equal(lastScan(files), '2026-10-25T08:00:00Z')
     assert.equal(lastScan([]), null)
+})
+
+test('card picks set the category per file, a bar category still wins, review tabs split the states', () => {
+    const library = {batchId: 'b', files: [1, 2].map(id => file(id, `${id}.png`, String(id), '2026-10-25T10:00:00Z')),
+        items: [item(1), item(2, {category: 'REVIEW'})]}
+    const entries = libraryEntries(library)
+    const picks = new Map([[2, 'DOCUMENTS' as const]])
+    assert.deepEqual(bulkPlan(entries, {decision: 'APPROVED', overrides: picks}).writes.map(write => [write.fileId, write.write.category]),
+        [[1, 'GAMES'], [2, 'DOCUMENTS']])
+    assert.deepEqual(bulkPlan(entries, {decision: 'APPROVED', category: 'OTHER', overrides: picks}).writes.map(write => write.write.category),
+        ['OTHER', 'OTHER'])
+    assert.deepEqual(entries.map(entry => [inReviewTab(entry, 'pending'), inReviewTab(entry, 'sure'), inReviewTab(entry, 'check')]),
+        [[true, true, false], [true, false, true]])
 })

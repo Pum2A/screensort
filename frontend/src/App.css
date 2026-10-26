@@ -48,10 +48,6 @@ button:disabled { opacity: .45; }
 .skeleton-tile > span { display: block; width: 100%; aspect-ratio: 1.15; border-radius: 10px; background: var(--soft); animation: breathe 1.8s ease-in-out infinite; }
 .skeleton-tile > i { width: 80%; height: 8px; border-radius: 4px; background: var(--soft); }
 .skeleton-tile > i:last-child { width: 40%; }
-.catalog-pagination { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 18px 0; margin-top: 8px; }
-.page-range { font-size: 12px; color: var(--muted); }
-.page-controls { display: flex; align-items: center; gap: 14px; }
-.page-controls > span { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .icon-button { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid var(--border); border-radius: 50%; background: var(--surface); color: var(--text); flex-shrink: 0; transition: background 180ms, transform 180ms; }
 .icon-button:hover:not(:disabled) { background: var(--soft); }
 .icon-button:active:not(:disabled) { transform: scale(.94); }

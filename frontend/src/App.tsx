@@ -119,7 +119,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
                     <DuplicatesView library={library.data} onBack={() => navigate('catalog')}/>
                 </section>
                 <section hidden={view !== 'organization'} id="organization" aria-label="Analiza i przegląd propozycji">
-                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} scanning={scan.busy} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
+                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} scanning={scan.busy} active={view === 'organization'} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
                         : <div className="catalog-empty"><FolderOpen size={32}/><h3>Najpierw wybierz folder.</h3><p>Skan tworzy katalog, na którym pracuje analiza.</p><button className="secondary-button" onClick={() => setView('catalog')}>Wróć do katalogu</button></div>)}
                 </section>
                 <m.footer initial={{opacity: 0}} animate={{opacity: 1}} className="app-footer"><span><ShieldCheck size={14}/>Oryginały bez zmian. Decyzje należą do Ciebie.</span><span>ScreenSort · wersja rozwojowa</span></m.footer>

@@ -2,7 +2,7 @@ import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {storedFolder} from '../src/workspace/state.js'
 import {startupStep, elapsedLabel} from '../src/desktop/status.js'
-import {effectiveCategory, filterReviewPage} from '../src/organization/review/filters.js'
+import {effectiveCategory} from '../src/organization/review/filters.js'
 import type {BatchItem} from '../src/organization/api.js'
 
 const item: BatchItem = {fileId: 1, originalName: 'photo.png', status: 'COMPLETED', category: 'GAMES', proposedName: null, proposalUncertain: false,
@@ -27,17 +27,4 @@ test('review categories use current human decisions and never trust stale decisi
     assert.equal(effectiveCategory(reviewed), 'DOCUMENTS')
     assert.equal(effectiveCategory({...reviewed, review: {...reviewed.review, matchesCatalog: false}}), 'GAMES')
     assert.equal(effectiveCategory({...item, category: 'UNKNOWN'}), 'REVIEW')
-})
-test('review filters keep approved, skipped, pending and failed states distinct', () => {
-    const approved = {...item, fileId: 2, review: {decision: 'APPROVED' as const, category: 'GAMES', revision: 0, reviewedAt: '', matchesCatalog: true}}
-    const skipped = {...item, fileId: 3, review: {...approved.review, decision: 'SKIPPED' as const}}
-    const failed = {...item, fileId: 4, status: 'FAILED' as const}
-    const pending = {...item, fileId: 5, status: 'PENDING' as const}
-    const page = [item, approved, skipped, failed, pending]
-    assert.deepEqual(filterReviewPage(page, 'APPROVED'), [approved])
-    assert.deepEqual(filterReviewPage(page, 'SKIPPED'), [skipped])
-    assert.deepEqual(filterReviewPage(page, 'UNREVIEWED'), [item])
-    assert.deepEqual(filterReviewPage(page, 'FAILED'), [failed])
-    assert.equal(filterReviewPage(page, 'category:GAMES').length, 5)
-    assert.deepEqual(filterReviewPage(page, 'unknown'), [])
 })
