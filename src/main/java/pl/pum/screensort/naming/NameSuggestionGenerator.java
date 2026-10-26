@@ -8,14 +8,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pl.pum.screensort.files.FileNames;
 
 /**
- * A small, deterministic rule, not a language model or translation. Up to two keywords from the
- * text on the image lead the name (a game title, an app name), and the visual caption fills the
- * rest. A proposal built from weak evidence is marked uncertain so the owner decides.
+ * A small, deterministic rule, not a language model. Up to two keywords from the text on the image
+ * lead the name (a game title, an app name), and the visual caption fills the rest. The caption is
+ * English; for Polish names its words go through {@link CaptionDictionary} and words without a
+ * translation are left out, so one name never mixes the two languages. A proposal built from weak
+ * evidence is marked uncertain so the owner decides.
  */
 @Component
 public class NameSuggestionGenerator {
@@ -42,20 +46,29 @@ public class NameSuggestionGenerator {
   /** OCR of a full document page can be long; titles and app names are near the top. */
   private static final int OCR_SCAN_LIMIT = 4_000;
 
+  private final Supplier<NamingLanguage> language;
+
+  @Autowired
+  public NameSuggestionGenerator(NamingSettings settings) { this(settings::language); }
+
+  NameSuggestionGenerator(Supplier<NamingLanguage> language) { this.language = language; }
+
   public Optional<NameSuggestion> suggest(String originalName, String ocrText, String description) {
+    boolean polish = language.get() == NamingLanguage.PL;
     var keywords = keywords(ocrText);
     var words = new ArrayList<String>();
     for (Keyword keyword : keywords) words.add(keyword.word());
     boolean specificCaption = false;
-    for (String word : captionWords(description)) {
+    for (String caption : captionWords(description)) {
       if (words.size() >= MAX_WORDS) break;
-      if (words.contains(word)) continue;
+      String word = polish ? CaptionDictionary.polish(caption).orElse(null) : caption;
+      if (word == null || words.contains(word)) continue;
       words.add(word);
-      specificCaption |= !GENERIC.contains(word);
+      specificCaption |= !GENERIC.contains(caption);
     }
     if (words.isEmpty()) return Optional.empty();
     String name = String.join("_", words) + FileNames.extension(originalName);
-    if (FileNameRules.problem(name, originalName).isPresent()) name = "obraz_" + name;
+    if (FileNameRules.problem(name, originalName).isPresent()) name = (polish ? "obraz_" : "image_") + name;
     if (FileNameRules.problem(name, originalName).isPresent()) return Optional.empty();
     // Two words from somewhere specific are enough; a lone word or only filler words are not.
     boolean uncertain = words.size() < 2 || keywords.isEmpty() && !specificCaption;

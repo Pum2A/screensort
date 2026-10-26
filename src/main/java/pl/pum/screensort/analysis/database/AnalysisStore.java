@@ -34,6 +34,11 @@ public class AnalysisStore {
     return analyses.findFirstByFile_IdOrderByAnalyzedAtDesc(fileId).map(this::dto);
   }
 
+  @Transactional(readOnly = true)
+  public Optional<SavedAnalysis> find(long analysisId) {
+    return analyses.findById(analysisId).map(this::dto);
+  }
+
   private SavedAnalysis dto(FileAnalysisEntity entity) {
     var file = entity.getFile();
     return new SavedAnalysis(entity.getId(), file.getId(), entity.getAnalyzedAt(),

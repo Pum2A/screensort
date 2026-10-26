@@ -40,6 +40,7 @@ import pl.pum.screensort.catalog.database.AllowedRootEntity;
 import pl.pum.screensort.catalog.database.FileRecordEntity;
 import pl.pum.screensort.catalog.database.FileRecordRepository;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
+import pl.pum.screensort.naming.NamingSettings;
 import pl.pum.screensort.naming.NamingException;
 import pl.pum.screensort.naming.NamingService;
 import pl.pum.screensort.naming.database.FileNamingRepository;
@@ -54,7 +55,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import({ReviewService.class, ReviewStore.class, NamingService.class, NameSuggestionGenerator.class,
+@Import({ReviewService.class, ReviewStore.class, NamingService.class, NameSuggestionGenerator.class, NamingSettings.class,
     AnalysisStore.class, BatchStore.class, CategorySuggester.class, ReviewJpaTest.Config.class,
     ExportStore.class, ExportManager.class, OrganizedFileCopier.class, ScanFolderValidator.class})
 class ReviewJpaTest {
@@ -105,7 +106,7 @@ class ReviewJpaTest {
     var modified = Files.getLastModifiedTime(source);
     var fixture = prepare(folder);
     var initial = reviews.read(fixture.batchId(), fixture.fileId());
-    assertThat(initial.proposedName()).isEqualTo("mug_desk.png");
+    assertThat(initial.proposedName()).isEqualTo("kubek_biurko.png"); // Polish by default.
     assertThat(initial.proposalUncertain()).isFalse();
     assertThat(initial.namingRevision()).isEqualTo(-1);
     assertThat(initial.review()).isNull();
