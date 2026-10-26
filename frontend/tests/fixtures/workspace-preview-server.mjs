@@ -21,7 +21,8 @@ const images = createServer((request, response) => {
     const id = match ? Number(match[1]) : 0
     if (id >= 1 && id <= 94) {
         response.writeHead(200, {'Content-Type': 'image/svg+xml', 'Cache-Control': 'no-store'})
-        response.end(illustration(id))
+        // Files 89-94 repeat the content of files 1-6 (the duplicates screen), so they repeat the picture too.
+        response.end(illustration(id > 88 ? id - 88 : id))
     } else {response.writeHead(404); response.end()}
 })
 images.listen(0, '127.0.0.1', () => {
