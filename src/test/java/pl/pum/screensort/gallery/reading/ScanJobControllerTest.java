@@ -1,6 +1,6 @@
 package pl.pum.screensort.gallery.reading;
 
-import pl.pum.screensort.api.ApiExceptionHandler;
+import pl.pum.screensort.errors.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;

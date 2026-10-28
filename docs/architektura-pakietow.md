@@ -14,10 +14,10 @@ gdy jest dla niego osobne, jasne zadanie.
 | `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI, język nazw PL/EN | `naming` + `CategorySuggester` + `NamingLanguageController` | ✅ PR E |
 | `review` | „Przejrzyj” | zatwierdzanie i poprawki; na razie też `ImageCategory` i `ApprovedFilesSql` | `organization/review` | ✅ PR C |
 | `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ✅ PR D |
-| `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ⬜ |
-| `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
+| `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ✅ PR F |
+| `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ✅ PR F |
 | `files` | — | nazwy plików, formaty, hash | `files` | bez zmian |
-| `metrics` | — | liczniki i stopery dla Prometheusa | `diagnostics` | ⬜ |
+| `metrics` | — | liczniki i stopery dla Prometheusa | `diagnostics` | ✅ PR F |
 
 ## Frontend (`frontend/src`)
 
@@ -33,8 +33,8 @@ Te same nazwy co w backendzie, więc `gallery` w Javie i `gallery` we froncie to
 | `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ✅ PR E |
 | `review` | przegląd i zatwierdzanie | `organization/review/` | ✅ PR C |
 | `export` | zapis do folderów kategorii, podgląd planu | `organization/export/`, `OrganizationPlanPreview` | ✅ PR D, E |
-| `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ⬜ |
-| `http` | wspólne zapytania do backendu | `shared/` | ⬜ |
+| `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ✅ PR F |
+| `http` | wspólne zapytania do backendu | `shared/` | ✅ PR F |
 | `ui` | przyciski, ikony, okna | — | bez zmian |
 
 Dalej: jeden krok użytkownika na PR, backend i frontend naraz (np. „review” przenosi `organization/review`

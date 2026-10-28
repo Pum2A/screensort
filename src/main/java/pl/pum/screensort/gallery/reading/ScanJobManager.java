@@ -14,7 +14,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.diagnostics.RedactedThrowable;
+import pl.pum.screensort.errors.RedactedThrowable;
 
 @Service
 public class ScanJobManager {

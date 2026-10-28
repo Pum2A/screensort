@@ -1,4 +1,4 @@
-import {DesktopAnalysisControls} from '../desktop/DesktopAnalysisControls.js'
+import {DesktopAnalysisControls} from '../tauri/DesktopAnalysisControls.js'
 import {Logo} from '../ui/Logo.js'
 import {PixelIcon} from '../ui/PixelIcon.js'
 import type {PixelIconName} from '../ui/pixelIcons.js'

@@ -1,14 +1,14 @@
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {ArrowRight, Check, CircleAlert, FolderTree, Info, Layers3, LoaderCircle, Pause, Play, ScanLine, Sparkles} from 'lucide-react'
-import {useAnalysisReady} from '../desktop/readiness.js'
+import {useAnalysisReady} from '../tauri/readiness.js'
 import {controlBatch, latestBatch, organizationKeys, startBatch} from './batchApi.js'
 import type {Batch} from './batchApi.js'
 import {libraryKeys} from '../gallery/libraryApi.js'
 import {ReviewBoard} from '../review/ReviewBoard.js'
 import {OrganizationPlanPreview} from '../export/OrganizationPlanPreview.js'
 import './OrganizationPanel.css'
-import {useUpdateBlocker} from '../desktop/updates/context.js'
+import {useUpdateBlocker} from '../tauri/updates/context.js'
 
 const POLL_MS = 1200
 const statuses = {RUNNING: 'Analiza w toku', PAUSED: 'Wstrzymano — postęp zachowany', COMPLETED: 'Analiza zakończona', CANCELLED: 'Zadanie anulowane'}

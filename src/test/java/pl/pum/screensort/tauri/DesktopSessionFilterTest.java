@@ -1,11 +1,11 @@
-package pl.pum.screensort.analysis;
+package pl.pum.screensort.tauri;
 
 import static org.assertj.core.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import pl.pum.screensort.desktop.DesktopSessionFilter;
+import pl.pum.screensort.tauri.DesktopSessionFilter;
 
 class DesktopSessionFilterTest {
   @Test void rejectsUntrustedLoopbackRequestsBeforeControllers() throws Exception {

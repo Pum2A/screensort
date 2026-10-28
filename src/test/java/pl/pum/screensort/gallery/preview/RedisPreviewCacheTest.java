@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 
 class RedisPreviewCacheTest {
   @SuppressWarnings("unchecked")

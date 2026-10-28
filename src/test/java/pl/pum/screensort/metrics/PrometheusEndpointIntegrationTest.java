@@ -1,4 +1,4 @@
-package pl.pum.screensort.diagnostics;
+package pl.pum.screensort.metrics;
 
 import static org.assertj.core.api.Assertions.*;
 

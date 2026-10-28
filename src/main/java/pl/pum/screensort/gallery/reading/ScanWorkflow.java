@@ -6,8 +6,8 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.gallery.KnownFilesReader;
 import pl.pum.screensort.gallery.CatalogUpdater;
-import pl.pum.screensort.diagnostics.ProductMetrics;
-import static pl.pum.screensort.diagnostics.ProductMetrics.Operation.*;
+import pl.pum.screensort.metrics.ProductMetrics;
+import static pl.pum.screensort.metrics.ProductMetrics.Operation.*;
 
 @Service
 public class ScanWorkflow {

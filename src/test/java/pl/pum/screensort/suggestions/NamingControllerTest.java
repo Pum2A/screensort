@@ -1,6 +1,6 @@
 package pl.pum.screensort.suggestions;
 
-import pl.pum.screensort.api.ApiExceptionHandler;
+import pl.pum.screensort.errors.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;

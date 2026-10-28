@@ -2,9 +2,9 @@ package pl.pum.screensort.gallery.preview;
 
 import java.util.Optional;
 import org.springframework.stereotype.Component;
-import pl.pum.screensort.diagnostics.ProductMetrics;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheLayer.MEMORY;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheOutcome.*;
+import pl.pum.screensort.metrics.ProductMetrics;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheLayer.MEMORY;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheOutcome.*;
 
 /**
  * Small in-process LRU first, then the disk cache that survives restarts, then optional

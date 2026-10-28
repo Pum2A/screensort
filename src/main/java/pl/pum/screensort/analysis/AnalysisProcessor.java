@@ -3,8 +3,8 @@ package pl.pum.screensort.analysis;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
-import pl.pum.screensort.diagnostics.ProductMetrics;
-import static pl.pum.screensort.diagnostics.ProductMetrics.Operation.*;
+import pl.pum.screensort.metrics.ProductMetrics;
+import static pl.pum.screensort.metrics.ProductMetrics.Operation.*;
 
 /** One inference at a time across single-image and folder jobs. No open DB transaction here. */
 @Service

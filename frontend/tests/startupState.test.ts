@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {initialStartup, MAX_STATUS_FAILURES, nextStartup, startupView} from '../src/desktop/status.js'
-import type {DesktopStatus, StartupState} from '../src/desktop/status.js'
+import {initialStartup, MAX_STATUS_FAILURES, nextStartup, startupView} from '../src/tauri/status.js'
+import type {DesktopStatus, StartupState} from '../src/tauri/status.js'
 
 const starting: DesktopStatus = {phase: 'Przygotowujemy bazę', backendReady: false, analysisReady: false,
     analysisStarting: false, error: null}

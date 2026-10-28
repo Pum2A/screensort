@@ -1,4 +1,4 @@
-package pl.pum.screensort.desktop;
+package pl.pum.screensort.tauri;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

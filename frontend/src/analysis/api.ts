@@ -1,5 +1,5 @@
-import {requestJson, requestJsonOrNull} from '../shared/http.js'
-import type {ErrorMessages} from '../shared/http.js'
+import {requestJson, requestJsonOrNull} from '../http/http.js'
+import type {ErrorMessages} from '../http/http.js'
 import {analysisJobSchema, savedAnalysisSchema} from './types.js'
 import type {AnalysisJob, SavedAnalysis} from './types.js'
 

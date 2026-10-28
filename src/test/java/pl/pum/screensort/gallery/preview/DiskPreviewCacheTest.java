@@ -10,7 +10,7 @@ import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 
 class DiskPreviewCacheTest {
   @TempDir Path directory;

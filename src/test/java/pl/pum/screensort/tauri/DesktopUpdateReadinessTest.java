@@ -1,4 +1,4 @@
-package pl.pum.screensort.desktop;
+package pl.pum.screensort.tauri;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

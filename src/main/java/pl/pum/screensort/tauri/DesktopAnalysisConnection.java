@@ -1,4 +1,4 @@
-package pl.pum.screensort.desktop;
+package pl.pum.screensort.tauri;
 
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;

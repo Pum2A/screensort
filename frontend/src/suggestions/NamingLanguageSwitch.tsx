@@ -1,8 +1,8 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {z} from 'zod'
 import {libraryKeys} from '../gallery/libraryApi.js'
-import {requestJson} from '../shared/http.js'
-import type {ErrorMessages} from '../shared/http.js'
+import {requestJson} from '../http/http.js'
+import type {ErrorMessages} from '../http/http.js'
 
 const languageSchema = z.object({language: z.enum(['PL', 'EN'])})
 type Language = z.infer<typeof languageSchema>['language']

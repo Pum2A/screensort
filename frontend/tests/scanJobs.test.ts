@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {fetchRejections, fetchScanJob, startScan} from '../src/gallery/reading/api.js'
-import {ApiError} from '../src/shared/http.js'
+import {ApiError} from '../src/http/http.js'
 import {SCAN_POLL_MS, scanPollInterval} from '../src/gallery/reading/types.js'
 import type {ScanJob, ScanStatus} from '../src/gallery/reading/types.js'
 

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import {installationBlocker, updateLabel, updatePending, updatePercent} from '../src/desktop/updates/state.js'
-import type {UpdateStatus} from '../src/desktop/updates/state.js'
+import {installationBlocker, updateLabel, updatePending, updatePercent} from '../src/tauri/updates/state.js'
+import type {UpdateStatus} from '../src/tauri/updates/state.js'
 const ready: UpdateStatus = {phase: 'DOWNLOADED', currentVersion: '0.2.2', version: '0.2.3', notes: null, downloadedBytes: 0, totalBytes: null, error: null}
 
 test('startup status keeps polling until the native check actually starts and finishes', () => {

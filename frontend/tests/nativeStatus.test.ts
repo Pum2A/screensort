@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {watchNative} from '../src/desktop/nativeStatus.js'
+import {watchNative} from '../src/tauri/nativeStatus.js'
 
 test('outside the desktop shell a read fails, is reported, and stopping ends the watch', async () => {
     let errors = 0

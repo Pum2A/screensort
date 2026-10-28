@@ -20,7 +20,7 @@ import java.util.zip.CRC32;
 import javax.imageio.ImageIO;
 import java.util.Optional;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

@@ -1,4 +1,4 @@
-package pl.pum.screensort.diagnostics;
+package pl.pum.screensort.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
