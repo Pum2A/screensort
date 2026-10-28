@@ -13,7 +13,7 @@ gdy jest dla niego osobne, jasne zadanie.
 | `analysis` | „Uporządkuj z AI” | silniki AI (`engine/`), kolejka zdjęć | `analysis` + partie z `organization` | ⬜ |
 | `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI | `naming` + `CategorySuggester` | ⬜ |
 | `review` | „Przejrzyj” | zatwierdzanie i poprawki; na razie też `ImageCategory` | `organization/review` | ✅ PR C |
-| `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ⬜ |
+| `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ✅ PR D |
 | `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ⬜ |
 | `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
 | `files` | — | nazwy plików, formaty, hash | `files` | bez zmian |
@@ -32,7 +32,7 @@ Te same nazwy co w backendzie, więc `gallery` w Javie i `gallery` we froncie to
 | `analysis` | „Uporządkuj z AI”, postęp partii | `analysis/`, `organization/OrganizationPanel` | ⬜ |
 | `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ⬜ |
 | `review` | przegląd i zatwierdzanie | `organization/review/` | ✅ PR C |
-| `export` | zapis do folderów kategorii | `organization/export/` | ⬜ |
+| `export` | zapis do folderów kategorii | `organization/export/` | ✅ PR D |
 | `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ⬜ |
 | `http` | wspólne zapytania do backendu | `shared/` | ⬜ |
 | `ui` | przyciski, ikony, okna | — | bez zmian |

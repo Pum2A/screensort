@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {Check, CircleAlert, Copy, LoaderCircle, RefreshCw} from 'lucide-react'
-import {useUpdateBlocker} from '../../desktop/updates/context.js'
+import {useUpdateBlocker} from '../desktop/updates/context.js'
 import {exportIssues, exportKeys, latestExport, startExport} from './api.js'
 
 const POLL_MS = 800

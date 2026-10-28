@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.export;
+package pl.pum.screensort.export;
 
 import java.time.Instant;
 import java.util.List;

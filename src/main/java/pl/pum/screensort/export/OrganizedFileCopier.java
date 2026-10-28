@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.export;
+package pl.pum.screensort.export;
 
 import pl.pum.screensort.files.Sha256;
 import pl.pum.screensort.files.SourcePath;

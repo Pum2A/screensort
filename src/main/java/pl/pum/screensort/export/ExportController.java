@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.export;
+package pl.pum.screensort.export;
 
 import java.net.URI;
 import java.util.UUID;

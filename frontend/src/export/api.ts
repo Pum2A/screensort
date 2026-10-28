@@ -1,6 +1,6 @@
 import {z} from 'zod'
-import {requestJson, requestJsonOrNull} from '../../shared/http.js'
-import type {ErrorMessages} from '../../shared/http.js'
+import {requestJson, requestJsonOrNull} from '../shared/http.js'
+import type {ErrorMessages} from '../shared/http.js'
 
 // Mirrors ExportStore.Job / ExportStore.Issues in Java; statuses are fixed by the V8/V9 CHECK constraints.
 export const exportJobSchema = z.object({

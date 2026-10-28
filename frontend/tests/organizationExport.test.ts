@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {exportIssues, latestExport, readExport, startExport} from '../src/organization/export/api.js'
+import {exportIssues, latestExport, readExport, startExport} from '../src/export/api.js'
 
 test('copying sends one batch and selected destination; the backend owns the approved file list', async () => {
     const original = globalThis.fetch
