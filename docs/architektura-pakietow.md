@@ -1,0 +1,29 @@
+# Pakiety backendu: nazwy zgodne z tym, co widzi użytkownik
+
+Zasada: folder w kodzie nazywa się tak jak krok w aplikacji. W środku pliki leżą płasko; podfolder dopiero,
+gdy jest dla niego osobne, jasne zadanie.
+
+## Docelowy kształt
+
+| Pakiet | Krok w aplikacji | Co w nim jest | Skąd | Status |
+|---|---|---|---|---|
+| `gallery` | „Dodaj folder” | dodane foldery, spis zdjęć, lista bibliotek | `catalog`, `library` | ✅ PR A |
+| `gallery/reading` | wczytywanie folderu (pasek postępu) | szukanie obrazów, hash, zadania w tle | `scanning` (10 podfolderów) | ✅ PR A |
+| `gallery/preview` | miniatury na kafelkach | dekodowanie, cache na dysku i w Redisie | `catalog/preview` | ✅ PR A |
+| `analysis` | „Uporządkuj z AI” | silniki AI (`engine/`), kolejka zdjęć | `analysis` + partie z `organization` | ⬜ |
+| `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI | `naming` + `CategorySuggester` | ⬜ |
+| `review` | „Przejrzyj” | zatwierdzanie i poprawki | `organization/review` | ⬜ |
+| `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ⬜ |
+| `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ⬜ |
+| `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
+| `files` | — | nazwy plików, formaty, hash | `files` | bez zmian |
+| `metrics` | — | liczniki i stopery dla Prometheusa | `diagnostics` | ⬜ |
+
+## Jak przenosimy
+
+- Jeden PR na jeden wiersz tabeli (albo kilka małych naraz). Każdy PR tylko przenosi pliki i poprawia importy —
+  bez zmian w logice — więc te same testy muszą przejść przed i po.
+- Adresy API (`/api/...`) się nie zmieniają, więc frontend i Tauri nie wymagają zmian.
+- Nazwy klas (np. `ScanRestController`, `CatalogReader`) zostają na razie stare. Zmienimy je w osobnej rundzie,
+  razem z ekranem: przycisk „Skanuj” znika, dodanie folderu od razu wczytuje zdjęcia.
+- Łączenie drobnych klas w jedną (np. pięć małych rekordów wyniku wczytywania) — też osobno, po przenosinach.

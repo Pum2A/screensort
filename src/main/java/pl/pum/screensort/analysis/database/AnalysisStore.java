@@ -7,7 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.AnalysisResult;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import tools.jackson.databind.json.JsonMapper;
 
 @Service

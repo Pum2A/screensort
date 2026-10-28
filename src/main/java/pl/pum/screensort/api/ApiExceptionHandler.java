@@ -11,12 +11,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import pl.pum.screensort.analysis.AnalysisException;
-import pl.pum.screensort.catalog.reading.CatalogTooLargeException;
+import pl.pum.screensort.gallery.CatalogTooLargeException;
 import pl.pum.screensort.naming.NamingException;
 import pl.pum.screensort.organization.export.ExportException;
 import pl.pum.screensort.organization.review.ReviewException;
-import pl.pum.screensort.scanning.folder.InvalidScanFolderException;
-import pl.pum.screensort.scanning.jobs.ScanAlreadyRunningException;
+import pl.pum.screensort.gallery.reading.InvalidScanFolderException;
+import pl.pum.screensort.gallery.reading.ScanAlreadyRunningException;
 
 /** Every controller answers errors the same way: a status, {@link ApiError} JSON and no caching. */
 @RestControllerAdvice

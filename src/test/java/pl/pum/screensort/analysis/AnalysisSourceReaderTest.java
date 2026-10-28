@@ -10,8 +10,8 @@ import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import pl.pum.screensort.analysis.source.AnalysisSourceReader;
-import pl.pum.screensort.catalog.preview.CatalogImageSourceReader;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.preview.CatalogImageSourceReader;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 class AnalysisSourceReaderTest {
   @Test void readsActualBytesWithoutChangingTheSource(@TempDir Path folder) throws Exception {

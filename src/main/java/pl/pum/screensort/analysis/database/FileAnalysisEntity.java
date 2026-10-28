@@ -2,7 +2,7 @@ package pl.pum.screensort.analysis.database;
 
 import jakarta.persistence.*;
 import java.time.Instant;
-import pl.pum.screensort.catalog.database.FileRecordEntity;
+import pl.pum.screensort.gallery.FileRecordEntity;
 
 @Entity
 @Table(name = "file_analysis")

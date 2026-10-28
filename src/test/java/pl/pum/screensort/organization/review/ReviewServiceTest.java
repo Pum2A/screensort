@@ -7,8 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import pl.pum.screensort.catalog.database.FileRecordEntity;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.FileRecordEntity;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import pl.pum.screensort.naming.NamingService;
 
 class ReviewServiceTest {

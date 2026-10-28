@@ -13,7 +13,7 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import pl.pum.screensort.scanning.result.ScanSummary;
+import pl.pum.screensort.gallery.reading.ScanSummary;
 
 /** Real HTTP export on random local ports; no catalog, database or model processes. */
 class PrometheusEndpointIntegrationTest {

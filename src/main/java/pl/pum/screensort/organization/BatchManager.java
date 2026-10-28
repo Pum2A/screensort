@@ -18,7 +18,7 @@ import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.EngineBusyException;
 import pl.pum.screensort.diagnostics.RedactedThrowable;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 @Service
 public class BatchManager {

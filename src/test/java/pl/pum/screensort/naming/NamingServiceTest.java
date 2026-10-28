@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 import pl.pum.screensort.analysis.database.AnalysisStore;
 import pl.pum.screensort.analysis.result.AnalysisResult;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.catalog.database.FileRecordEntity;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.FileRecordEntity;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import pl.pum.screensort.naming.database.FileNamingEntity;
 import pl.pum.screensort.naming.database.FileNamingRepository;
 

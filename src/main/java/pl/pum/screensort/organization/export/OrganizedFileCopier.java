@@ -21,7 +21,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 import pl.pum.screensort.naming.FileNameRules;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 /** Streams one approved source into an owned output directory. Source files are read only. */
 @Component

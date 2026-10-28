@@ -19,7 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.diagnostics.RedactedThrowable;
 import pl.pum.screensort.organization.BatchStore;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 @Service
 public class ExportManager {

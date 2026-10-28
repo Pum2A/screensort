@@ -3,7 +3,7 @@ package pl.pum.screensort.organization.review;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import pl.pum.screensort.naming.NamingService;
 
 @Service

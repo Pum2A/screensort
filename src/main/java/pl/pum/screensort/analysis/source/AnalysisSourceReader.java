@@ -14,8 +14,8 @@ import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import pl.pum.screensort.analysis.AnalysisException;
-import pl.pum.screensort.catalog.preview.CatalogImageSourceReader;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.preview.CatalogImageSourceReader;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 @Service
 public class AnalysisSourceReader {
