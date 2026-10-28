@@ -1,7 +1,7 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import type {FormEvent} from 'react'
 import {Check, ChevronRight, CircleAlert, LoaderCircle, RotateCcw, SkipForward} from 'lucide-react'
-import {CatalogImage} from '../../catalog/CatalogImage.js'
+import {CatalogImage} from '../../gallery/CatalogImage.js'
 import {fileNameProblem} from '../../naming/fileNameRules.js'
 import type {BatchItem} from '../api.js'
 import {readReview, saveReview} from './api.js'

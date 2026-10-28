@@ -1,5 +1,5 @@
-import {requestJson} from '../shared/http.js'
-import type {ErrorMessages} from '../shared/http.js'
+import {requestJson} from '../../shared/http.js'
+import type {ErrorMessages} from '../../shared/http.js'
 import {scanJobSchema, scanRejectionsSchema} from './types.js'
 import type {ScanJob, ScanRejections} from './types.js'
 

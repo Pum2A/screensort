@@ -1,6 +1,6 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
 import {z} from 'zod'
-import {libraryKeys} from '../library/api.js'
+import {libraryKeys} from '../gallery/libraryApi.js'
 import {requestJson} from '../shared/http.js'
 import type {ErrorMessages} from '../shared/http.js'
 

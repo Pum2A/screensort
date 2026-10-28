@@ -1,11 +1,11 @@
-import {CatalogImage} from './CatalogImage.js'
-import {imageUrl} from './api.js'
-import {formatDate, formatSize} from './format.js'
-import type {CatalogFile} from './types.js'
-import {Icon} from '../ui/Icon.js'
+import {CatalogImage} from '../CatalogImage.js'
+import {imageUrl} from '../catalogApi.js'
+import {formatDate, formatSize} from '../format.js'
+import type {CatalogFile} from '../catalogTypes.js'
+import {Icon} from '../../ui/Icon.js'
 import {useTreeConnections} from './useTreeConnections.js'
-import {AnimatedBranch} from '../ui/AnimatedBranch.js'
-import {AnalysisPanel} from '../analysis/AnalysisPanel.js'
+import {AnimatedBranch} from '../../ui/AnimatedBranch.js'
+import {AnalysisPanel} from '../../analysis/AnalysisPanel.js'
 import './ImageDetailsTree.css'
 
 export function ImageDetailsTree({file}: {file: CatalogFile}) {

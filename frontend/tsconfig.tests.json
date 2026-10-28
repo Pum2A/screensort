@@ -11,5 +11,5 @@
     "outDir": ".test-output",
     "skipLibCheck": true
   },
-  "include": ["tests/**/*.ts", "src/catalog/galleryLayout.ts", "src/scanning/api.ts", "src/scanning/polling.ts", "src/scanning/types.ts"]
+  "include": ["tests/**/*.ts", "src/gallery/galleryLayout.ts", "src/gallery/reading/api.ts", "src/gallery/reading/types.ts"]
 }

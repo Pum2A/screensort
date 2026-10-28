@@ -1,8 +1,8 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {createImageCache} from '../src/catalog/imageCache.js'
-import {imageUrl} from '../src/catalog/api.js'
-import type {CatalogFile} from '../src/catalog/types.js'
+import {createImageCache} from '../src/gallery/imageCache.js'
+import {imageUrl} from '../src/gallery/catalogApi.js'
+import type {CatalogFile} from '../src/gallery/catalogTypes.js'
 
 const blob = (bytes: number) => new Blob([new Uint8Array(bytes)])
 

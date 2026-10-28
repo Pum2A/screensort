@@ -3,9 +3,9 @@ import * as m from 'motion/react-m'
 import {useIsPresent} from 'motion/react'
 import type {RefObject} from 'react'
 import {ImageDetailsTree} from './ImageDetailsTree.js'
-import {isOutsideBox} from './galleryLayout.js'
-import type {CatalogFile} from './types.js'
-import {Icon} from '../ui/Icon.js'
+import {isOutsideBox} from '../galleryLayout.js'
+import type {CatalogFile} from '../catalogTypes.js'
+import {Icon} from '../../ui/Icon.js'
 import './ImageDetailsDialog.css'
 
 type Props = {id: string, file: CatalogFile, trigger: RefObject<HTMLButtonElement | null>, onClose: () => void}

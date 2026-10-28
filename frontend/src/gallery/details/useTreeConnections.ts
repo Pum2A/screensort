@@ -1,6 +1,6 @@
 import {useLayoutEffect, useRef, useState} from 'react'
-import {treeConnections} from './galleryLayout.js'
-import type {TreeBox} from './galleryLayout.js'
+import {treeConnections} from '../galleryLayout.js'
+import type {TreeBox} from '../galleryLayout.js'
 
 type Connections = {width: number, height: number, paths: string[]}
 

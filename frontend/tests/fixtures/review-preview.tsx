@@ -4,8 +4,8 @@ import {OrganizationPanel} from '../../src/organization/OrganizationPanel.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
 import {QueryProvider} from '../../src/shared/QueryProvider.js'
 import type {BatchItem} from '../../src/organization/api.js'
-import '../../src/index.css'
-import '../../src/App.css'
+import '../../src/app/index.css'
+import '../../src/app/App.css'
 
 const batchId = '11111111-2222-4333-8444-555555555555'
 const hash = 'a'.repeat(64)

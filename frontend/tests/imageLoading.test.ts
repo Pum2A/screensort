@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {createLimiter, wait, withRetry} from '../src/catalog/imageLoading.js'
+import {createLimiter, wait, withRetry} from '../src/gallery/imageLoading.js'
 
 function deferred() {
     let resolve!: () => void

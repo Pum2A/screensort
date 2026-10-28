@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {readFileSync} from 'node:fs'
 
-const css = readFileSync('src/index.css', 'utf8')
+const css = readFileSync('src/app/index.css', 'utf8')
 function token(name: string): string {
     const value = css.match(new RegExp(`--${name}:\\s*(#[a-f0-9]{3,6})`, 'i'))?.[1]
     assert.ok(value, `Missing theme token ${name}`)
