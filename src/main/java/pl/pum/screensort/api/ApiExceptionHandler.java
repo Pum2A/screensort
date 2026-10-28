@@ -14,7 +14,7 @@ import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.gallery.CatalogTooLargeException;
 import pl.pum.screensort.naming.NamingException;
 import pl.pum.screensort.organization.export.ExportException;
-import pl.pum.screensort.organization.review.ReviewException;
+import pl.pum.screensort.review.ReviewException;
 import pl.pum.screensort.gallery.reading.InvalidScanFolderException;
 import pl.pum.screensort.gallery.reading.ScanAlreadyRunningException;
 

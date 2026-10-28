@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.review;
+package pl.pum.screensort.review;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;

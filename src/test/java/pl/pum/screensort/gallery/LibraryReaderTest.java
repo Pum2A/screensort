@@ -11,8 +11,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import pl.pum.screensort.organization.BatchStore;
-import pl.pum.screensort.organization.review.ReviewItem;
-import pl.pum.screensort.organization.review.ReviewStore;
+import pl.pum.screensort.review.ReviewItem;
+import pl.pum.screensort.review.ReviewStore;
 
 class LibraryReaderTest {
   private final CatalogReader catalog = mock(CatalogReader.class);

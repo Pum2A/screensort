@@ -1,8 +1,8 @@
 import type {CatalogFile} from './catalogTypes.js'
 import type {BatchItem} from '../organization/types.js'
-import {effectiveCategory} from '../organization/review/filters.js'
-import {categoryLabels, draftFor, isCategory, reviewWrite} from '../organization/review/state.js'
-import type {ImageCategory, ReviewWrite} from '../organization/review/state.js'
+import {effectiveCategory} from '../review/filters.js'
+import {categoryLabels, draftFor, isCategory, reviewWrite} from '../review/state.js'
+import type {ImageCategory, ReviewWrite} from '../review/state.js'
 import type {Library} from './libraryTypes.js'
 
 /**

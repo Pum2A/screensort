@@ -1,4 +1,4 @@
-import type {BatchItem} from '../api.js'
+import type {BatchItem} from '../organization/api.js'
 import {isCategory} from './state.js'
 
 export function effectiveCategory(item: BatchItem): string {

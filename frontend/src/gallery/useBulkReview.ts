@@ -1,5 +1,5 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query'
-import {saveReview} from '../organization/review/api.js'
+import {saveReview} from '../review/api.js'
 import {libraryKeys} from './libraryApi.js'
 import {bulkPlan} from './model.js'
 import type {BulkAction, LibraryEntry} from './model.js'

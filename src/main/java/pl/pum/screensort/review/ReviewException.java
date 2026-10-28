@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.review;
+package pl.pum.screensort.review;
 
 public class ReviewException extends RuntimeException {
   private final int status;

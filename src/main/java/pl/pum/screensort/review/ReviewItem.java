@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.review;
+package pl.pum.screensort.review;
 
 import java.time.Instant;
 

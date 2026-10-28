@@ -22,7 +22,7 @@ import pl.pum.screensort.gallery.AllowedRootEntity;
 import pl.pum.screensort.gallery.FileRecordEntity;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
 import pl.pum.screensort.naming.NamingSettings;
-import pl.pum.screensort.organization.review.ReviewStore;
+import pl.pum.screensort.review.ReviewStore;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
