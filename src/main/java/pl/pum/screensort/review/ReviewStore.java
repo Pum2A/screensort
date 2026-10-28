@@ -8,7 +8,6 @@ import java.util.UUID;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import pl.pum.screensort.review.ApprovedFilesSql;
 
 @Repository
 public class ReviewStore {

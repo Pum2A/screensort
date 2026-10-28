@@ -2,10 +2,10 @@ package pl.pum.screensort.gallery.preview;
 
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheLayer.DISK;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheOutcome.ERROR;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheOutcome.HIT;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheOutcome.MISS;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheLayer.DISK;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheOutcome.ERROR;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheOutcome.HIT;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheOutcome.MISS;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 
 /**
  * Encoded previews kept between app restarts. Disposable: a missing, broken or deleted file only

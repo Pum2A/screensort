@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react'
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query'
-import {ApiError} from '../../shared/http.js'
+import {ApiError} from '../../http/http.js'
 import {fetchRejections, fetchScanJob, scanKeys, startScan} from './api.js'
 import {isFinished, SCAN_POLL_MS, scanPollInterval} from './types.js'
 import type {ScanJob} from './types.js'

@@ -1,4 +1,4 @@
-package pl.pum.screensort.diagnostics;
+package pl.pum.screensort.errors;
 
 /**
  * Log-safe copy of an exception: keeps types, stack frames, causes and suppressed exceptions,

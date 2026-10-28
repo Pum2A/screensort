@@ -6,7 +6,7 @@ import type {ExportJob} from '../../src/export/api.js'
 import {WorkspacePreview} from './workspace-preview-ui.js'
 import '../../src/app/index.css'
 import '../../src/app/App.css'
-import '../../src/desktop/DesktopStartup.css'
+import '../../src/tauri/DesktopStartup.css'
 
 const query = new URLSearchParams(location.search)
 const scenario = query.get('scenario') ?? 'catalog'

@@ -1,5 +1,5 @@
-import {ApiError, requestJson} from '../shared/http.js'
-import type {ErrorMessages, RequestOptions} from '../shared/http.js'
+import {ApiError, requestJson} from '../http/http.js'
+import type {ErrorMessages, RequestOptions} from '../http/http.js'
 import {batchItemSchema} from '../analysis/batchTypes.js'
 import type {BatchItem} from '../analysis/batchTypes.js'
 import type {ReviewWrite} from './state.js'

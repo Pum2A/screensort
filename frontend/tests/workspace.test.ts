@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {storedFolder} from '../src/app/state.js'
-import {startupStep, elapsedLabel} from '../src/desktop/status.js'
+import {startupStep, elapsedLabel} from '../src/tauri/status.js'
 import {effectiveCategory} from '../src/review/filters.js'
 import type {BatchItem} from '../src/analysis/batchApi.js'
 

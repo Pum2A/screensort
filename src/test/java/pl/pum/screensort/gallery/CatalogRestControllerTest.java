@@ -1,7 +1,7 @@
 package pl.pum.screensort.gallery;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import pl.pum.screensort.api.ApiExceptionHandler;
+import pl.pum.screensort.errors.ApiExceptionHandler;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

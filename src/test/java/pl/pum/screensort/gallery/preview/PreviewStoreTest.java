@@ -7,7 +7,7 @@ import static org.mockito.Mockito.*;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 
 class PreviewStoreTest {
   @Test void worksWithNoRedisAndProtectsStoredBytes() {

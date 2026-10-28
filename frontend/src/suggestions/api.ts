@@ -1,5 +1,5 @@
-import {requestJson} from '../shared/http.js'
-import type {ErrorMessages} from '../shared/http.js'
+import {requestJson} from '../http/http.js'
+import type {ErrorMessages} from '../http/http.js'
 import {namingReviewSchema} from './types.js'
 import type {NamingReview} from './types.js'
 

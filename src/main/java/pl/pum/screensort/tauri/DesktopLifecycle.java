@@ -1,4 +1,4 @@
-package pl.pum.screensort.desktop;
+package pl.pum.screensort.tauri;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;

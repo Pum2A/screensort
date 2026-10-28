@@ -1,5 +1,5 @@
 import {LockKeyhole} from 'lucide-react'
-import {UpdatePrompt} from '../desktop/updates/UpdatePrompt.js'
+import {UpdatePrompt} from '../tauri/updates/UpdatePrompt.js'
 import type {WorkspaceView} from './state.js'
 
 /** Figma v1+ header: a mono breadcrumb over a large title, the folder name in the library. */

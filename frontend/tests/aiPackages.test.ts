@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {hasAiPackage, packagePercent, packagePhase, packageSize} from '../src/desktop/packages/state.js'
-import type {PackageStatus} from '../src/desktop/packages/state.js'
+import {hasAiPackage, packagePercent, packagePhase, packageSize} from '../src/tauri/packages/state.js'
+import type {PackageStatus} from '../src/tauri/packages/state.js'
 
 test('package progress is bounded and handles preparation without a byte count', () => {
     const progress = {phase: 'DOWNLOADING', busy: true, completedBytes: 25, totalBytes: 100, error: null}

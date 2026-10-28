@@ -5,9 +5,9 @@ import {isFinished} from './types.js'
 import {Icon} from '../ui/Icon.js'
 import {formatDate} from '../gallery/format.js'
 import styles from './AnalysisPanel.module.css'
-import {useAnalysisReady} from '../desktop/readiness.js'
+import {useAnalysisReady} from '../tauri/readiness.js'
 import {NamingPanel} from '../suggestions/NamingPanel.js'
-import {useUpdateBlocker} from '../desktop/updates/context.js'
+import {useUpdateBlocker} from '../tauri/updates/context.js'
 
 const POLL_MS = 800
 const labels = {PREPARING: 'Sprawdzamy oryginał…', ANALYZING: 'OCR i analiza wizualna…',

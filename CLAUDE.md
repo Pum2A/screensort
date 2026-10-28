@@ -34,7 +34,7 @@ Use `reviewer` for a second opinion on a finished diff.
 ## Hard rules
 - Privacy: never log or return file paths, filenames, SHA-256 hashes, OCR text or raw HTTP headers.
   That includes exception messages and stack traces from file IO. Log IDs, counters and reasons.
-  Reference: `diagnostics/ProductMetrics`.
+  Reference: `metrics/ProductMetrics`.
 - No `System.out`/`System.err`/`printStackTrace`; use SLF4J (pattern: `ScanJobManager`). Python: `logging`.
 - Frontend: no `any`, `@ts-ignore` or lint disables. Rust: no `unwrap()` outside tests.
 - Never edit an applied Flyway migration. See the `db-migration` skill.

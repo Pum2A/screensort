@@ -7,7 +7,7 @@ import type {NamingReview} from './types.js'
 import {formatDate} from '../gallery/format.js'
 import {Icon} from '../ui/Icon.js'
 import styles from './NamingPanel.module.css'
-import {useUpdateBlocker} from '../desktop/updates/context.js'
+import {useUpdateBlocker} from '../tauri/updates/context.js'
 
 function savedOrProposed(review: NamingReview): string {
     return review.approvalMatchesCatalog ? review.approvedName ?? '' : review.proposedName ?? ''

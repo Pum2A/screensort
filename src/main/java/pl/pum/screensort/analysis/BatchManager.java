@@ -14,7 +14,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.diagnostics.RedactedThrowable;
+import pl.pum.screensort.errors.RedactedThrowable;
 import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 @Service

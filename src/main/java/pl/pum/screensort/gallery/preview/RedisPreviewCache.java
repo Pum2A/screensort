@@ -3,9 +3,9 @@ package pl.pum.screensort.gallery.preview;
 import java.time.Duration;
 import java.util.function.LongSupplier;
 import org.springframework.data.redis.core.RedisTemplate;
-import pl.pum.screensort.diagnostics.ProductMetrics;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheLayer.REDIS;
-import static pl.pum.screensort.diagnostics.ProductMetrics.CacheOutcome.*;
+import pl.pum.screensort.metrics.ProductMetrics;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheLayer.REDIS;
+import static pl.pum.screensort.metrics.ProductMetrics.CacheOutcome.*;
 
 /** Disposable encoded previews only. A failure opens a 30-second local backoff, never a DB failure. */
 public class RedisPreviewCache {

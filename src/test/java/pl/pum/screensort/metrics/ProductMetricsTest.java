@@ -1,7 +1,7 @@
-package pl.pum.screensort.diagnostics;
+package pl.pum.screensort.metrics;
 
 import static org.assertj.core.api.Assertions.*;
-import static pl.pum.screensort.diagnostics.ProductMetrics.Operation.*;
+import static pl.pum.screensort.metrics.ProductMetrics.Operation.*;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.prometheusmetrics.PrometheusConfig;

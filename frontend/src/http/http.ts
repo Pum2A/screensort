@@ -1,5 +1,5 @@
 import type {z} from 'zod'
-import {backendFetch} from '../desktop/transport.js'
+import {backendFetch} from '../tauri/transport.js'
 
 export type ErrorMessages = {
     byCode?: Readonly<Record<string, string>>

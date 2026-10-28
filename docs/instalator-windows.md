@@ -63,7 +63,7 @@ modele muszą ponownie załadować się do RAM.
 | --- | --- |
 | `frontend/src-tauri/src/desktop/processes.rs` | Uruchomienie, gotowość i zatrzymanie własnych procesów |
 | `frontend/src-tauri/src/desktop/mod.rs` | Natywny, ograniczony most API i status startu |
-| `frontend/src/desktop/` | Ekran startu i transport zamiast bezpośredniego HTTP w desktop |
+| `frontend/src/tauri/` | Ekran startu i transport zamiast bezpośredniego HTTP w desktop |
 | `frontend/src/analysis/AnalysisPanel.tsx` | Przycisk, status i zapisane rzeczywiste wyniki |
 | `src/main/java/pl/pum/screensort/analysis/source/` | Bezpieczny odczyt oryginału po ID |
 | `analysis/client/`, `analysis/jobs/` w Javie | Klient HTTP i cykl życia zadania |

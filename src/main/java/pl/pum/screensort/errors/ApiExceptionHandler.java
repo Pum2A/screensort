@@ -1,4 +1,4 @@
-package pl.pum.screensort.api;
+package pl.pum.screensort.errors;
 
 import java.io.IOException;
 import java.nio.file.InvalidPathException;

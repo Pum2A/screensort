@@ -2,7 +2,7 @@
 import {createRoot} from 'react-dom/client'
 import {OrganizationPanel} from '../../src/analysis/OrganizationPanel.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
-import {QueryProvider} from '../../src/shared/QueryProvider.js'
+import {QueryProvider} from '../../src/http/QueryProvider.js'
 import type {BatchItem} from '../../src/analysis/batchApi.js'
 import '../../src/app/index.css'
 import '../../src/app/App.css'

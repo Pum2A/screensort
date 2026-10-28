@@ -1,4 +1,4 @@
-package pl.pum.screensort.api;
+package pl.pum.screensort.errors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

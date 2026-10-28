@@ -1,7 +1,7 @@
 import {afterEach, test} from 'node:test'
 import assert from 'node:assert/strict'
 import {z} from 'zod'
-import {ApiError, INVALID_RESPONSE_MESSAGE, requestJson, requestJsonOrNull} from '../src/shared/http.js'
+import {ApiError, INVALID_RESPONSE_MESSAGE, requestJson, requestJsonOrNull} from '../src/http/http.js'
 
 const originalFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = originalFetch })

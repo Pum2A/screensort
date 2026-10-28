@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from 'react'
 import {Icon} from '../ui/Icon.js'
 import './CatalogImage.css'
-import {desktopImage, isDesktop} from '../desktop/transport.js'
+import {desktopImage, isDesktop} from '../tauri/transport.js'
 import {imageCache} from './imageCache.js'
 import {imageFailure, imageFailureText, isPermanent} from './imageFailure.js'
 import type {ImageFailure} from './imageFailure.js'

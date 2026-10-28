@@ -21,7 +21,7 @@ import {WorkspaceHeader} from './WorkspaceHeader.js'
 import {storedFolder} from './state.js'
 import type {WorkspaceView} from './state.js'
 import './App.css'
-import {useUpdateBlocker} from '../desktop/updates/context.js'
+import {useUpdateBlocker} from '../tauri/updates/context.js'
 
 function App({initialFolder}: {initialFolder?: string} = {}) {
     const desktop = isTauri()

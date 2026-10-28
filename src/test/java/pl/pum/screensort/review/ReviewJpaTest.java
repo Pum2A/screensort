@@ -1,6 +1,6 @@
 package pl.pum.screensort.review;
 
-import pl.pum.screensort.api.ApiExceptionHandler;
+import pl.pum.screensort.errors.ApiExceptionHandler;
 import static org.assertj.core.api.Assertions.*;
 
 import jakarta.persistence.EntityManager;

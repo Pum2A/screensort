@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 import pl.pum.screensort.gallery.KnownFilesReader;
 import pl.pum.screensort.gallery.CatalogUpdater;
 

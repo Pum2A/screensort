@@ -1,4 +1,4 @@
-package pl.pum.screensort.api;
+package pl.pum.screensort.errors;
 
 /** A request the controller rejects itself. The message is shown to the user as written. */
 public class ApiException extends RuntimeException {

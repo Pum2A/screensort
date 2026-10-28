@@ -14,7 +14,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
-import pl.pum.screensort.diagnostics.ProductMetrics;
+import pl.pum.screensort.metrics.ProductMetrics;
 
 /** Synthetic bytes and an isolated, ephemeral Redis. No access to the developer cache or images. */
 @Testcontainers(disabledWithoutDocker = true)
