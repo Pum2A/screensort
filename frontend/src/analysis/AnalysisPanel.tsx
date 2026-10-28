@@ -6,7 +6,7 @@ import {Icon} from '../ui/Icon.js'
 import {formatDate} from '../gallery/format.js'
 import styles from './AnalysisPanel.module.css'
 import {useAnalysisReady} from '../desktop/readiness.js'
-import {NamingPanel} from '../naming/NamingPanel.js'
+import {NamingPanel} from '../suggestions/NamingPanel.js'
 import {useUpdateBlocker} from '../desktop/updates/context.js'
 
 const POLL_MS = 800

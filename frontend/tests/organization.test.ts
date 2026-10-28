@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {organizationPlan, startBatch} from '../src/organization/api.js'
+import {organizationPlan, startBatch} from '../src/analysis/batchApi.js'
 import {rejectionLabel} from '../src/gallery/reading/rejectionLabels.js'
 
 test('analyze all sends the folder and options, not visible gallery IDs', async () => {

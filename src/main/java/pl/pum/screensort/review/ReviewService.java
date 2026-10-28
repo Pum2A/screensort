@@ -4,7 +4,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.gallery.FileRecordRepository;
-import pl.pum.screensort.naming.NamingService;
+import pl.pum.screensort.suggestions.NamingService;
 
 @Service
 public class ReviewService {

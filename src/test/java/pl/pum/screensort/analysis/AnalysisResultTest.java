@@ -3,7 +3,6 @@ package pl.pum.screensort.analysis;
 import static org.assertj.core.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
-import pl.pum.screensort.analysis.result.AnalysisResult;
 import tools.jackson.databind.json.JsonMapper;
 
 class AnalysisResultTest {

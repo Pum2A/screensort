@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import type {BatchItem} from '../src/organization/api.js'
+import type {BatchItem} from '../src/analysis/batchApi.js'
 import {draftChanged, draftFor, isCategory, reviewImageUrl, reviewLabel, reviewWrite, serverChanged} from '../src/review/state.js'
 import {readReview, saveReview} from '../src/review/api.js'
 

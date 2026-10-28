@@ -1,7 +1,7 @@
 // Manual UI verification: real React components, fictional in-memory API, no models or user DB.
 import {createRoot} from 'react-dom/client'
 import type {CatalogFile} from '../../src/gallery/catalogTypes.js'
-import type {Batch, BatchItem} from '../../src/organization/api.js'
+import type {Batch, BatchItem} from '../../src/analysis/batchApi.js'
 import type {ExportJob} from '../../src/export/api.js'
 import {WorkspacePreview} from './workspace-preview-ui.js'
 import '../../src/app/index.css'

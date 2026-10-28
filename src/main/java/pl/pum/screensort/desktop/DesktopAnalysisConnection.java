@@ -3,7 +3,7 @@ package pl.pum.screensort.desktop;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import pl.pum.screensort.analysis.client.PythonAnalysisClient;
+import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
 
 /** The session filter authenticates this route; the native bridge does not expose it. */
 @RestController

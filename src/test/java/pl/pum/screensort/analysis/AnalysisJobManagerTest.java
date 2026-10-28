@@ -10,12 +10,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import pl.pum.screensort.diagnostics.ProductMetrics;
-import pl.pum.screensort.analysis.client.PythonAnalysisClient;
-import pl.pum.screensort.analysis.database.AnalysisStore;
-import pl.pum.screensort.analysis.jobs.AnalysisJob;
-import pl.pum.screensort.analysis.jobs.AnalysisJobManager;
-import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.analysis.source.AnalysisSourceReader;
+import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
 
 class AnalysisJobManagerTest {
   @Test void returnsIdBeforeWorkAndCompletesOnlyAfterSaving() throws Exception {

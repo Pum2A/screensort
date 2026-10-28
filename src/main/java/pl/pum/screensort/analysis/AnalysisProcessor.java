@@ -2,11 +2,7 @@ package pl.pum.screensort.analysis;
 
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.analysis.client.PythonAnalysisClient;
-import pl.pum.screensort.analysis.database.AnalysisStore;
-import pl.pum.screensort.analysis.result.AnalysisResult;
-import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.analysis.source.AnalysisSourceReader;
+import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
 import pl.pum.screensort.diagnostics.ProductMetrics;
 import static pl.pum.screensort.diagnostics.ProductMetrics.Operation.*;
 
