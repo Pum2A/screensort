@@ -6,8 +6,8 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.pum.screensort.organization.BatchStore;
-import pl.pum.screensort.organization.review.ReviewItem;
-import pl.pum.screensort.organization.review.ReviewStore;
+import pl.pum.screensort.review.ReviewItem;
+import pl.pum.screensort.review.ReviewStore;
 
 /**
  * The whole folder for the library screen: every catalog file plus the latest analysis of it.

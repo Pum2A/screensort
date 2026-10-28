@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import pl.pum.screensort.analysis.AnalysisException;
-import pl.pum.screensort.organization.review.ReviewStore;
+import pl.pum.screensort.review.ReviewStore;
 
 @RestController
 @RequestMapping("/api/organization/batches")

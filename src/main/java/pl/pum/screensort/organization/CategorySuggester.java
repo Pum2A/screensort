@@ -1,6 +1,6 @@
 package pl.pum.screensort.organization;
 
-import pl.pum.screensort.organization.review.ImageCategory;
+import pl.pum.screensort.review.ImageCategory;
 import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.Map;

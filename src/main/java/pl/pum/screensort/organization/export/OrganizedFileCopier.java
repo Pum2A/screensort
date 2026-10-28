@@ -2,7 +2,7 @@ package pl.pum.screensort.organization.export;
 
 import pl.pum.screensort.files.Sha256;
 import pl.pum.screensort.files.SourcePath;
-import pl.pum.screensort.organization.review.ImageCategory;
+import pl.pum.screensort.review.ImageCategory;
 import pl.pum.screensort.files.FileNames;
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardOpenOption.READ;

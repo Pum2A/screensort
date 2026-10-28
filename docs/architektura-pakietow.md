@@ -12,7 +12,7 @@ gdy jest dla niego osobne, jasne zadanie.
 | `gallery/preview` | miniatury na kafelkach | dekodowanie, cache na dysku i w Redisie | `catalog/preview` | ✅ PR A |
 | `analysis` | „Uporządkuj z AI” | silniki AI (`engine/`), kolejka zdjęć | `analysis` + partie z `organization` | ⬜ |
 | `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI | `naming` + `CategorySuggester` | ⬜ |
-| `review` | „Przejrzyj” | zatwierdzanie i poprawki | `organization/review` | ⬜ |
+| `review` | „Przejrzyj” | zatwierdzanie i poprawki; na razie też `ImageCategory` | `organization/review` | ✅ PR C |
 | `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ⬜ |
 | `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ⬜ |
 | `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
@@ -31,7 +31,7 @@ Te same nazwy co w backendzie, więc `gallery` w Javie i `gallery` we froncie to
 | `gallery/details` | okno szczegółów jednego zdjęcia | `catalog/ImageDetails*` | ✅ PR B |
 | `analysis` | „Uporządkuj z AI”, postęp partii | `analysis/`, `organization/OrganizationPanel` | ⬜ |
 | `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ⬜ |
-| `review` | przegląd i zatwierdzanie | `organization/review/` | ⬜ |
+| `review` | przegląd i zatwierdzanie | `organization/review/` | ✅ PR C |
 | `export` | zapis do folderów kategorii | `organization/export/` | ⬜ |
 | `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ⬜ |
 | `http` | wspólne zapytania do backendu | `shared/` | ⬜ |

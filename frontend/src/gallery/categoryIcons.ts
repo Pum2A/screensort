@@ -1,4 +1,4 @@
-import type {ImageCategory} from '../organization/review/state.js'
+import type {ImageCategory} from '../review/state.js'
 import type {PixelIconName} from '../ui/pixelIcons.js'
 
 export const categoryIcons: Record<ImageCategory, PixelIconName> = {

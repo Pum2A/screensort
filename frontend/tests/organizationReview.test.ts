@@ -1,8 +1,8 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import type {BatchItem} from '../src/organization/api.js'
-import {draftChanged, draftFor, isCategory, reviewImageUrl, reviewLabel, reviewWrite, serverChanged} from '../src/organization/review/state.js'
-import {readReview, saveReview} from '../src/organization/review/api.js'
+import {draftChanged, draftFor, isCategory, reviewImageUrl, reviewLabel, reviewWrite, serverChanged} from '../src/review/state.js'
+import {readReview, saveReview} from '../src/review/api.js'
 
 const hash = 'a'.repeat(64)
 const item: BatchItem = {fileId: 7, originalName: 'IMG_0026.png', status: 'COMPLETED', category: 'PHOTOGRAPHS',

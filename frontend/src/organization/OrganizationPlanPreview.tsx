@@ -4,7 +4,7 @@ import {open} from '@tauri-apps/plugin-dialog'
 import {ChevronLeft, ChevronRight, CircleAlert, FolderOpen, LoaderCircle, X} from 'lucide-react'
 import {organizationPlan} from './api.js'
 import type {OrganizationPlanPage} from './api.js'
-import {categoryLabels} from './review/state.js'
+import {categoryLabels} from '../review/state.js'
 import {OrganizationExport} from './export/OrganizationExport.js'
 import './OrganizationPlanPreview.css'
 

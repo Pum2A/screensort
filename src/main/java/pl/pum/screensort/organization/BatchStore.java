@@ -11,7 +11,7 @@ import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
 import pl.pum.screensort.naming.NameSuggestion;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
-import pl.pum.screensort.organization.review.ReviewStore;
+import pl.pum.screensort.review.ReviewStore;
 
 /** Short SQL transactions only. Model inference never holds a connection or a row lock. */
 @Service

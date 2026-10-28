@@ -1,7 +1,7 @@
-import {ApiError, requestJson} from '../../shared/http.js'
-import type {ErrorMessages, RequestOptions} from '../../shared/http.js'
-import {batchItemSchema} from '../types.js'
-import type {BatchItem} from '../types.js'
+import {ApiError, requestJson} from '../shared/http.js'
+import type {ErrorMessages, RequestOptions} from '../shared/http.js'
+import {batchItemSchema} from '../organization/types.js'
+import type {BatchItem} from '../organization/types.js'
 import type {ReviewWrite} from './state.js'
 
 const messages: ErrorMessages = {
