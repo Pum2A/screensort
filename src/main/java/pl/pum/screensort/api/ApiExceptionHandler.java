@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.gallery.CatalogTooLargeException;
-import pl.pum.screensort.naming.NamingException;
+import pl.pum.screensort.suggestions.NamingException;
 import pl.pum.screensort.export.ExportException;
 import pl.pum.screensort.review.ReviewException;
 import pl.pum.screensort.gallery.reading.InvalidScanFolderException;

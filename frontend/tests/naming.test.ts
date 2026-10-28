@@ -1,8 +1,8 @@
 import {afterEach, test} from 'node:test'
 import assert from 'node:assert/strict'
-import {approveNaming, readNaming} from '../src/naming/api.js'
-import {fileNameProblem} from '../src/naming/fileNameRules.js'
-import type {NamingReview} from '../src/naming/types.js'
+import {approveNaming, readNaming} from '../src/suggestions/api.js'
+import {fileNameProblem} from '../src/suggestions/fileNameRules.js'
+import type {NamingReview} from '../src/suggestions/types.js'
 
 const originalFetch = globalThis.fetch
 afterEach(() => { globalThis.fetch = originalFetch })

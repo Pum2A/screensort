@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pl.pum.screensort.gallery.FileRecordEntity;
 import pl.pum.screensort.gallery.FileRecordRepository;
-import pl.pum.screensort.naming.NamingService;
+import pl.pum.screensort.suggestions.NamingService;
 
 class ReviewServiceTest {
   private static final String HASH = "a".repeat(64);

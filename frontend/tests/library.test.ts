@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {bulkPlan, countEntries, duplicateGroups, entryState, filterEntries, inReviewTab, lastScan, libraryEntries, selectRange,
     sortEntries, todayCount} from '../src/gallery/model.js'
 import type {CatalogFile} from '../src/gallery/catalogTypes.js'
-import type {BatchItem} from '../src/organization/types.js'
+import type {BatchItem} from '../src/analysis/batchTypes.js'
 
 function file(id: number, name: string, sha: string, modified: string, size = 100): CatalogFile {
     return {id, allowedRootId: 1, sourceFolder: 'C:\\root', relativePath: name, originalName: name, extension: 'png',

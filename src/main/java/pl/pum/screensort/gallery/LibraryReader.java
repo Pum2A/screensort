@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import pl.pum.screensort.organization.BatchStore;
+import pl.pum.screensort.analysis.BatchStore;
 import pl.pum.screensort.review.ReviewItem;
 import pl.pum.screensort.review.ReviewStore;
 

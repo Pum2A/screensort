@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {storedFolder} from '../src/app/state.js'
 import {startupStep, elapsedLabel} from '../src/desktop/status.js'
 import {effectiveCategory} from '../src/review/filters.js'
-import type {BatchItem} from '../src/organization/api.js'
+import type {BatchItem} from '../src/analysis/batchApi.js'
 
 const item: BatchItem = {fileId: 1, originalName: 'photo.png', status: 'COMPLETED', category: 'GAMES', proposedName: null, proposalUncertain: false,
     message: null, analysisId: 1, sourceSha256: 'a'.repeat(64), analysisMatchesCatalog: true,

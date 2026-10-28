@@ -3,7 +3,7 @@ package pl.pum.screensort.analysis;
 import static org.assertj.core.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClient;
-import pl.pum.screensort.analysis.client.PythonAnalysisClient;
+import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
 import tools.jackson.databind.json.JsonMapper;
 
 class PythonAnalysisClientTest {

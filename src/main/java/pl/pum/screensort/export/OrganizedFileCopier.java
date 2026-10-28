@@ -20,7 +20,7 @@ import java.security.MessageDigest;
 import java.util.Objects;
 import java.util.Set;
 import org.springframework.stereotype.Component;
-import pl.pum.screensort.naming.FileNameRules;
+import pl.pum.screensort.suggestions.FileNameRules;
 import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 /** Streams one approved source into an owned output directory. Source files are read only. */

@@ -1,9 +1,9 @@
 // Manual UI fixture only. Not an application entry point; no real DB, models or user files.
 import {createRoot} from 'react-dom/client'
-import {OrganizationPanel} from '../../src/organization/OrganizationPanel.js'
+import {OrganizationPanel} from '../../src/analysis/OrganizationPanel.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
 import {QueryProvider} from '../../src/shared/QueryProvider.js'
-import type {BatchItem} from '../../src/organization/api.js'
+import type {BatchItem} from '../../src/analysis/batchApi.js'
 import '../../src/app/index.css'
 import '../../src/app/App.css'
 

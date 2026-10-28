@@ -1,6 +1,6 @@
 import {z} from 'zod'
 import {catalogFileSchema} from './catalogTypes.js'
-import {batchItemSchema} from '../organization/types.js'
+import {batchItemSchema} from '../analysis/batchTypes.js'
 
 // Mirrors LibraryReader.Library in Java: every catalog file plus the latest analysis of the folder.
 export const librarySchema = z.object({

@@ -10,9 +10,9 @@ gdy jest dla niego osobne, jasne zadanie.
 | `gallery` | „Dodaj folder” | dodane foldery, spis zdjęć, lista bibliotek | `catalog`, `library` | ✅ backend #45, frontend PR B |
 | `gallery/reading` | wczytywanie folderu (pasek postępu) | szukanie obrazów, hash, zadania w tle | `scanning` (10 podfolderów) | ✅ PR A |
 | `gallery/preview` | miniatury na kafelkach | dekodowanie, cache na dysku i w Redisie | `catalog/preview` | ✅ PR A |
-| `analysis` | „Uporządkuj z AI” | silniki AI (`engine/`), kolejka zdjęć | `analysis` + partie z `organization` | ⬜ |
-| `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI | `naming` + `CategorySuggester` | ⬜ |
-| `review` | „Przejrzyj” | zatwierdzanie i poprawki; na razie też `ImageCategory` | `organization/review` | ✅ PR C |
+| `analysis` | „Uporządkuj z AI” | analiza zdjęć i partie (`Batch*`); klient Pythona w `engine/` | `analysis` (6 podfolderów) + partie z `organization` | ✅ PR E |
+| `suggestions` | propozycje na kafelkach | nazwa i kategoria z wyniku AI, język nazw PL/EN | `naming` + `CategorySuggester` + `NamingLanguageController` | ✅ PR E |
+| `review` | „Przejrzyj” | zatwierdzanie i poprawki; na razie też `ImageCategory` i `ApprovedFilesSql` | `organization/review` | ✅ PR C |
 | `export` | „Zapisz uporządkowane” | kopiowanie do folderów kategorii | `organization/export` | ✅ PR D |
 | `tauri` | — | współpraca z aplikacją desktopową | `desktop` | ⬜ |
 | `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
@@ -29,10 +29,10 @@ Te same nazwy co w backendzie, więc `gallery` w Javie i `gallery` we froncie to
 | `gallery` | kafelki, duplikaty, miniatury | `catalog/`, `library/` | ✅ PR B |
 | `gallery/reading` | pasek wczytywania folderu | `scanning/` | ✅ PR B |
 | `gallery/details` | okno szczegółów jednego zdjęcia | `catalog/ImageDetails*` | ✅ PR B |
-| `analysis` | „Uporządkuj z AI”, postęp partii | `analysis/`, `organization/OrganizationPanel` | ⬜ |
-| `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ⬜ |
+| `analysis` | „Uporządkuj z AI”, postęp partii | `analysis/`, `organization/OrganizationPanel`, `api`/`types` → `batchApi`/`batchTypes` | ✅ PR E |
+| `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ✅ PR E |
 | `review` | przegląd i zatwierdzanie | `organization/review/` | ✅ PR C |
-| `export` | zapis do folderów kategorii | `organization/export/` | ✅ PR D |
+| `export` | zapis do folderów kategorii, podgląd planu | `organization/export/`, `OrganizationPlanPreview` | ✅ PR D, E |
 | `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ⬜ |
 | `http` | wspólne zapytania do backendu | `shared/` | ⬜ |
 | `ui` | przyciski, ikony, okna | — | bez zmian |

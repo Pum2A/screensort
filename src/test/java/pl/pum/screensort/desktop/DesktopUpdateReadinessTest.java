@@ -5,8 +5,8 @@ import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ConfigurableApplicationContext;
-import pl.pum.screensort.analysis.jobs.AnalysisJobManager;
-import pl.pum.screensort.organization.BatchManager;
+import pl.pum.screensort.analysis.AnalysisJobManager;
+import pl.pum.screensort.analysis.BatchManager;
 import pl.pum.screensort.export.ExportManager;
 import pl.pum.screensort.gallery.reading.ScanJobManager;
 

@@ -76,7 +76,7 @@ class OrganizedFileCopierTest {
     String first = copier.copy(item, output);
     String second = copier.copy(item, output);
     assertThat(first).isNotEqualTo(second);
-    assertThat(pl.pum.screensort.naming.FileNameRules.problem(Path.of(second).getFileName().toString(), "IMG.png")).isEmpty();
+    assertThat(pl.pum.screensort.suggestions.FileNameRules.problem(Path.of(second).getFileName().toString(), "IMG.png")).isEmpty();
     assertThat(Files.readAllBytes(output.resolve(second))).isEqualTo(bytes);
   }
 

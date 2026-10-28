@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import pl.pum.screensort.naming.NamingException;
+import pl.pum.screensort.suggestions.NamingException;
 
 class ReviewControllerTest {
   private final UUID batch = UUID.randomUUID();

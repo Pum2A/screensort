@@ -1,4 +1,4 @@
-import type {BatchItem} from '../organization/api.js'
+import type {BatchItem} from '../analysis/batchApi.js'
 
 export const categoryLabels = {PROGRAMMING: 'Programowanie', DOCUMENTS: 'Dokumenty', GAMES: 'Gry',
     PHOTOGRAPHS: 'Fotografie', OTHER: 'Pozostałe'} as const
