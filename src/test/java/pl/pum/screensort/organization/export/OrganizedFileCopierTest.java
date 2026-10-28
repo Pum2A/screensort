@@ -8,7 +8,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 class OrganizedFileCopierTest {
   private final OrganizedFileCopier copier = new OrganizedFileCopier(new ScanFolderValidator());

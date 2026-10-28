@@ -36,9 +36,9 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import pl.pum.screensort.analysis.database.AnalysisStore;
 import pl.pum.screensort.analysis.result.AnalysisResult;
-import pl.pum.screensort.catalog.database.AllowedRootEntity;
-import pl.pum.screensort.catalog.database.FileRecordEntity;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.AllowedRootEntity;
+import pl.pum.screensort.gallery.FileRecordEntity;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import pl.pum.screensort.naming.NameSuggestionGenerator;
 import pl.pum.screensort.naming.NamingSettings;
 import pl.pum.screensort.naming.NamingException;
@@ -50,7 +50,7 @@ import pl.pum.screensort.organization.export.ExportController;
 import pl.pum.screensort.organization.export.ExportManager;
 import pl.pum.screensort.organization.export.ExportStore;
 import pl.pum.screensort.organization.export.OrganizedFileCopier;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 import tools.jackson.databind.json.JsonMapper;
 
 @DataJpaTest

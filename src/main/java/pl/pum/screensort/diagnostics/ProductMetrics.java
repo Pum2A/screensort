@@ -6,7 +6,7 @@ import java.time.Duration;
 import java.util.Locale;
 import org.springframework.stereotype.Component;
 import pl.pum.screensort.analysis.result.AnalysisResult;
-import pl.pum.screensort.scanning.result.ScanSummary;
+import pl.pum.screensort.gallery.reading.ScanSummary;
 
 /** Fixed labels only: never paths, filenames, OCR, hashes, tokens or job IDs. */
 @Component

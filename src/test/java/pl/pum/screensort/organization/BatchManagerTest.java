@@ -16,8 +16,8 @@ import pl.pum.screensort.analysis.AnalysisException;
 import pl.pum.screensort.analysis.AnalysisProcessor;
 import pl.pum.screensort.analysis.EngineBusyException;
 import pl.pum.screensort.analysis.result.SavedAnalysis;
-import pl.pum.screensort.scanning.folder.AllowedRoot;
-import pl.pum.screensort.scanning.folder.ScanFolderValidator;
+import pl.pum.screensort.gallery.reading.AllowedRoot;
+import pl.pum.screensort.gallery.reading.ScanFolderValidator;
 
 class BatchManagerTest {
   @Test void resumeReportsConflictWhenTheDatabaseAlreadyRunsAnotherBatch() {

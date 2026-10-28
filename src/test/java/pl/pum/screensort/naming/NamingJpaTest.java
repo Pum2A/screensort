@@ -28,9 +28,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 import pl.pum.screensort.analysis.database.AnalysisStore;
-import pl.pum.screensort.catalog.database.AllowedRootEntity;
-import pl.pum.screensort.catalog.database.FileRecordEntity;
-import pl.pum.screensort.catalog.database.FileRecordRepository;
+import pl.pum.screensort.gallery.AllowedRootEntity;
+import pl.pum.screensort.gallery.FileRecordEntity;
+import pl.pum.screensort.gallery.FileRecordRepository;
 import pl.pum.screensort.naming.database.FileNamingRepository;
 import tools.jackson.databind.json.JsonMapper;
 

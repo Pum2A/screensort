@@ -8,7 +8,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import pl.pum.screensort.analysis.jobs.AnalysisJobManager;
 import pl.pum.screensort.organization.BatchManager;
 import pl.pum.screensort.organization.export.ExportManager;
-import pl.pum.screensort.scanning.jobs.ScanJobManager;
+import pl.pum.screensort.gallery.reading.ScanJobManager;
 
 class DesktopUpdateReadinessTest {
   @Test

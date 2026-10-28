@@ -8,7 +8,7 @@ import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import java.io.IOException;
 import org.junit.jupiter.api.Test;
-import pl.pum.screensort.scanning.result.ScanSummary;
+import pl.pum.screensort.gallery.reading.ScanSummary;
 
 class ProductMetricsTest {
   @Test void recordsSuccessAndCheckedFailureWithoutSwallowingExceptions() throws Exception {
