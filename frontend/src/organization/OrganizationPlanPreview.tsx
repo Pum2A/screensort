@@ -5,7 +5,7 @@ import {ChevronLeft, ChevronRight, CircleAlert, FolderOpen, LoaderCircle, X} fro
 import {organizationPlan} from './api.js'
 import type {OrganizationPlanPage} from './api.js'
 import {categoryLabels} from '../review/state.js'
-import {OrganizationExport} from './export/OrganizationExport.js'
+import {OrganizationExport} from '../export/OrganizationExport.js'
 import './OrganizationPlanPreview.css'
 
 type Props = {batchId: string; revision: number; disabled: boolean; onClose: () => void;

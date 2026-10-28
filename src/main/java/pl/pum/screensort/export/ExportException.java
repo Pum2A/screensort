@@ -1,4 +1,4 @@
-package pl.pum.screensort.organization.export;
+package pl.pum.screensort.export;
 
 public class ExportException extends RuntimeException {
   private final int status;

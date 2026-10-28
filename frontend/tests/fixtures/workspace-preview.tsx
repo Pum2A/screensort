@@ -2,7 +2,7 @@
 import {createRoot} from 'react-dom/client'
 import type {CatalogFile} from '../../src/gallery/catalogTypes.js'
 import type {Batch, BatchItem} from '../../src/organization/api.js'
-import type {ExportJob} from '../../src/organization/export/api.js'
+import type {ExportJob} from '../../src/export/api.js'
 import {WorkspacePreview} from './workspace-preview-ui.js'
 import '../../src/app/index.css'
 import '../../src/app/App.css'
