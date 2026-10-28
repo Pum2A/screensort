@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {isOutsideBox, treeConnections} from '../src/catalog/galleryLayout.js'
+import {isOutsideBox, treeConnections} from '../src/gallery/galleryLayout.js'
 
 test('kliknięcie wewnątrz podglądu, także na krawędzi, nie jest kliknięciem tła', () => {
     const box = {left: 100, top: 80, width: 400, height: 300}

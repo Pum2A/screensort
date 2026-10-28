@@ -1,9 +1,9 @@
-import type {CatalogFile} from '../catalog/types.js'
+import type {CatalogFile} from './catalogTypes.js'
 import type {BatchItem} from '../organization/types.js'
 import {effectiveCategory} from '../organization/review/filters.js'
 import {categoryLabels, draftFor, isCategory, reviewWrite} from '../organization/review/state.js'
 import type {ImageCategory, ReviewWrite} from '../organization/review/state.js'
-import type {Library} from './types.js'
+import type {Library} from './libraryTypes.js'
 
 /**
  * Where a file stands on the way to the organized copy:

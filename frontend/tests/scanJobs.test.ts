@@ -1,9 +1,9 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {fetchRejections, fetchScanJob, startScan} from '../src/scanning/api.js'
+import {fetchRejections, fetchScanJob, startScan} from '../src/gallery/reading/api.js'
 import {ApiError} from '../src/shared/http.js'
-import {SCAN_POLL_MS, scanPollInterval} from '../src/scanning/types.js'
-import type {ScanJob, ScanStatus} from '../src/scanning/types.js'
+import {SCAN_POLL_MS, scanPollInterval} from '../src/gallery/reading/types.js'
+import type {ScanJob, ScanStatus} from '../src/gallery/reading/types.js'
 
 const id = '8e08e056-3fd4-4a6b-aebd-54df5072a641'
 function snapshot(status: ScanStatus): ScanJob {

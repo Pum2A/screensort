@@ -1,8 +1,8 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
 import {bulkPlan, countEntries, duplicateGroups, entryState, filterEntries, inReviewTab, lastScan, libraryEntries, selectRange,
-    sortEntries, todayCount} from '../src/library/model.js'
-import type {CatalogFile} from '../src/catalog/types.js'
+    sortEntries, todayCount} from '../src/gallery/model.js'
+import type {CatalogFile} from '../src/gallery/catalogTypes.js'
 import type {BatchItem} from '../src/organization/types.js'
 
 function file(id: number, name: string, sha: string, modified: string, size = 100): CatalogFile {

@@ -4,7 +4,7 @@ import {ArrowRight, Check, CircleAlert, FolderTree, Info, Layers3, LoaderCircle,
 import {useAnalysisReady} from '../desktop/readiness.js'
 import {controlBatch, latestBatch, organizationKeys, startBatch} from './api.js'
 import type {Batch} from './api.js'
-import {libraryKeys} from '../library/api.js'
+import {libraryKeys} from '../gallery/libraryApi.js'
 import {ReviewBoard} from './review/ReviewBoard.js'
 import {OrganizationPlanPreview} from './OrganizationPlanPreview.js'
 import './OrganizationPanel.css'

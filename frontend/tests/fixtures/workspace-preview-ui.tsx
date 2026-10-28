@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react'
 import {AnimatePresence} from 'motion/react'
-import App from '../../src/App.js'
+import App from '../../src/app/App.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
 import {QueryProvider} from '../../src/shared/QueryProvider.js'
 import {Modal} from '../../src/ui/Modal.js'

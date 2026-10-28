@@ -1,7 +1,7 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {imageFailure, imageFailureText, imageFailures, isPermanent} from '../src/catalog/imageFailure.js'
-import {withRetry} from '../src/catalog/imageLoading.js'
+import {imageFailure, imageFailureText, imageFailures, isPermanent} from '../src/gallery/imageFailure.js'
+import {withRetry} from '../src/gallery/imageLoading.js'
 
 test('reads the reason code sent by the desktop shell', () => {
     assert.equal(imageFailure('image:missing'), 'missing')

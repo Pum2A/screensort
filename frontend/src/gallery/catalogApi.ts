@@ -1,7 +1,7 @@
 import {requestJson} from '../shared/http.js'
 import type {ErrorMessages} from '../shared/http.js'
-import {catalogPageSchema} from './types.js'
-import type {CatalogFile, CatalogPage} from './types.js'
+import {catalogPageSchema} from './catalogTypes.js'
+import type {CatalogFile, CatalogPage} from './catalogTypes.js'
 
 const messages: ErrorMessages = {
     fallback: 'Nie udało się pobrać katalogu. Sprawdź folder i działanie backendu.',

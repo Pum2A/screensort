@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {storedFolder} from '../src/workspace/state.js'
+import {storedFolder} from '../src/app/state.js'
 import {startupStep, elapsedLabel} from '../src/desktop/status.js'
 import {effectiveCategory} from '../src/organization/review/filters.js'
 import type {BatchItem} from '../src/organization/api.js'

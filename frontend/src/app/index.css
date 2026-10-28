@@ -1,6 +1,6 @@
 @layer theme, utilities;
 @import 'tailwindcss/theme.css' layer(theme);
-@import 'tailwindcss/utilities.css' layer(utilities) source('./');
+@import 'tailwindcss/utilities.css' layer(utilities) source('../');
 
 /*
  * v1+ design tokens (Figma "v1+ · pełny przepływ"). Ink is the main action, lime only marks the

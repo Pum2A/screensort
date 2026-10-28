@@ -1,6 +1,6 @@
 import {test} from 'node:test'
 import assert from 'node:assert/strict'
-import {fetchCatalog} from '../src/catalog/api.js'
+import {fetchCatalog} from '../src/gallery/catalogApi.js'
 import {ApiError} from '../src/shared/http.js'
 
 const file = {id: 7, allowedRootId: 1, sourceFolder: 'C:/images', relativePath: 'a.png', originalName: 'a.png',

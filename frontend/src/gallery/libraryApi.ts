@@ -1,7 +1,7 @@
 import {requestJson} from '../shared/http.js'
 import type {ErrorMessages} from '../shared/http.js'
-import {librarySchema} from './types.js'
-import type {Library} from './types.js'
+import {librarySchema} from './libraryTypes.js'
+import type {Library} from './libraryTypes.js'
 
 const messages: ErrorMessages = {
     byStatus: {400: 'Sprawdź folder. Biblioteka pokazuje foldery do 1000 obrazów.'},

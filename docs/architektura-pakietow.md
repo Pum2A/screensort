@@ -7,7 +7,7 @@ gdy jest dla niego osobne, jasne zadanie.
 
 | Pakiet | Krok w aplikacji | Co w nim jest | Skąd | Status |
 |---|---|---|---|---|
-| `gallery` | „Dodaj folder” | dodane foldery, spis zdjęć, lista bibliotek | `catalog`, `library` | ✅ PR A |
+| `gallery` | „Dodaj folder” | dodane foldery, spis zdjęć, lista bibliotek | `catalog`, `library` | ✅ backend #45, frontend PR B |
 | `gallery/reading` | wczytywanie folderu (pasek postępu) | szukanie obrazów, hash, zadania w tle | `scanning` (10 podfolderów) | ✅ PR A |
 | `gallery/preview` | miniatury na kafelkach | dekodowanie, cache na dysku i w Redisie | `catalog/preview` | ✅ PR A |
 | `analysis` | „Uporządkuj z AI” | silniki AI (`engine/`), kolejka zdjęć | `analysis` + partie z `organization` | ⬜ |
@@ -18,6 +18,27 @@ gdy jest dla niego osobne, jasne zadanie.
 | `errors` | — | format błędów API, czyszczenie błędów z prywatnych ścieżek | `api` + `RedactedThrowable` | ⬜ |
 | `files` | — | nazwy plików, formaty, hash | `files` | bez zmian |
 | `metrics` | — | liczniki i stopery dla Prometheusa | `diagnostics` | ⬜ |
+
+## Frontend (`frontend/src`)
+
+Te same nazwy co w backendzie, więc `gallery` w Javie i `gallery` we froncie to dwie połówki tej samej rzeczy.
+
+| Folder | Co w nim jest | Skąd | Status |
+|---|---|---|---|
+| `app` | `App`, `main`, menu boczne, nagłówek, globalne style | `App.tsx`, `main.tsx`, `workspace/` | ✅ PR B |
+| `gallery` | kafelki, duplikaty, miniatury | `catalog/`, `library/` | ✅ PR B |
+| `gallery/reading` | pasek wczytywania folderu | `scanning/` | ✅ PR B |
+| `gallery/details` | okno szczegółów jednego zdjęcia | `catalog/ImageDetails*` | ✅ PR B |
+| `analysis` | „Uporządkuj z AI”, postęp partii | `analysis/`, `organization/OrganizationPanel` | ⬜ |
+| `suggestions` | propozycje nazw, przełącznik PL/EN | `naming/` | ⬜ |
+| `review` | przegląd i zatwierdzanie | `organization/review/` | ⬜ |
+| `export` | zapis do folderów kategorii | `organization/export/` | ⬜ |
+| `tauri` | start, pakiety AI, aktualizacje | `desktop/` | ⬜ |
+| `http` | wspólne zapytania do backendu | `shared/` | ⬜ |
+| `ui` | przyciski, ikony, okna | — | bez zmian |
+
+Dalej: jeden krok użytkownika na PR, backend i frontend naraz (np. „review” przenosi `organization/review`
+w Javie i we froncie w tym samym PR).
 
 ## Jak przenosimy
 
