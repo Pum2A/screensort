@@ -1,7 +1,22 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.2 preview**.
+Sprawdzone 2026-10-30. Bieżący etap źródłowy: **0.4.0 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Wydanie 0.4.0 (PR #51–#55, wydanie #56): nowy silnik obrazu Qwen 3.5. Java
+rozmawia z lokalnym `llama-server` (llama.cpp) przez interfejs `AnalysisEngine`
+i wymusza odpowiedź schematem JSON (aplikacja, temat PL/EN, kategoria); z tego
+powstaje nazwa i kategoria. `FallbackAnalysisEngine`: Qwen ogląda obraz, Python
+(RapidOCR) czyta tekst i przejmuje całą analizę, gdy Qwen nie działa. W aplikacji
+pakiety AI „Qwen 3.5 4B / 2B”: serwer z oficjalnego wydania llama.cpp, model z
+Hugging Face przypięty do commita, każdy plik z własnym SHA-256; Rust wykrywa
+kartę Vulkan, w razie braku pamięci GPU startuje na CPU, klucz w `LLAMA_API_KEY`.
+Folder wczytuje się sam po wyborze i przy starcie aplikacji (bez „Skanuj”), jeden
+przycisk „Uporządkuj z AI” sam uruchamia silnik, a opcja „Analizuj nowe zdjęcia
+automatycznie” (domyślnie wyłączona) analizuje nowe zrzuty po wczytaniu folderu.
+Awaria silnika AI wyłącza już tylko analizę, nie cały katalog. Wydanie 0.4.0
+zostało opublikowane 2026-10-30 w kanale `updates-preview`. Pełne pobranie
+modelu i start Qwena w zainstalowanej aplikacji czeka na test właściciela.
 
 Aktualizacja 0.3.2 (PR #39, #41, #42, wydanie #43): ponowna analiza folderu
 używa zapisanych wyników obrazów o niezmienionej treści i opcjach, więc po
