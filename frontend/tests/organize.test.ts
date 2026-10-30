@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {organizeStep, wantsAnalysis} from '../src/analysis/organize.js'
 import type {OrganizeState} from '../src/analysis/organize.js'
 import type {Batch} from '../src/analysis/batchApi.js'
+import {foundNewImages} from '../src/analysis/autoAnalysis.js'
 
 const idle: OrganizeState = {ready: false, busyElsewhere: false, fileCount: 12, desktop: true,
     engineStarting: false, engineError: null, engineRequested: false}
@@ -32,4 +33,11 @@ test('a finished analysis is repeated only for new images, a paused one is resum
     assert.equal(wantsAnalysis(batch, 15), true)
     assert.equal(wantsAnalysis({...batch, status: 'PAUSED'}, 12), true)
     assert.equal(wantsAnalysis({...batch, status: 'RUNNING'}, 15), false)
+})
+
+test('only a folder read that found new or changed images starts an automatic analysis', () => {
+    const summary = {newImages: 0, rescannedImages: 0, unchangedImages: 40, rejectedFiles: 2}
+    assert.equal(foundNewImages(summary), false)
+    assert.equal(foundNewImages({...summary, newImages: 3}), true)
+    assert.equal(foundNewImages({...summary, rescannedImages: 1}), true)
 })

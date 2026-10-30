@@ -123,8 +123,19 @@ window.fetch = async (input, options) => {
         return Response.json({id: batchId, folderPath: 'synthetic-fixture', status: 'COMPLETED', startedAt: date, finishedAt: date,
             summary: {newImages: 0, rescannedImages: 0, unchangedImages: 94, rejectedFiles: 0}, errorMessage: null})
     }
+    // Settings live only in this page's memory.
+    if (url.pathname === '/api/settings/auto-analysis') {
+        if (method === 'PUT') autoAnalysis = JSON.parse(String(options?.body)).enabled === true
+        return Response.json({enabled: autoAnalysis})
+    }
+    if (url.pathname === '/api/settings/naming-language') {
+        if (method === 'PUT') namingLanguage = JSON.parse(String(options?.body)).language
+        return Response.json({language: namingLanguage})
+    }
     return Response.json({code: 'FIXTURE_NOT_IMPLEMENTED'}, {status: 404})
 }
+let autoAnalysis = false
+let namingLanguage = 'PL'
 
 
 const root = createRoot(document.getElementById('root')!)
