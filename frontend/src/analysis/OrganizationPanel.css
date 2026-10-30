@@ -48,3 +48,9 @@
 .review-evidence small { display: block; margin-top: 14px; color: var(--muted); font-size: 10px; line-height: 1.8; }
 @media (max-width: 950px) { .review-section-heading { flex-wrap: wrap; gap: 10px; } }
 @media (max-width: 440px) { .organization-heading h2 { font-size: 25px; } .organization-heading > .primary-button { width: 100%; } .batch-progress { padding: 17px; } .batch-progress-heading > span { font-size: 11px; max-width: 200px; } .batch-progress-heading > strong { font-size: 25px; flex-shrink: 0; } .review-section-heading h3 { font-size: 22px; } }
+
+.auto-analysis { display: flex; align-items: flex-start; gap: 10px; margin: 2px 0 14px; font-size: 13px; color: var(--text); cursor: pointer; }
+.auto-analysis input { margin-top: 3px; accent-color: var(--text); }
+.auto-analysis span { display: grid; gap: 2px; }
+.auto-analysis small { color: var(--muted); font-size: 12px; }
+.auto-analysis-error { display: block; color: var(--danger); margin: -8px 0 12px; }

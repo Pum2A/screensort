@@ -5,6 +5,7 @@ import {useAnalysisReady} from '../tauri/readiness.js'
 import {DesktopRuntime} from '../tauri/runtimeContext.js'
 import {controlBatch, latestBatch, organizationKeys, startBatch} from './batchApi.js'
 import {organizeStep, wantsAnalysis} from './organize.js'
+import {useAutoAnalysis} from './autoAnalysis.js'
 import type {Batch} from './batchApi.js'
 import {libraryKeys} from '../gallery/libraryApi.js'
 import {ReviewBoard} from '../review/ReviewBoard.js'
@@ -38,6 +39,7 @@ export function OrganizationPanel({folderPath, fileCount, scanning, active, coun
     const runtime = useContext(DesktopRuntime)
     // Set by a click while the engine is not ready yet: start the engine, then the analysis.
     const [pending, setPending] = useState(false)
+    const autoAnalysis = useAutoAnalysis()
     const queryClient = useQueryClient()
     const [revision, setRevision] = useState(0)
     const [editingReview, setEditingReview] = useState(false)
@@ -145,6 +147,10 @@ export function OrganizationPanel({folderPath, fileCount, scanning, active, coun
                 {pending ? 'Uruchamiamy silnik AI…' : running ? 'Analiza trwa…' : paused ? 'Wznów analizę (' + remaining + ')' : 'Uporządkuj z AI (' + fileCount + ')'}
             </button>
         </div>
+        <label className="auto-analysis"><input type="checkbox" checked={autoAnalysis.enabled} disabled={autoAnalysis.loading}
+            onChange={event => autoAnalysis.change(event.target.checked)}/>
+            <span>Analizuj nowe zdjęcia automatycznie<small>Gdy w folderze pojawią się nowe zrzuty, AI od razu je nazwie i przydzieli kategorię.</small></span></label>
+        {autoAnalysis.error && <small role="alert" className="auto-analysis-error">{autoAnalysis.error}</small>}
         {!job && <div className="analysis-scope" role="group" aria-label="Zakres analizy"><span>Co sprawdzamy?</span>
             {[{label: 'Tekst i obraz', ocr: true, visual: true}, {label: 'Tylko tekst', ocr: true, visual: false}, {label: 'Tylko obraz', ocr: false, visual: true}].map(option =>
                 <button key={option.label} aria-pressed={ocr === option.ocr && visual === option.visual} disabled={working || running} onClick={() => {setOcr(option.ocr); setVisual(option.visual)}}>{option.label}</button>)}

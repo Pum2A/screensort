@@ -524,8 +524,10 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
             ) || matches(&routes.batch_command, route)
         }
         "PUT" => {
-            route == "/api/settings/naming-language"
-                || matches(&routes.naming, route)
+            matches!(
+                route,
+                "/api/settings/naming-language" | "/api/settings/auto-analysis"
+            ) || matches(&routes.naming, route)
                 || matches(&routes.review, route)
         }
         "GET" => {
@@ -535,6 +537,7 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                     | "/api/library"
                     | "/api/organization/batches/latest"
                     | "/api/settings/naming-language"
+                    | "/api/settings/auto-analysis"
             ) || matches(&routes.review, route)
                 || matches(&routes.batch, route)
                 || matches(&routes.export, route)
@@ -725,6 +728,9 @@ mod tests {
         assert!(allowed("GET", "/api/settings/naming-language", false));
         assert!(allowed("PUT", "/api/settings/naming-language", false));
         assert!(!allowed("POST", "/api/settings/naming-language", false));
+        assert!(allowed("GET", "/api/settings/auto-analysis", false));
+        assert!(allowed("PUT", "/api/settings/auto-analysis", false));
+        assert!(!allowed("DELETE", "/api/settings/auto-analysis", false));
         assert!(!allowed("PUT", "/api/settings/other", false));
         assert!(!allowed("GET", "/api/library/../catalog", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));

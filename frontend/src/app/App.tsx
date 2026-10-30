@@ -16,6 +16,7 @@ import {duplicateGroups, isPending, libraryEntries} from '../gallery/model.js'
 import {useLibrary} from '../gallery/useLibrary.js'
 import {OrganizationPanel} from '../analysis/OrganizationPanel.js'
 import type {OrganizeRequest} from '../analysis/OrganizationPanel.js'
+import {foundNewImages, useAutoAnalysis} from '../analysis/autoAnalysis.js'
 import {rejectionLabel} from '../gallery/reading/rejectionLabels.js'
 import {Sidebar} from './Sidebar.js'
 import {WorkspaceHeader} from './WorkspaceHeader.js'
@@ -40,11 +41,17 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
     const [exporting, setExporting] = useState(false)
     // Each "Uporządkuj z AI" click is a new request for one folder; the panel acts on it once.
     const [organizeRequest, setOrganizeRequest] = useState<OrganizeRequest | null>(null)
+    const autoAnalysis = useAutoAnalysis()
     const scan = useScanJob(completed => {
         try {localStorage.setItem('screensort.lastFolder', completed.folderPath)} catch { /* Optional preference. */ }
         // Re-reading the open folder only refreshes it; the user may be looking at another view.
         if (completed.folderPath === catalogFolder) refreshFolder(completed.folderPath)
         else showCatalog(completed.folderPath)
+        // The panel works in the background: the library shows the progress on its tiles.
+        if (autoAnalysis.enabled && foundNewImages(completed.summary)) {
+            setOrganizationVisited(true)
+            setOrganizeRequest(value => ({folder: completed.folderPath, id: (value?.id ?? 0) + 1}))
+        }
     })
     const locked = scan.busy || editingReview || exporting
     useUpdateBlocker(locked, 'Zakończ wczytywanie folderu oraz zapisz lub odrzuć edycję propozycji przed restartem.')
