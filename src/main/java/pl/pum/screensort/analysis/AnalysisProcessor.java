@@ -2,7 +2,7 @@ package pl.pum.screensort.analysis;
 
 import java.util.Optional;
 import org.springframework.stereotype.Service;
-import pl.pum.screensort.analysis.engine.PythonAnalysisClient;
+import pl.pum.screensort.analysis.engine.AnalysisEngine;
 import pl.pum.screensort.metrics.ProductMetrics;
 import static pl.pum.screensort.metrics.ProductMetrics.Operation.*;
 
@@ -10,13 +10,13 @@ import static pl.pum.screensort.metrics.ProductMetrics.Operation.*;
 @Service
 public class AnalysisProcessor {
   private final AnalysisSourceReader sources;
-  private final PythonAnalysisClient python;
+  private final AnalysisEngine engine;
   private final AnalysisStore store;
   private final ProductMetrics metrics;
 
-  public AnalysisProcessor(AnalysisSourceReader sources, PythonAnalysisClient python, AnalysisStore store,
+  public AnalysisProcessor(AnalysisSourceReader sources, AnalysisEngine engine, AnalysisStore store,
       ProductMetrics metrics) {
-    this.sources = sources; this.python = python; this.store = store;
+    this.sources = sources; this.engine = engine; this.store = store;
     this.metrics = metrics;
   }
 
@@ -46,7 +46,7 @@ public class AnalysisProcessor {
       throw new AnalysisException(409, "Plik zmienił się od skanu. Zeskanuj folder ponownie.");
     }
     var result = metrics.measure(ANALYSIS_REQUEST,
-        () -> python.analyze(input.bytes(), input.mediaType(), ocr, visual, extendedTime));
+        () -> engine.analyze(input.bytes(), input.mediaType(), ocr, visual, extendedTime));
     if (!input.sha256().equals(result.sourceSha256())) {
       throw new AnalysisException(502, "Nie zgadza się hash wyniku analizy.");
     }
