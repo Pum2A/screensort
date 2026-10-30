@@ -1,5 +1,27 @@
 ## ScreenSort Windows x64 preview
 
+New in 0.4.0: a local Qwen model names your screenshots, and one button does the rest.
+
+- New AI engine profiles "Qwen 3.5 4B" and "Qwen 3.5 2B" in "Silnik AI". The model looks
+  at each screenshot and says which app it shows, what it is about and its category, so a
+  name reads like `discord_planowanie_wyjazdu` instead of loose words. It runs on your
+  graphics card when one is found (about 2 s per image), otherwise on the processor.
+  The llama.cpp server and the model are downloaded from their official sources and every
+  file is checked against a pinned SHA-256. Nothing leaves your computer.
+- The existing OCR package keeps reading text from images when it is installed; if Qwen
+  cannot start, it does the whole analysis as before.
+- No separate scan step: a chosen folder is read at once, and the last folder again when
+  the app opens, so new screenshots simply appear.
+- One "Uporządkuj z AI" button starts the AI engine when needed, analyses the folder and
+  shows the proposals. A finished analysis is repeated only when the folder gained images.
+- New option "Analizuj nowe zdjęcia automatycznie" (off by default): new screenshots are
+  named and sorted as soon as the folder is read.
+- If the AI engine stops while the app runs, only analysis turns off; the catalog keeps
+  working instead of asking for a restart.
+
+The previous OCR package does not need to be downloaded again. The Qwen model is an
+optional download of about 3.3 GB (4B) or 1.9 GB (2B).
+
 New in 0.3.2: no repeated analysis, one language per name, a calmer look.
 
 - Analyzing a folder again (for example after restarting the app) reuses the
