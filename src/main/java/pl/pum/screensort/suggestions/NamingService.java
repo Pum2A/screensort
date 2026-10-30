@@ -79,10 +79,7 @@ public class NamingService {
   }
 
   private NameSuggestion suggestion(String originalName, AnalysisResult result) {
-    var ocr = result.ocr().status() == AnalysisResult.Status.COMPLETED ? result.ocr().result().text() : null;
-    var visual = result.visual().status() == AnalysisResult.Status.COMPLETED
-        ? result.visual().result().description() : null;
-    return generator.suggest(originalName, ocr, visual).orElse(null);
+    return generator.suggest(originalName, result).orElse(null);
   }
 
   private static void validateId(long fileId) {
