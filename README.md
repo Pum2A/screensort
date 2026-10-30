@@ -4,12 +4,13 @@
 
 **Turn a folder of screenshot chaos into named, sorted copies — on your own computer.**
 
-![Version](https://img.shields.io/badge/version-0.3.2_preview-191C1F?style=flat-square&labelColor=CDFF47)
+![Version](https://img.shields.io/badge/version-0.4.0_preview-191C1F?style=flat-square&labelColor=CDFF47)
 ![Windows](https://img.shields.io/badge/Windows-x64-191C1F?style=flat-square)
 ![Local first](https://img.shields.io/badge/AI-runs_locally-191C1F?style=flat-square)
 ![Java](https://img.shields.io/badge/Java_25-Spring_Boot_4-191C1F?style=flat-square&logo=openjdk&logoColor=white)
 ![React](https://img.shields.io/badge/React_19-Tauri_2-191C1F?style=flat-square&logo=react&logoColor=white)
-![Python](https://img.shields.io/badge/Python-RapidOCR_+_Florence--2-191C1F?style=flat-square&logo=python&logoColor=white)
+![Qwen](https://img.shields.io/badge/AI-Qwen_3.5_·_llama.cpp-191C1F?style=flat-square)
+![Python](https://img.shields.io/badge/Python-RapidOCR-191C1F?style=flat-square&logo=python&logoColor=white)
 
 [**Download**](https://github.com/Pum2A/screensort-releases/releases) ·
 [How it works](#how-it-works) ·
@@ -23,11 +24,12 @@
 
 ## What it does
 
-ScreenSort scans a folder of images and reads each one with **local** OCR and a vision model.
-From that, it proposes a **name** and a **category**. You approve, fix or skip them, many at
+ScreenSort reads a folder of screenshots and looks at each one with a **local** vision model
+(Qwen 3.5 via llama.cpp), which recognises the app and the topic. From that, it proposes a
+**name** and a **category**. You approve, fix or skip them, many at
 once, and ScreenSort then writes a **sorted copy** into category folders.
 
-- 🔒 **Nothing leaves your computer.** The models run on your CPU. There is no cloud API and no upload.
+- 🔒 **Nothing leaves your computer.** The models run on your GPU or CPU. There is no cloud API and no upload.
 - 🗂️ **Originals are never touched.** ScreenSort never renames, moves or deletes a source file. Only approved images are copied, and each copy is checked against its SHA-256.
 - ⚡ **Built for bulk.** Select many images (Shift+click, Ctrl+A), set a category with keys 1–5, and approve them all at once.
 - 🧩 **Finds duplicates.** Byte-identical files are grouped, and you choose which copy goes into the sorted folder.
@@ -49,14 +51,14 @@ once, and ScreenSort then writes a **sorted copy** into category folders.
 ## How it works
 
 ```text
-choose folder → scan & catalog → local OCR + image description
+choose folder → read & catalog → local vision model (+ OCR)
              → name & category proposals → your decisions (one by one or in bulk)
              → verified, sorted copy in a new folder
 ```
 
-1. **Scan.** Java validates the folder and catalogs PNG/JPG files in PostgreSQL. It hashes them (SHA-256) and skips unchanged files on the next scan.
-2. **Analyse.** On request, Java sends image bytes to a local Python service. RapidOCR reads the text and Florence-2 describes the picture. Results are saved per file, and the analysis can be paused and resumed.
-3. **Propose.** Simple, deterministic rules turn the text and the description into a filename and one of five categories. Uncertain proposals are marked "Sprawdź" (check).
+1. **Read.** Choosing a folder reads it at once. Java validates it and catalogs PNG/JPG files in PostgreSQL. It hashes them (SHA-256) and skips unchanged files on the next read.
+2. **Analyse.** One "Uporządkuj z AI" click starts the engine if needed. Java sends a downscaled image to a local llama-server running Qwen 3.5, which answers in a fixed JSON schema: app, topic and category. RapidOCR (Python) still reads the text, and takes over the whole analysis if Qwen is unavailable. Results are saved per file, and the analysis can be paused and resumed.
+3. **Propose.** The app and topic become a filename (`discord_planowanie_wyjazdu.png`) and the category one of five folders. Uncertain proposals are marked "Sprawdź" (check).
 4. **Decide.** In the library or the bulk review you approve, recategorise or skip. Decisions are versioned, so an outdated form can never overwrite a newer one.
 5. **Copy.** ScreenSort copies the approved files into category folders and verifies each one against its hash. Existing files at the destination are never overwritten.
 
@@ -71,8 +73,12 @@ choose folder → scan & catalog → local OCR + image description
 └─────────────────┼───────────────────────┘
                   │ REST (loopback)
         ┌─────────▼─────────┐        ┌───────────────────────┐
-        │ Java 25 · Spring  │──bytes▶│ Python · FastAPI      │
-        │ Boot 4 · Flyway   │◀─JSON──│ RapidOCR · Florence-2 │
+        │ Java 25 · Spring  │─image─▶│ llama-server (C++)    │
+        │ Boot 4 · Flyway   │◀─JSON──│ Qwen 3.5 · GPU or CPU │
+        │                   │        └───────────────────────┘
+        │                   │        ┌───────────────────────┐
+        │                   │─bytes─▶│ Python · FastAPI      │
+        │                   │◀─text──│ RapidOCR (optional)   │
         └─────────┬─────────┘        └───────────────────────┘
                   │
            ┌──────▼──────┐
@@ -82,15 +88,16 @@ choose folder → scan & catalog → local OCR + image description
 
 | Part | Responsibility | Technology |
 | --- | --- | --- |
-| Desktop shell | Window, native dialogs, starts and stops local services, in-app updates | Tauri 2, Rust |
+| Desktop shell | Window, native dialogs, AI package downloads pinned by SHA-256, starts and stops local services, in-app updates | Tauri 2, Rust |
 | Interface | Library, bulk review, duplicates, previews, progress | React 19, TypeScript, TanStack Query, Zod, Tailwind 4, Motion |
-| Backend | Scanning, catalog, analysis jobs, decisions, verified copying | Java 25, Spring Boot 4, JdbcTemplate/JPA, Flyway |
+| Backend | Folder reading, catalog, analysis jobs with engine fallback, decisions, verified copying | Java 25, Spring Boot 4, JdbcTemplate/JPA, Flyway |
 | Database | Catalog, analyses, decisions, copy jobs | PostgreSQL |
-| Analysis | OCR and image description on CPU | Python, FastAPI, RapidOCR, Florence-2-base-ft |
+| Vision model | App, topic and category of each screenshot, JSON-schema constrained | llama.cpp (Vulkan), Qwen 3.5 4B / 2B GGUF |
+| OCR | Text on the image; full analysis when Qwen is unavailable | Python, FastAPI, RapidOCR, Florence-2-base-ft |
 | Quality | Unit, integration and UI tests in CI | JUnit 5, Testcontainers, node:test, cargo test, pytest, ruff |
 
 Credentials and loopback ports stay in Rust, outside the web view. Java alone opens source
-files: Python receives image bytes, never file paths, and logs never contain paths, file names
+files: the engines receive image bytes, never file paths, and logs never contain paths, file names
 or OCR text.
 
 ## Install
