@@ -17,7 +17,7 @@ import pl.pum.screensort.analysis.AnalysisResult;
 import tools.jackson.databind.json.JsonMapper;
 
 @Service
-public class PythonAnalysisClient {
+public class PythonAnalysisClient implements AnalysisEngine {
   static final int EXTENDED_TIMEOUT_SECONDS = 240;
   static final Duration DEFAULT_RETRY_AFTER = Duration.ofSeconds(2);
   static final String BAD_IMAGE = "Obraz jest uszkodzony, za duży albo ma nieobsługiwany format. Pominięty.";
