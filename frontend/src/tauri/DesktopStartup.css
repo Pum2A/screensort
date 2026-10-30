@@ -45,6 +45,7 @@
 .indeterminate-track span { display: block; width: 35%; height: 100%; background: var(--accent); border-radius: 9px; animation: indeterminate 1.7s ease-in-out infinite; }
 @keyframes indeterminate { from { transform: translateX(-110%); } to { transform: translateX(390%); } }
 .engine-download { border: 1px solid var(--border); border-radius: 19px; background: var(--soft); padding: 23px; }
+.engine-download + .engine-download { margin-top: 12px; }
 .engine-profile-heading { display: flex; align-items: center; gap: 12px; }
 .engine-profile-heading > div { flex: 1; }
 .engine-profile-heading .eyebrow { font-size: 9px; }

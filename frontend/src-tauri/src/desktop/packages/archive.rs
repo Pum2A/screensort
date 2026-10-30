@@ -223,7 +223,12 @@ pub fn extract_verified(
     if count != spec.file_count || bytes != spec.unpacked_bytes {
         return Err("Zawartość archiwum nie zgadza się z katalogiem pakietów.".into());
     }
-    for name in &spec.required_files {
+    // Separately downloaded model files arrive after extraction; `installed` checks them later.
+    for name in spec
+        .required_files
+        .iter()
+        .filter(|name| !spec.files.iter().any(|file| &file.path == *name))
+    {
         let metadata = fs::symlink_metadata(stage.join(portable_path(name)?))
             .map_err(|_| "Pakiet nie zawiera wymaganych plików.")?;
         if !metadata.is_file() || link(&metadata) {

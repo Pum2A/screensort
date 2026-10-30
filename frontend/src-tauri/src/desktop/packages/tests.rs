@@ -24,6 +24,9 @@ fn fixture(entries: &[(&str, &[u8])]) -> (tempfile::NamedTempFile, PackageSpec) 
         unpacked_bytes: entries.iter().map(|(_, data)| data.len() as u64).sum(),
         file_count: entries.len(),
         required_files: vec!["python/python.exe".into()],
+        kind: "python".into(),
+        model: None,
+        files: Vec::new(),
     };
     (input, spec)
 }
@@ -269,4 +272,68 @@ fn activation_retries_a_brief_windows_file_lock() {
     activate(&stage, &target, &|| false).unwrap();
     release.join().unwrap();
     assert_eq!(fs::read(target.join("file")).unwrap(), b"payload");
+}
+
+#[test]
+fn qwen_packages_pin_the_llama_build_and_each_model_file() {
+    let catalog = catalog::catalog().unwrap();
+    let qwen: Vec<_> = catalog.iter().filter(|spec| spec.kind == "qwen").collect();
+    assert_eq!(qwen.len(), 2);
+    for spec in qwen {
+        assert!(spec
+            .model
+            .as_deref()
+            .is_some_and(|m| m.starts_with("qwen3.5-")));
+        assert!(spec
+            .required_files
+            .contains(&"llama-server.exe".to_string()));
+        for path in ["models/qwen.gguf", "models/mmproj.gguf"] {
+            assert!(spec.files.iter().any(|file| file.path == path));
+            assert!(spec.required_files.contains(&path.to_string()));
+        }
+    }
+    assert!(catalog::download_url(
+        "https://github.com/ggml-org/llama.cpp/releases/download/b1/llama-b1-bin-win-vulkan-x64.zip"
+    )
+    .is_ok());
+}
+
+#[test]
+fn model_files_must_come_from_a_pinned_hugging_face_commit() {
+    let commit = "e87f176479d0855a907a41277aca2f8ee7a09523";
+    assert!(catalog::file_url(&format!(
+        "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/{commit}/mmproj-F16.gguf"
+    ))
+    .is_ok());
+    for url in [
+        "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/mmproj-F16.gguf".to_string(),
+        format!("http://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/{commit}/mmproj-F16.gguf"),
+        format!("https://evil.test/unsloth/Qwen3.5-4B-GGUF/resolve/{commit}/mmproj-F16.gguf"),
+        format!("https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/{commit}/model.exe"),
+        format!("https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/{commit}/a.gguf?x=1"),
+        format!("https://huggingface.co/unsloth/../resolve/{commit}/a.gguf"),
+    ] {
+        assert!(catalog::file_url(&url).is_err(), "{url}");
+    }
+}
+
+#[test]
+fn a_package_that_downloads_model_files_cannot_be_installed_from_a_zip() {
+    let (input, mut spec) = fixture(&[("llama-server.exe", b"abc")]);
+    spec.kind = "qwen".into();
+    spec.model = Some("qwen3.5-2b".into());
+    spec.files = vec![catalog::FileSpec {
+        path: "models/qwen.gguf".into(),
+        url: format!(
+            "https://huggingface.co/a/b/resolve/{}/qwen.gguf",
+            "0".repeat(40)
+        ),
+        sha256: "0".repeat(64),
+        bytes: 3,
+    }];
+    let data = tempfile::tempdir().unwrap();
+    let error = PackageManager::default()
+        .install(&spec, data.path(), Some(input.path()))
+        .unwrap_err();
+    assert!(error.contains("ZIP"), "{error}");
 }

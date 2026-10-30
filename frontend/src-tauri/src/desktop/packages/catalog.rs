@@ -14,6 +14,43 @@ pub struct PackageSpec {
     pub unpacked_bytes: u64,
     pub file_count: usize,
     pub required_files: Vec<String>,
+    /// "python" runs the OCR + caption package; "qwen" runs llama-server with a vision model.
+    #[serde(default = "python_kind")]
+    pub kind: String,
+    /// Label the backend stores with each result, e.g. "qwen3.5-4b". Only for "qwen".
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Files downloaded next to the ZIP's contents, each pinned by its own SHA-256 (model weights
+    /// are larger than a release asset may be).
+    #[serde(default)]
+    pub files: Vec<FileSpec>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct FileSpec {
+    pub path: String,
+    pub url: String,
+    pub sha256: String,
+    pub bytes: u64,
+}
+
+/// What one download must be: where it comes from, its exact size and SHA-256.
+pub struct Source<'a> {
+    pub url: Option<&'a str>,
+    pub sha256: &'a str,
+    pub bytes: u64,
+}
+
+fn python_kind() -> String {
+    "python".into()
+}
+
+fn sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
 }
 
 #[derive(Deserialize)]
@@ -53,11 +90,7 @@ impl PackageSpec {
         if !safe_id(&self.id)
             || !safe_id(&self.version)
             || self.name.len() > 120
-            || self.sha256.len() != 64
-            || !self
-                .sha256
-                .bytes()
-                .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+            || !sha256_hex(&self.sha256)
             || self.archive_bytes == 0
             || self.archive_bytes > 2 * 1024 * 1024 * 1024
             || self.unpacked_bytes == 0
@@ -75,7 +108,40 @@ impl PackageSpec {
         if let Some(url) = &self.url {
             download_url(url)?;
         }
+        let model_label = |s: &str| {
+            !s.is_empty()
+                && s.len() <= 40
+                && s.bytes()
+                    .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-' || c == b'.')
+        };
+        let valid_kind = match self.kind.as_str() {
+            "python" => self.model.is_none() && self.files.is_empty(),
+            "qwen" => self.model.as_deref().is_some_and(model_label) && !self.files.is_empty(),
+            _ => false,
+        };
+        if !valid_kind || self.files.len() > 8 {
+            return Err("Nieprawidłowe metadane zaufanego pakietu.".into());
+        }
+        for file in &self.files {
+            if !sha256_hex(&file.sha256) || file.bytes == 0 || file.bytes > 4 * 1024 * 1024 * 1024 {
+                return Err("Nieprawidłowe metadane zaufanego pakietu.".into());
+            }
+            portable_path(&file.path)?;
+            file_url(&file.url)?;
+        }
         Ok(())
+    }
+
+    pub fn archive(&self) -> Source<'_> {
+        Source {
+            url: self.url.as_deref(),
+            sha256: &self.sha256,
+            bytes: self.archive_bytes,
+        }
+    }
+
+    pub fn files_bytes(&self) -> u64 {
+        self.files.iter().map(|file| file.bytes).sum()
     }
 
     pub fn directory(&self, data: &Path) -> PathBuf {
@@ -88,21 +154,63 @@ impl PackageSpec {
     }
 }
 
+impl FileSpec {
+    pub fn source(&self) -> Source<'_> {
+        Source {
+            url: Some(&self.url),
+            sha256: &self.sha256,
+            bytes: self.bytes,
+        }
+    }
+}
+
+fn plain_https(url: &reqwest::Url, host: &str) -> bool {
+    url.scheme() == "https"
+        && url.host_str() == Some(host)
+        && url.port_or_known_default() == Some(443)
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.query().is_none()
+        && url.fragment().is_none()
+}
+
+/// A ZIP from a ScreenSort release, or the official llama.cpp server build.
 pub fn download_url(value: &str) -> Result<reqwest::Url, String> {
     let url = reqwest::Url::parse(value).map_err(|_| "Nieprawidłowy adres pakietu.")?;
-    if url.scheme() != "https"
-        || url.host_str() != Some("github.com")
-        || url.port_or_known_default() != Some(443)
-        || !url.username().is_empty()
-        || url.password().is_some()
-        || url.query().is_some()
-        || url.fragment().is_some()
-        || !url
-            .path()
-            .starts_with("/Pum2A/screensort-releases/releases/download/")
-        || !url.path().ends_with(".zip")
+    let path = url.path();
+    if !plain_https(&url, "github.com")
+        || !(path.starts_with("/Pum2A/screensort-releases/releases/download/")
+            || path.starts_with("/ggml-org/llama.cpp/releases/download/"))
+        || !path.ends_with(".zip")
     {
-        return Err("Pakiet musi pochodzić z zaufanego wydania ScreenSort przez HTTPS.".into());
+        return Err("Pakiet musi pochodzić z zaufanego wydania przez HTTPS.".into());
+    }
+    Ok(url)
+}
+
+/// A model file from Hugging Face, pinned to one 40-character commit, never a moving branch.
+pub fn file_url(value: &str) -> Result<reqwest::Url, String> {
+    let url = reqwest::Url::parse(value).map_err(|_| "Nieprawidłowy adres modelu.")?;
+    let parts: Vec<&str> = url.path().trim_start_matches('/').split('/').collect();
+    let safe = |s: &str| {
+        !s.is_empty()
+            && s.bytes()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_' | b'.'))
+            && !s.starts_with('.')
+    };
+    if !plain_https(&url, "huggingface.co")
+        || parts.len() != 5
+        || !safe(parts[0])
+        || !safe(parts[1])
+        || parts[2] != "resolve"
+        || parts[3].len() != 40
+        || !parts[3]
+            .bytes()
+            .all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase())
+        || !safe(parts[4])
+        || !parts[4].ends_with(".gguf")
+    {
+        return Err("Model musi pochodzić z przypiętej wersji Hugging Face przez HTTPS.".into());
     }
     Ok(url)
 }

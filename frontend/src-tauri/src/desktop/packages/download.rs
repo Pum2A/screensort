@@ -1,6 +1,6 @@
 use super::{
     archive::cancelled,
-    catalog::{download_url, PackageSpec},
+    catalog::{download_url, file_url, Source},
 };
 use sha2::{Digest, Sha256};
 use std::{
@@ -19,29 +19,34 @@ fn allowed_redirect(url: &reqwest::Url) -> bool {
         && url.port_or_known_default() == Some(443)
         && url.username().is_empty()
         && url.password().is_none()
-        && matches!(
-            url.host_str(),
-            Some(
+        && url.host_str().is_some_and(|host| {
+            matches!(
+                host,
                 "github.com"
                     | "release-assets.githubusercontent.com"
                     | "objects.githubusercontent.com"
-            )
-        )
+                    | "huggingface.co"
+            ) || host.ends_with(".hf.co")
+        })
 }
 
 /// Downloads into `output`, continuing after the bytes it already holds (a previous, interrupted
-/// download of the same package). The whole file is checked against the pinned SHA-256 at the end.
+/// download of the same file). The whole file is checked against the pinned SHA-256 at the end.
 pub async fn download(
-    spec: &PackageSpec,
+    source: &Source<'_>,
     output: &mut File,
     check: &impl Fn() -> bool,
     progress: impl FnMut(u64),
 ) -> Result<(), String> {
-    let url = download_url(
-        spec.url
-            .as_deref()
-            .ok_or("Ta wersja pakietu nie ma jeszcze publicznego adresu pobrania.")?,
-    )?;
+    let address = source
+        .url
+        .ok_or("Ta wersja pakietu nie ma jeszcze publicznego adresu pobrania.")?;
+    // A ZIP comes from a release; a model file from a pinned Hugging Face commit.
+    let url = if address.ends_with(".zip") {
+        download_url(address)?
+    } else {
+        file_url(address)?
+    };
     let client = reqwest::Client::builder()
         .https_only(true)
         .referer(false)
@@ -60,7 +65,7 @@ pub async fn download(
     download_from(
         &client,
         url,
-        spec,
+        source,
         output,
         check,
         progress,
@@ -88,13 +93,13 @@ fn wait(duration: Duration, check: &impl Fn() -> bool) -> Result<(), String> {
 }
 
 /// Re-reads what the file already holds, so the final hash covers the whole package.
-fn existing(output: &mut File, spec: &PackageSpec) -> Result<(u64, Sha256), String> {
+fn existing(output: &mut File, source: &Source<'_>) -> Result<(u64, Sha256), String> {
     let mut digest = Sha256::new();
     let length = output
         .metadata()
         .map_err(|_| "Nie można sprawdzić pobranej części pakietu.")?
         .len();
-    if length > spec.archive_bytes {
+    if length > source.bytes {
         restart(output)?;
         return Ok((0, digest));
     }
@@ -146,17 +151,17 @@ fn continues_at(content_range: Option<&str>, start: u64, total: u64) -> bool {
 async fn download_from(
     client: &reqwest::Client,
     url: reqwest::Url,
-    spec: &PackageSpec,
+    source: &Source<'_>,
     output: &mut File,
     check: &impl Fn() -> bool,
     mut progress: impl FnMut(u64),
     first_pause: Duration,
 ) -> Result<(), String> {
     cancelled(check)?;
-    let (mut bytes, mut digest) = existing(output, spec)?;
+    let (mut bytes, mut digest) = existing(output, source)?;
     progress(bytes);
     let mut retry = 0;
-    while bytes < spec.archive_bytes {
+    while bytes < source.bytes {
         let mut request = client
             .get(url.clone())
             .header("Accept-Encoding", "identity");
@@ -176,7 +181,7 @@ async fn download_from(
                             .get("Content-Range")
                             .and_then(|value| value.to_str().ok()),
                         bytes,
-                        spec.archive_bytes,
+                        source.bytes,
                     );
                 if status == reqwest::StatusCode::OK {
                     // The server ignored the range: take the whole package from the start.
@@ -186,10 +191,7 @@ async fn download_from(
                         digest = Sha256::new();
                         progress(0);
                     }
-                    if response
-                        .content_length()
-                        .is_some_and(|n| n != spec.archive_bytes)
-                    {
+                    if response.content_length().is_some_and(|n| n != source.bytes) {
                         return Err("Rozmiar pakietu na serwerze jest nieprawidłowy.".into());
                     }
                 } else if !resumed {
@@ -209,7 +211,7 @@ async fn download_from(
                             break;
                         }
                     };
-                    if bytes + chunk.len() as u64 > spec.archive_bytes {
+                    if bytes + chunk.len() as u64 > source.bytes {
                         return Err("Pobierany pakiet przekroczył dozwolony rozmiar.".into());
                     }
                     output
@@ -219,7 +221,7 @@ async fn download_from(
                     bytes += chunk.len() as u64;
                     progress(bytes);
                 }
-                if streamed.is_ok() && bytes < spec.archive_bytes {
+                if streamed.is_ok() && bytes < source.bytes {
                     streamed = Err(INTERRUPTED);
                 }
                 streamed
@@ -237,7 +239,7 @@ async fn download_from(
             wait(retry_pause(first_pause, retry), check)?;
         }
     }
-    if format!("{:x}", digest.finalize()) != spec.sha256 {
+    if format!("{:x}", digest.finalize()) != source.sha256 {
         // A wrong file must not be resumed: the next attempt starts from zero.
         restart(output)?;
         return Err("Nie zgadza się SHA-256 pobranego pakietu. Nie zostanie uruchomiony.".into());
@@ -257,17 +259,25 @@ mod tests {
         sync::{Arc, Mutex},
     };
 
-    fn spec(content: &[u8]) -> PackageSpec {
-        PackageSpec {
-            id: "test".into(),
-            name: "Test".into(),
-            version: "1".into(),
-            url: None,
+    struct Pinned {
+        sha256: String,
+        bytes: u64,
+    }
+
+    impl Pinned {
+        fn source(&self) -> Source<'_> {
+            Source {
+                url: None,
+                sha256: &self.sha256,
+                bytes: self.bytes,
+            }
+        }
+    }
+
+    fn spec(content: &[u8]) -> Pinned {
+        Pinned {
             sha256: format!("{:x}", Sha256::digest(content)),
-            archive_bytes: content.len() as u64,
-            unpacked_bytes: content.len() as u64,
-            file_count: 1,
-            required_files: vec!["python/python.exe".into()],
+            bytes: content.len() as u64,
         }
     }
 
@@ -306,11 +316,11 @@ mod tests {
             .unwrap()
     }
 
-    fn run(url: reqwest::Url, spec: &PackageSpec, output: &mut File) -> Result<(), String> {
+    fn run(url: reqwest::Url, spec: &Pinned, output: &mut File) -> Result<(), String> {
         tauri::async_runtime::block_on(download_from(
             &client(),
             url,
-            spec,
+            &spec.source(),
             output,
             &|| false,
             |_| {},
@@ -383,6 +393,25 @@ mod tests {
         assert!(!continues_at(Some("bytes 3-5/7"), 3, 6));
         assert!(!continues_at(Some("bytes 3-4/6"), 3, 6));
         assert!(!continues_at(None, 3, 6));
+    }
+
+    #[test]
+    fn hugging_face_cdn_redirects_are_allowed_but_lookalikes_are_not() {
+        for allowed in [
+            "https://us.aws.cdn.hf.co/xet-bridge-us/a/b",
+            "https://cas-bridge.xethub.hf.co/x",
+            "https://huggingface.co/x",
+        ] {
+            assert!(allowed_redirect(&reqwest::Url::parse(allowed).unwrap()));
+        }
+        for refused in [
+            "http://us.aws.cdn.hf.co/x",
+            "https://hf.co.evil.test/x",
+            "https://evilhf.co/x",
+            "https://us.aws.cdn.hf.co:8443/x",
+        ] {
+            assert!(!allowed_redirect(&reqwest::Url::parse(refused).unwrap()));
+        }
     }
 
     #[test]

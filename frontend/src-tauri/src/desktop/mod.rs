@@ -114,27 +114,37 @@ pub fn launch(app: AppHandle) {
                     if desktop.closing.load(Ordering::SeqCst) {
                         break;
                     }
-                    let stopped = desktop
-                        .owner
-                        .lock()
-                        .await
-                        .as_mut()
-                        .and_then(|owner| owner.stopped_child());
+                    let stopped = {
+                        let mut guard = desktop.owner.lock().await;
+                        match guard.as_mut() {
+                            Some(owner) => {
+                                let stopped = owner.stopped_child();
+                                // An AI engine is optional: forget the dead child so the catalog
+                                // keeps running and the next "start" begins from a clean slate.
+                                if let Some(name @ ("Python" | "Llama")) = stopped {
+                                    owner.retire_engine(name);
+                                }
+                                stopped
+                            }
+                            None => None,
+                        }
+                    };
                     if stopped == Some("Java") && restart_backend(&app).await {
                         continue;
                     }
                     if let Some(name) = stopped {
+                        let engine = matches!(name, "Python" | "Llama");
                         let mut status = lock(&desktop.status);
                         status.analysis_ready = false;
-                        if name != "Python" {
+                        if !engine {
                             status.backend_ready = false;
                         }
-                        status.error = Some(if name == "Python" {
+                        status.error = Some(if engine {
                             "Silnik analizy zakończył pracę. Uruchom go ponownie w panelu „Silnik analizy”; katalog działa dalej.".into()
                         } else {
                             format!("Proces {name} zakończył pracę. Uruchom ScreenSort ponownie; zapisane dane pozostają w bazie.")
                         });
-                        if name != "Python" {
+                        if !engine {
                             break;
                         }
                     }
@@ -707,6 +717,7 @@ mod tests {
             false
         ));
         assert!(!allowed("POST", "/_internal/analysis-connection", false));
+        assert!(!allowed("POST", "/_internal/vision-connection", false));
         assert!(!allowed("GET", "/_internal/update-ready", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/library?folderPath=test", false));

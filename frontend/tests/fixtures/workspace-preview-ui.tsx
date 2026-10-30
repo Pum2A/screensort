@@ -26,7 +26,7 @@ function EngineFixture({scenario}: {scenario: string}) {
     const [starting, setStarting] = useState(scenario === 'warmup')
     const [downloading, setDownloading] = useState(false)
     const trigger = useRef<HTMLButtonElement>(null)
-    const status: PackageStatus = {bundled: scenario === 'warmup' || scenario === 'engine-error', packages: [{installed: false, package: {id: 'fixture', name: 'Profil CPU', version: 'dane-testowe', archiveBytes: 747507987, unpackedBytes: 1365180817, url: 'https://example.invalid/never-requested'}}],
+    const status: PackageStatus = {bundled: scenario === 'warmup' || scenario === 'engine-error', packages: [{installed: false, package: {id: 'fixture-qwen', name: 'Qwen 3.5 4B · rozpoznawanie zrzutów', version: 'dane-testowe', archiveBytes: 37140522, unpackedBytes: 104346397, url: 'https://example.invalid/never-requested', kind: 'qwen', files: [{bytes: 2740937888}, {bytes: 672423616}]}}, {installed: false, package: {id: 'fixture', name: 'Profil CPU', version: 'dane-testowe', archiveBytes: 747507987, unpackedBytes: 1365180817, url: 'https://example.invalid/never-requested', kind: 'python', files: []}}],
         progress: {phase: downloading ? 'DOWNLOADING' : 'PREPARING', busy: downloading, completedBytes: 247507987, totalBytes: 747507987, error: null}}
     return <div style={{padding: 40}}><button ref={trigger} className="primary-button" onClick={() => setVisible(true)}>Otwórz ustawienia silnika</button>
         <AnimatePresence>{visible && <Modal title="Analiza na Twoim komputerze" subtitle="SILNIK ANALIZY" trigger={trigger} onClose={() => setVisible(false)}>

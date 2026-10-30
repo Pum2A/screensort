@@ -72,6 +72,13 @@ SCREENSORT_LLAMA_URL=http://127.0.0.1:18080 ./mvnw spring-boot:run -Dspring-boot
 `-ngl 99` liczy na karcie graficznej (Vulkan); bez karty użyj `-ngl 0 -t 8` i
 `SCREENSORT_LLAMA_DEVICE=cpu`. Bez połączonego Pythona krok OCR kończy się czytelnym błędem.
 
+W aplikacji desktopowej to samo robi pakiet AI „Qwen 3.5 4B” lub „2B” z `packaging/windows/ai-packages.json`:
+serwer llama.cpp to oficjalny ZIP z GitHuba, a model i `mmproj` to pliki z Hugging Face przypięte do
+jednego commita, każdy sprawdzany własnym SHA-256 (model 4B jest większy niż 2 GB, czyli niż limit pliku
+w wydaniu GitHuba). Po kliknięciu „Uruchom analizę” Rust pyta `llama-server --list-devices`, czy jest karta
+Vulkan, startuje serwer z losowym kluczem w `LLAMA_API_KEY` i przekazuje adres oraz klucz Javie przez
+`/_internal/vision-connection`. Pakiet Pythona, jeśli jest, startuje obok i dalej czyta tekst.
+
 ## Ręczna kontrola przepływu
 
 Użyj małego folderu z obrazami, które możesz bezpiecznie pokazać. Skanowanie

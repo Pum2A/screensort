@@ -1,5 +1,6 @@
 export type PackageSpec = {
     id: string; name: string; version: string; archiveBytes: number; unpackedBytes: number; url: string | null
+    kind: 'python' | 'qwen'; files: {bytes: number}[]
 }
 export type PackageStatus = {
     bundled: boolean
@@ -25,4 +26,21 @@ export function packageSize(bytes: number): string {
 
 export function hasAiPackage(status: PackageStatus): boolean {
     return status.bundled || status.packages.some(item => item.installed)
+}
+
+/** A Qwen package also downloads its model files, so its size is the ZIP plus every file. */
+export function downloadBytes(pack: PackageSpec): number {
+    return pack.archiveBytes + pack.files.reduce((sum, file) => sum + file.bytes, 0)
+}
+
+export function diskBytes(pack: PackageSpec): number {
+    return pack.unpackedBytes + pack.files.reduce((sum, file) => sum + file.bytes, 0)
+}
+
+/** What the installed engines can do, for the summary line of the engine card. */
+export function installedSummary(status: PackageStatus): string {
+    const installed = status.packages.filter(item => item.installed).map(item => item.package)
+    const parts = installed.filter(pack => pack.kind === 'qwen').map(pack => pack.name.split(' · ')[0])
+    if (status.bundled || installed.some(pack => pack.kind === 'python')) parts.push('RapidOCR + Florence-2')
+    return parts.join(' + ') + ' · lokalnie'
 }
