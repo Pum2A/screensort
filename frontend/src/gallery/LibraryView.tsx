@@ -23,8 +23,11 @@ type Props = {
     onRetry: () => void
     /** False while another view is shown: keyboard shortcuts must not act on a hidden grid. */
     active: boolean
+    /** Reads the folder again; new screenshots appear without a separate step. */
     onScan: () => void
     scanDisabled: boolean
+    /** One click: start the AI engine if needed, analyse the folder, show the proposals. */
+    onOrganize: () => void
     onReview: () => void
     onDuplicates: () => void
 }
@@ -65,7 +68,7 @@ function time(value: string | null): string {
 }
 
 /** Figma v1+ "01 · Biblioteka": the whole folder on one screen, filters by AI category, bulk decisions. */
-export function LibraryView({library, loading, error, onRetry, active, onScan, scanDisabled, onReview, onDuplicates}: Props) {
+export function LibraryView({library, loading, error, onRetry, active, onScan, scanDisabled, onOrganize, onReview, onDuplicates}: Props) {
     const [filter, setFilter] = useState<LibraryFilter>('all')
     const [sort, setSort] = useState<LibrarySort>('newest')
     const [query, setQuery] = useState('')
@@ -128,9 +131,9 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
         <button className="secondary-button" onClick={onRetry}>Spróbuj ponownie</button></div>
     if (loading || !library) return <div className="catalog-skeleton" role="status"><span className="sr-only">Ładujemy bibliotekę</span>
         {Array.from({length: 12}, (_, index) => <div className="skeleton-tile" key={index}><span/><i/><i/></div>)}</div>
-    if (library.files.length === 0) return <div className="catalog-empty"><h3>Tu zaczyna się porządek.</h3>
-        <p>Zeskanuj folder. Twoje obrazy zostają dokładnie tam, gdzie są.</p>
-        <button className="primary-button" disabled={scanDisabled} onClick={onScan}><PixelIcon name="scan"/>Skanuj folder</button></div>
+    if (library.files.length === 0) return <div className="catalog-empty"><h3>{scanDisabled ? 'Wczytujemy obrazy…' : 'Tu zaczyna się porządek.'}</h3>
+        <p>{scanDisabled ? 'Obrazy pojawią się tutaj, gdy tylko je znajdziemy.' : 'W tym folderze nie ma jeszcze zrzutów PNG ani JPG. Twoje obrazy zostają dokładnie tam, gdzie są.'}</p>
+        <button className="secondary-button" disabled={scanDisabled} onClick={onScan}><PixelIcon name="scan"/>Wczytaj ponownie</button></div>
 
     const total = entries.length
     const share = (count: number) => `${(count / total) * 100}%`
@@ -147,8 +150,8 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                     <strong>{total}{today > 0 && <span className="lib-today">+{today} dziś</span>}</strong>
                     <small>skan {time(lastScan(library.files))}</small></div>
                 <div className="lib-quick">
-                    <button disabled={scanDisabled} onClick={onScan}><span><PixelIcon name="scan" size={14}/></span>Skanuj</button>
-                    <button className="lib-quick-main" onClick={onReview}><span><PixelIcon name="sparkles" size={14}/></span>Przejrzyj</button>
+                    <button disabled={scanDisabled} onClick={onScan} title="Wczytaj folder ponownie"><span><PixelIcon name="scan" size={14}/></span>Odśwież</button>
+                    <button className="lib-quick-main" disabled={scanDisabled} onClick={onOrganize}><span><PixelIcon name="sparkles" size={14}/></span>Uporządkuj z AI</button>
                     <button onClick={onReview}><span><PixelIcon name="download" size={14}/></span>Kopia</button>
                 </div>
                 <div className="lib-progress">
