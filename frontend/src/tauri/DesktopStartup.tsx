@@ -25,6 +25,8 @@ export function DesktopStartup({children}: {children: ReactNode}) {
     const status = view.status
     // After the first successful start a problem is a banner above the app, never a replaced app.
     return <DesktopRuntime.Provider value={{status, start: () => {
+        // Shown at once, so a waiting "Uporządkuj z AI" never mistakes the previous error for this attempt.
+        dispatch({kind: 'status', status: {...status, analysisStarting: true, error: null}})
         void invoke('start_analysis_runtime').catch(cause => dispatch({kind: 'status', status: {...status,
             error: typeof cause === 'string' ? cause : 'Nie udało się zlecić uruchomienia silnika analizy.'}}))
     }}}><AnalysisReadiness.Provider value={status.analysisReady && !view.connectionLost}>
