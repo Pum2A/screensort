@@ -54,6 +54,24 @@ Java musi mieć zgodne `screensort.analysis.url` i `screensort.analysis.token`.
 Sam start Pythona bez konfiguracji klienta Javy nie łączy automatycznie obu usług.
 W instalatorze te ustawienia i procesy konfiguruje prywatny launcher Rusta.
 
+### Silnik Qwen (llama-server)
+
+Nowy silnik to gotowy `llama-server` z [llama.cpp](https://github.com/ggml-org/llama.cpp/releases)
+(wydanie `bin-win-vulkan-x64`) i model Qwen 3.5 w formacie GGUF z plikiem `mmproj` („oczy” modelu).
+Java rozmawia z nim przez `/v1/chat/completions` i wymusza odpowiedź schematem JSON:
+aplikacja, temat (PL i EN) oraz kategoria. Gdy ustawiony jest adres Qwena, Qwen ogląda obraz,
+a tekst ze zdjęcia (OCR) nadal czyta pakiet Pythona. Gdy serwer Qwena nie działa, a Python jest
+połączony, Python robi całą analizę (`FallbackAnalysisEngine`).
+
+```bash
+llama-server -m Qwen3.5-4B-Q4_K_M.gguf --mmproj mmproj-F16.gguf -ngl 99 --image-max-tokens 256 \
+  -np 2 -c 8192 --host 127.0.0.1 --port 18080 --no-webui
+SCREENSORT_LLAMA_URL=http://127.0.0.1:18080 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+`-ngl 99` liczy na karcie graficznej (Vulkan); bez karty użyj `-ngl 0 -t 8` i
+`SCREENSORT_LLAMA_DEVICE=cpu`. Bez połączonego Pythona krok OCR kończy się czytelnym błędem.
+
 ## Ręczna kontrola przepływu
 
 Użyj małego folderu z obrazami, które możesz bezpiecznie pokazać. Skanowanie

@@ -95,10 +95,7 @@ public class BatchStore {
       failed(id, item.fileId(), "Modele nie zwróciły poprawnego wyniku. Spróbuj ponownie po sprawdzeniu pakietu AI.", false);
       return;
     }
-    var ocr = saved.result().ocr().result();
-    var visual = saved.result().visual().result();
-    var proposal = names.suggest(item.originalName(), ocr == null ? null : ocr.text(),
-        visual == null ? null : visual.description());
+    var proposal = names.suggest(item.originalName(), saved.result());
     boolean partial = saved.result().ocr().error() != null || saved.result().visual().error() != null;
     jdbc.update("""
         update analysis_batch_item set status = 'COMPLETED', analysis_id = ?, category = ?, proposed_name = ?,

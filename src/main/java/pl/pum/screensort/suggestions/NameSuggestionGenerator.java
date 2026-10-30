@@ -12,6 +12,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pl.pum.screensort.analysis.AnalysisResult;
 import pl.pum.screensort.files.FileNames;
 
 /**
@@ -52,6 +53,34 @@ public class NameSuggestionGenerator {
   public NameSuggestionGenerator(NamingSettings settings) { this(settings::language); }
 
   NameSuggestionGenerator(Supplier<NamingLanguage> language) { this.language = language; }
+
+  /**
+   * A model that named the app and topic gives the name directly ({@code discord_planowanie_wyjazdu});
+   * otherwise the rule below builds it from the OCR text and the caption.
+   */
+  public Optional<NameSuggestion> suggest(String originalName, AnalysisResult result) {
+    var visual = result.visual().status() == AnalysisResult.Status.COMPLETED ? result.visual().result() : null;
+    if (visual != null && visual.subject() != null) return fromSubject(originalName, visual.subject());
+    var ocr = result.ocr().status() == AnalysisResult.Status.COMPLETED ? result.ocr().result().text() : null;
+    return suggest(originalName, ocr, visual == null ? null : visual.description());
+  }
+
+  private Optional<NameSuggestion> fromSubject(String originalName, AnalysisResult.Subject subject) {
+    boolean polish = language.get() == NamingLanguage.PL;
+    var words = new ArrayList<String>();
+    for (String part : List.of(subject.app(), polish ? subject.topicPl() : subject.topicEn())) {
+      var matcher = WORD.matcher(normalize(part));
+      while (matcher.find() && words.size() < MAX_WORDS) {
+        String word = matcher.group();
+        if (!words.contains(word)) words.add(word.substring(0, Math.min(20, word.length())));
+      }
+    }
+    if (words.isEmpty()) return Optional.empty();
+    String name = String.join("_", words) + FileNames.extension(originalName);
+    if (FileNameRules.problem(name, originalName).isPresent()) name = (polish ? "obraz_" : "image_") + name;
+    if (FileNameRules.problem(name, originalName).isPresent()) return Optional.empty();
+    return Optional.of(new NameSuggestion(name, words.size() < 2));
+  }
 
   public Optional<NameSuggestion> suggest(String originalName, String ocrText, String description) {
     boolean polish = language.get() == NamingLanguage.PL;

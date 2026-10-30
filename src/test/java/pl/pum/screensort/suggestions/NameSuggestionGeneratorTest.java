@@ -3,6 +3,7 @@ package pl.pum.screensort.suggestions;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+import pl.pum.screensort.analysis.AnalysisResult;
 
 class NameSuggestionGeneratorTest {
   private final NameSuggestionGenerator generator = new NameSuggestionGenerator(() -> NamingLanguage.EN);
@@ -77,5 +78,18 @@ class NameSuggestionGeneratorTest {
     assertThat(polish.suggest("a.png", null, "CON")).isEmpty();
     assertThat(polish.suggest("a.png", null, "A screenshot of a computer screen."))
         .contains(new NameSuggestion("zrzut_komputer_ekran.png", true));
+  }
+
+  @Test
+  void aModelSubjectGivesTheNameInTheChosenLanguage() {
+    var subject = new AnalysisResult.Subject("Visual Studio Code", "Edycja kodu Javy", "Editing Java code", "Programowanie");
+    var result = new AnalysisResult("a".repeat(64),
+        new AnalysisResult.OcrStep(AnalysisResult.Status.SKIPPED, null, null),
+        new AnalysisResult.VisualStep(AnalysisResult.Status.COMPLETED,
+            new AnalysisResult.Visual("x", "qwen", "1", "screenshot", "gpu", 1, subject), null));
+    assertThat(generator.suggest("Screenshot_1.png", result))
+        .contains(new NameSuggestion("visual_studio_code_editing_java.png", false));
+    assertThat(new NameSuggestionGenerator(() -> NamingLanguage.PL).suggest("Screenshot_1.png", result))
+        .contains(new NameSuggestion("visual_studio_code_edycja_kodu_javy.png", false));
   }
 }

@@ -1,7 +1,6 @@
 package pl.pum.screensort.suggestions;
 
 import pl.pum.screensort.analysis.AnalysisException;
-import pl.pum.screensort.analysis.AnalysisResult;
 import pl.pum.screensort.analysis.AnalysisStore;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.UUID;
@@ -58,11 +57,7 @@ public class NamingLanguageController {
     for (var item : items) {
       var saved = analyses.find(item.analysis()).orElse(null);
       if (saved == null) continue;
-      var ocr = saved.result().ocr().status() == AnalysisResult.Status.COMPLETED
-          ? saved.result().ocr().result().text() : null;
-      var visual = saved.result().visual().status() == AnalysisResult.Status.COMPLETED
-          ? saved.result().visual().result().description() : null;
-      var proposal = names.suggest(item.originalName(), ocr, visual);
+      var proposal = names.suggest(item.originalName(), saved.result());
       jdbc.update("""
           update analysis_batch_item set proposed_name = ?, proposal_uncertain = ?
           where batch_id = ? and file_id = ?

@@ -1,10 +1,11 @@
 package pl.pum.screensort.analysis;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-/** The versioned Python response, never a JPA entity or a source path. */
+/** The versioned engine response (Python or llama-server), never a JPA entity or a source path. */
 public record AnalysisResult(
     @JsonProperty("source_sha256") String sourceSha256, OcrStep ocr, VisualStep visual) {
   public enum Status { COMPLETED, FAILED, SKIPPED }
@@ -47,16 +48,38 @@ public record AnalysisResult(
     }
   }
 
+  /** {@code subject} is filled only by a model that names the app, topic and category itself. */
   public record Visual(String description, String model,
       @JsonProperty("model_revision") String modelRevision, String task, String device,
-      @JsonProperty("duration_ms") double durationMs) {
+      @JsonProperty("duration_ms") double durationMs, Subject subject) {
     public Visual {
       requireText(description, 20_000);
       requireText(model, 200);
       requireText(modelRevision, 100);
-      if (!Set.of("caption", "detailed_caption").contains(task)
-          || !Set.of("cpu", "cuda").contains(device)) throw new IllegalArgumentException("Unknown visual mode");
+      if (!Set.of("caption", "detailed_caption", "screenshot").contains(task)
+          || !Set.of("cpu", "cuda", "gpu").contains(device)) throw new IllegalArgumentException("Unknown visual mode");
+      if ("screenshot".equals(task) != (subject != null)) throw new IllegalArgumentException("Unknown visual mode");
       requireDuration(durationMs);
+    }
+
+    public Visual(String description, String model, String modelRevision, String task, String device,
+        double durationMs) {
+      this(description, model, modelRevision, task, device, durationMs, null);
+    }
+  }
+
+  /** What the screenshot shows, in the model's own words; {@code category} is one of {@link #CATEGORIES}. */
+  public record Subject(String app, @JsonProperty("topic_pl") String topicPl,
+      @JsonProperty("topic_en") String topicEn, String category) {
+    public static final List<String> CATEGORIES = List.of(
+        "Gry", "Czaty", "Dokumenty", "Programowanie", "Strony", "Social", "Media", "Zakupy", "Mapy",
+        "Zdjęcia", "Inne");
+
+    public Subject {
+      requireText(app, 100);
+      requireText(topicPl, 200);
+      requireText(topicEn, 200);
+      if (!CATEGORIES.contains(category)) throw new IllegalArgumentException("Unknown analysis category");
     }
   }
 

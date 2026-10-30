@@ -65,6 +65,8 @@ public class PythonAnalysisClient implements AnalysisEngine {
     if (previous != null) previous.close();
   }
 
+  public boolean isConnected() { return endpoint != null; }
+
   /** Tylko do testów: aktualnie używany klient HTTP. */
   HttpClient currentHttpClient() { return http; }
 
