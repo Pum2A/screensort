@@ -1,4 +1,4 @@
-//! Own only our private PostgreSQL, Java and Python children; never use PATH.
+//! Own only our private PostgreSQL, Java, Python and llama-server children; never use PATH.
 
 use super::paths::process_path;
 use super::timings::StartupTimer;
@@ -64,6 +64,8 @@ pub struct Owner {
     pub backend: Option<Backend>,
     python_port: u16,
     python_token: String,
+    llama: Option<Llama>,
+    llama_token: String,
     runtime: PathBuf,
     session: PathBuf,
     java: Option<JavaLaunch>,
@@ -76,6 +78,13 @@ struct JavaLaunch {
     pg_port: u16,
     password: String,
     token: String,
+}
+
+/// A running llama-server and what the backend needs to reach it again after a restart.
+struct Llama {
+    port: u16,
+    model: String,
+    device: &'static str,
 }
 
 /// How often a crashed backend is started again in one app run before the user is asked to restart.
@@ -104,10 +113,13 @@ fn java_command(runtime: &Path, launch: &JavaLaunch, state: &Path) -> Command {
 }
 
 impl Owner {
-    /// The installed AI package, or why there is none. A missing package is not worth retrying.
-    pub fn analysis_package(&self) -> Result<PathBuf, String> {
+    /// Fails when no AI package is installed, with the reason. A missing package is not worth retrying.
+    pub fn analysis_package(&self) -> Result<(), String> {
         let data = self.db.parent().ok_or("Brak katalogu danych aplikacji.")?;
-        super::packages::runtime(data, &self.runtime)
+        if super::packages::qwen(data).is_some() {
+            return Ok(());
+        }
+        super::packages::runtime(data, &self.runtime).map(|_| ())
     }
 
     /// Optional AI failure must never take down the catalog or its database.
@@ -125,6 +137,8 @@ impl Owner {
         result
     }
 
+    /// Qwen (when installed) names and sorts the screenshots; Python (when installed) reads their
+    /// text. With Qwen running, a Python failure leaves analysis usable, only without OCR.
     async fn start_analysis_stages<F>(
         &mut self,
         mut cancelled: F,
@@ -133,9 +147,149 @@ impl Owner {
     where
         F: FnMut() -> bool + Send,
     {
-        let ai_runtime = self.analysis_package()?;
+        let data = self
+            .db
+            .parent()
+            .ok_or("Brak katalogu danych aplikacji.")?
+            .to_path_buf();
+        let python = super::packages::runtime(&data, &self.runtime);
+        if let Some((directory, spec)) = super::packages::qwen(&data) {
+            self.start_llama(&directory, &spec, &mut cancelled).await?;
+            timer.mark("qwen");
+            if let Ok(ai_runtime) = python {
+                if self
+                    .start_python(&ai_runtime, &mut cancelled, timer)
+                    .await
+                    .is_err()
+                {
+                    eprintln!("Python OCR did not start; Qwen keeps working without OCR");
+                    self.retire_engine("Python");
+                }
+            }
+            return Ok(());
+        }
+        self.start_python(&python?, &mut cancelled, timer).await
+    }
+
+    /// Tries the GPU first when one is listed. A model that does not fit in video memory makes
+    /// llama-server exit while loading, so one more try runs it on the processor.
+    async fn start_llama<F>(
+        &mut self,
+        directory: &Path,
+        spec: &super::packages::PackageSpec,
+        cancelled: &mut F,
+    ) -> Result<(), String>
+    where
+        F: FnMut() -> bool + Send,
+    {
+        let server = directory.join("llama-server.exe");
+        let devices: &[&'static str] = if gpu_available(&server, &self.session).await {
+            &["gpu", "cpu"]
+        } else {
+            &["cpu"]
+        };
+        let mut result = Err(String::new());
+        for device in devices {
+            result = match self.launch_llama(directory, spec, device, cancelled).await {
+                Ok(()) => return Ok(()),
+                Err((message, crashed)) => {
+                    self.retire_engine("Llama");
+                    if !crashed {
+                        return Err(message);
+                    }
+                    Err(message)
+                }
+            };
+        }
+        result
+    }
+
+    /// The error says whether llama-server itself stopped, which is worth one try on the CPU.
+    async fn launch_llama<F>(
+        &mut self,
+        directory: &Path,
+        spec: &super::packages::PackageSpec,
+        device: &'static str,
+        cancelled: &mut F,
+    ) -> Result<(), (String, bool)>
+    where
+        F: FnMut() -> bool + Send,
+    {
+        self.retire_engine("Llama");
+        let port = available_port().map_err(|message| (message, false))?;
+        let mut command = Command::new(directory.join("llama-server.exe"));
+        command
+            .arg("-m")
+            .arg(directory.join("models/qwen.gguf"))
+            .arg("--mmproj")
+            .arg(directory.join("models/mmproj.gguf"))
+            .args(["-ngl", if device == "gpu" { "99" } else { "0" }])
+            .args(["--image-max-tokens", "256", "-np", "1", "-c", "4096"])
+            .args([
+                "--host",
+                "127.0.0.1",
+                "--port",
+                &port.to_string(),
+                "--no-webui",
+            ])
+            // In the environment, not on the command line, so other processes cannot read it.
+            .env("LLAMA_API_KEY", &self.llama_token)
+            .current_dir(directory);
+        self.spawn("Llama", command, &self.session.join("llama.log"))
+            .map_err(|message| (message, false))?;
+        let client = http_client().map_err(|message| (message, false))?;
+        let deadline = Instant::now() + Duration::from_secs(180);
+        while Instant::now() < deadline {
+            if cancelled() {
+                return Err((CLOSING.into(), false));
+            }
+            if let Some(name) = self.stopped_child() {
+                return Err((
+                    format!("Proces {name} zakończył przygotowanie z błędem. Katalog pozostaje dostępny."),
+                    name == "Llama",
+                ));
+            }
+            // /health answers 503 while the model loads and 200 once it can take requests.
+            if let Ok(response) = client
+                .get(format!("http://127.0.0.1:{port}/health"))
+                .send()
+                .await
+            {
+                if response.status().is_success() {
+                    let llama = Llama {
+                        port,
+                        model: spec.model.clone().unwrap_or_default(),
+                        device,
+                    };
+                    if !connect_llama(self.backend.clone(), &self.llama_token, &llama).await {
+                        return Err((
+                            "Nie udało się połączyć silnika Qwen z katalogiem.".into(),
+                            false,
+                        ));
+                    }
+                    self.llama = Some(llama);
+                    return Ok(());
+                }
+            }
+            pause(Duration::from_millis(250)).await;
+        }
+        Err((
+            "Przekroczono czas ładowania modelu Qwen. Katalog pozostaje dostępny.".into(),
+            false,
+        ))
+    }
+
+    async fn start_python<F>(
+        &mut self,
+        ai_runtime: &Path,
+        mut cancelled: F,
+        timer: &mut StartupTimer,
+    ) -> Result<(), String>
+    where
+        F: FnMut() -> bool + Send,
+    {
         // Each attempt starts from a clean slate, so retries never pile up Python processes.
-        self.retire_python();
+        self.retire_engine("Python");
         let py_state = self.session.join("python.json");
         let _ = fs::remove_file(&py_state);
         let mut python = Command::new(ai_runtime.join("python/python.exe"));
@@ -292,13 +446,26 @@ impl Owner {
                 Ok((204, _))
             );
         }
+        // Either engine is enough for analysis: Qwen alone, or Python alone as before.
+        if let Some(llama) = &self.llama {
+            analysis |= connect_llama(Some(backend.clone()), &self.llama_token, llama).await;
+        }
         Ok((backend, analysis))
     }
 
-    /// Stops and forgets the Python child, if any. The catalog keeps running.
-    fn retire_python(&mut self) {
+    /// Stops and forgets an AI engine (Python or Llama) and where it listened. The catalog keeps running.
+    pub fn retire_engine(&mut self, process: &str) {
+        self.retire(process);
+        match process {
+            "Python" => self.python_port = 0,
+            "Llama" => self.llama = None,
+            _ => {}
+        }
+    }
+
+    fn retire(&mut self, process: &str) {
         self.children.retain_mut(|(name, child)| {
-            if *name != "Python" {
+            if *name != process {
                 return true;
             }
             if child.try_wait().ok().flatten().is_none() {
@@ -307,7 +474,6 @@ impl Owner {
             let _ = child.wait();
             false
         });
-        self.python_port = 0;
     }
 
     pub fn stopped_child(&mut self) -> Option<&'static str> {
@@ -358,6 +524,49 @@ impl Owner {
             let _ = child.wait();
         }
     }
+}
+
+/// Tells the backend where llama-server listens. Takes no `Owner`, so the future stays `Send`.
+async fn connect_llama(backend: Option<Backend>, token: &str, llama: &Llama) -> bool {
+    let Some(backend) = backend else {
+        return false;
+    };
+    let connection = json!({
+        "url": format!("http://127.0.0.1:{}", llama.port),
+        "token": token,
+        "model": llama.model,
+        "device": llama.device,
+    });
+    matches!(
+        backend
+            .request(
+                "POST",
+                "/_internal/vision-connection",
+                Some(&connection),
+                4096
+            )
+            .await,
+        Ok((204, _))
+    )
+}
+
+/// Asks llama-server which devices it can use. Any Vulkan device means the model runs on the GPU;
+/// no answer, an error or only a CPU means it runs on the processor.
+async fn gpu_available(server: &Path, session: &Path) -> bool {
+    let mut command = Command::new(server);
+    command.arg("--list-devices");
+    let log = session.join("llama.log");
+    tauri::async_runtime::spawn_blocking(move || run(command, "llama-server", &log))
+        .await
+        .ok()
+        .and_then(Result::ok)
+        .is_some_and(|output| has_gpu(&String::from_utf8_lossy(&output)))
+}
+
+fn has_gpu(devices: &str) -> bool {
+    devices
+        .lines()
+        .any(|line| line.trim_start().starts_with("Vulkan"))
 }
 
 pub fn random_secret() -> Result<String, String> {
@@ -560,6 +769,7 @@ where
         value
     };
     let python_token = random_secret()?;
+    let llama_token = random_secret()?;
     let desktop_token = random_secret()?;
     let owner = started.insert(Owner {
         children: Vec::new(),
@@ -569,6 +779,8 @@ where
         backend: None,
         python_port: 0,
         python_token: python_token.clone(),
+        llama: None,
+        llama_token,
         runtime: runtime.to_path_buf(),
         session: session.clone(),
         java: None,
@@ -791,5 +1003,19 @@ impl Job {
     }
     fn add(&self, _: &Child) -> Result<(), String> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_gpu;
+
+    #[test]
+    fn a_listed_vulkan_device_means_the_model_runs_on_the_gpu() {
+        assert!(has_gpu(
+            "Available devices:\n  Vulkan0: AMD Radeon RX 6600 (8176 MiB, 7378 MiB free)\n"
+        ));
+        assert!(!has_gpu("Available devices:\n"));
+        assert!(!has_gpu(""));
     }
 }

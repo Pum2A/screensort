@@ -59,6 +59,42 @@ class LlamaAnalysisClientTest {
     }
   }
 
+  @Test void theLauncherConnectsAtRuntimeWithAKeyAndSafeLabels() throws Exception {
+    var headers = new AtomicReference<String>();
+    var server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+    server.createContext("/v1/chat/completions", exchange -> {
+      headers.set(exchange.getRequestHeaders().getFirst("Authorization"));
+      exchange.getRequestBody().readAllBytes();
+      String answer = "{\\\"category\\\":\\\"Gry\\\",\\\"app\\\":\\\"Roblox\\\",\\\"topic_pl\\\":\\\"lobby\\\","
+          + "\\\"topic_en\\\":\\\"lobby\\\"}";
+      byte[] bytes = ("{\"choices\":[{\"message\":{\"content\":\"" + answer + "\"}}]}").getBytes(StandardCharsets.UTF_8);
+      exchange.sendResponseHeaders(200, bytes.length);
+      exchange.getResponseBody().write(bytes);
+      exchange.close();
+    });
+    server.start();
+    try {
+      var client = client("");
+      String key = "k".repeat(64);
+      assertThatThrownBy(() -> client.connect(url(server), "weak", "qwen3.5-4b", "gpu"))
+          .isInstanceOf(IllegalArgumentException.class);
+      assertThatThrownBy(() -> client.connect(url(server), key, "Qwen 4B", "gpu"))
+          .isInstanceOf(IllegalArgumentException.class);
+      assertThatThrownBy(() -> client.connect(url(server), key, "qwen3.5-4b", "cuda"))
+          .isInstanceOf(IllegalArgumentException.class);
+      assertThat(client.isConfigured()).isFalse();
+
+      client.connect(url(server), key, "qwen3.5-2b", "cpu");
+      var visual = client.analyze(png(10, 10), "image/png", false, true, false).visual().result();
+
+      assertThat(headers.get()).isEqualTo("Bearer " + key);
+      assertThat(visual.model()).isEqualTo("qwen3.5-2b");
+      assertThat(visual.device()).isEqualTo("cpu");
+    } finally {
+      server.stop(0);
+    }
+  }
+
   @Test void skipsTheModelWhenNoVisualAnalysisIsAsked() {
     var result = client("http://127.0.0.1:9").analyze(png(10, 10), "image/png", true, false, false);
     assertThat(result.visual().status()).isEqualTo(Status.SKIPPED);

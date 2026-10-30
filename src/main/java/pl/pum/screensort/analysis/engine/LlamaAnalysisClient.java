@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReadParam;
@@ -67,52 +68,69 @@ public class LlamaAnalysisClient implements AnalysisEngine {
           "topic_en", Map.of("type", "string", "maxLength", 80)),
       "required", List.of("category", "app", "topic_pl", "topic_en"));
 
+  private final RestClient.Builder builder;
   private final JsonMapper json;
-  private final String model;
-  private final String device;
-  private final RestClient client;
-  private final RestClient extendedClient;
-  private final HttpClient http;
+  private volatile Endpoint endpoint;
+  private HttpClient http;
+  private record Endpoint(RestClient client, RestClient extendedClient, String token, String model,
+      String device) {}
 
   public LlamaAnalysisClient(RestClient.Builder builder, JsonMapper json,
       @Value("${screensort.analysis.llama.url:}") String url,
       @Value("${screensort.analysis.llama.model:qwen3.5-4b}") String model,
       @Value("${screensort.analysis.llama.device:gpu}") String device) {
+    this.builder = builder;
     this.json = json;
-    this.model = model;
-    this.device = device;
-    if (url.isBlank()) {
-      client = extendedClient = null;
-      http = null;
-      return;
+    // A developer's own llama-server needs no key; the desktop app always sends one.
+    if (!url.isBlank()) connect(url, "", model, device);
+  }
+
+  /** Called by the authenticated native launcher once llama-server is ready, never by the webview. */
+  public void connect(String url, String token, String model, String device) {
+    if (!token.isEmpty() && !token.matches("[A-Za-z0-9_-]{43,128}")) {
+      throw new IllegalArgumentException("Weak llama-server key");
     }
+    open(url, token, model, device);
+  }
+
+  private synchronized void open(String url, String token, String model, String device) {
     URI address = URI.create(url);
     if (!"http".equals(address.getScheme()) || !"127.0.0.1".equals(address.getHost())
         || address.getRawUserInfo() != null || address.getQuery() != null
         || address.getFragment() != null || address.getPort() <= 0
-        || !(address.getPath().isEmpty() || address.getPath().equals("/"))) {
+        || !(address.getPath().isEmpty() || address.getPath().equals("/"))
+        || !model.matches("[a-z0-9.-]{1,40}") || !Set.of("cpu", "gpu").contains(device)) {
       throw new IllegalArgumentException("llama-server must use IPv4 loopback");
     }
-    http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
+    var client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(3))
         .followRedirects(HttpClient.Redirect.NEVER).build();
-    var factory = new JdkClientHttpRequestFactory(http);
+    var factory = new JdkClientHttpRequestFactory(client);
     factory.setReadTimeout(Duration.ofSeconds(135));
-    var extendedFactory = new JdkClientHttpRequestFactory(http);
+    var extendedFactory = new JdkClientHttpRequestFactory(client);
     extendedFactory.setReadTimeout(Duration.ofSeconds(PythonAnalysisClient.EXTENDED_TIMEOUT_SECONDS + 15));
-    client = builder.clone().baseUrl(url).requestFactory(factory).build();
-    extendedClient = builder.clone().baseUrl(url).requestFactory(extendedFactory).build();
+    var previous = http;
+    http = client;
+    endpoint = new Endpoint(builder.clone().baseUrl(url).requestFactory(factory).build(),
+        builder.clone().baseUrl(url).requestFactory(extendedFactory).build(), token, model, device);
+    // shutdown(), not close(): an analysis still running on the old server must not block the launcher.
+    if (previous != null) previous.shutdown();
   }
 
-  public boolean isConfigured() { return client != null; }
+  public boolean isConfigured() { return endpoint != null; }
 
   @PreDestroy
-  void close() {
-    if (http != null) http.close();
+  synchronized void close() {
+    endpoint = null;
+    if (http != null) {
+      http.close();
+      http = null;
+    }
   }
 
   @Override
   public AnalysisResult analyze(byte[] data, String mediaType, boolean ocr, boolean visual, boolean extendedTime) {
-    if (client == null) throw new AnalysisException(503, "Silnik Qwen nie jest uruchomiony.");
+    Endpoint current = endpoint;
+    if (current == null) throw new AnalysisException(503, "Silnik Qwen nie jest uruchomiony.");
     String hash = Sha256.hex(data);
     var ocrStep = new AnalysisResult.OcrStep(Status.SKIPPED, null, null);
     if (!visual) {
@@ -120,14 +138,15 @@ public class LlamaAnalysisClient implements AnalysisEngine {
     }
     long started = System.nanoTime();
     String image = Base64.getEncoder().encodeToString(downscale(data));
-    Subject subject = ask(extendedTime ? extendedClient : client, image);
+    Subject subject = ask(current, extendedTime, image);
     double durationMs = (System.nanoTime() - started) / 1_000_000.0;
-    var result = new AnalysisResult.Visual(subject.app() + ": " + subject.topicEn(), model, "gguf-q4_k_m",
-        "screenshot", device, durationMs, subject);
+    var result = new AnalysisResult.Visual(subject.app() + ": " + subject.topicEn(), current.model(),
+        "gguf-q4_k_m", "screenshot", current.device(), durationMs, subject);
     return new AnalysisResult(hash, ocrStep, new AnalysisResult.VisualStep(Status.COMPLETED, result, null));
   }
 
-  private Subject ask(RestClient target, String image) {
+  private Subject ask(Endpoint current, boolean extendedTime, String image) {
+    RestClient target = extendedTime ? current.extendedClient() : current.client();
     var body = Map.of(
         "temperature", 0,
         "max_tokens", 256,
@@ -139,6 +158,9 @@ public class LlamaAnalysisClient implements AnalysisEngine {
             Map.of("type", "text", "text", PROMPT)))));
     try {
       return target.post().uri("/v1/chat/completions").contentType(MediaType.APPLICATION_JSON)
+          .headers(headers -> {
+            if (!current.token().isEmpty()) headers.setBearerAuth(current.token());
+          })
           .body(json.writeValueAsBytes(body))
           .exchange((request, response) -> {
             if (!response.getStatusCode().is2xxSuccessful()) {

@@ -1,23 +1,89 @@
 {
   "schemaVersion": 1,
-  "packages": [{
-    "id": "ai-cpu",
-    "name": "OCR + opis obrazu (CPU)",
-    "version": "2026-10-19-2",
-    "url": "https://github.com/Pum2A/screensort-releases/releases/download/ai-cpu-2026-10-19-2/screensort-ai-cpu-windows-x64-2026-10-19-2.zip",
-    "sha256": "e9e4d9dd335a7158de93807c3e2ac8bcaaadd6692a0add1c1ef84d84fbbfc37f",
-    "archiveBytes": 747507987,
-    "unpackedBytes": 1365180817,
-    "fileCount": 21387,
-    "requiredFiles": [
-      "python/python.exe",
-      "python/python314.dll",
-      "python/app/screensort_analysis/launch.py",
-      "python/Lib/site-packages/rapidocr/__init__.py",
-      "python/Lib/site-packages/torch/__init__.py",
-      "models/models--florence-community--Florence-2-base-ft/snapshots/0b03b6f15a4a211370fb204aee4e7dd48887ea37/model.safetensors",
-      "THIRD-PARTY-NOTICES.md",
-      "FLORENCE-LICENSE.txt"
-    ]
-  }]
+  "packages": [
+    {
+      "id": "ai-cpu",
+      "name": "OCR + opis obrazu (CPU)",
+      "version": "2026-10-19-2",
+      "url": "https://github.com/Pum2A/screensort-releases/releases/download/ai-cpu-2026-10-19-2/screensort-ai-cpu-windows-x64-2026-10-19-2.zip",
+      "sha256": "e9e4d9dd335a7158de93807c3e2ac8bcaaadd6692a0add1c1ef84d84fbbfc37f",
+      "archiveBytes": 747507987,
+      "unpackedBytes": 1365180817,
+      "fileCount": 21387,
+      "requiredFiles": [
+        "python/python.exe",
+        "python/python314.dll",
+        "python/app/screensort_analysis/launch.py",
+        "python/Lib/site-packages/rapidocr/__init__.py",
+        "python/Lib/site-packages/torch/__init__.py",
+        "models/models--florence-community--Florence-2-base-ft/snapshots/0b03b6f15a4a211370fb204aee4e7dd48887ea37/model.safetensors",
+        "THIRD-PARTY-NOTICES.md",
+        "FLORENCE-LICENSE.txt"
+      ]
+    },
+    {
+      "id": "qwen-4b",
+      "name": "Qwen 3.5 4B · rozpoznawanie zrzutów",
+      "version": "2026-10-30-1",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11912/llama-b11912-bin-win-vulkan-x64.zip",
+      "sha256": "9d62f9075f9ecab062b81e33953a14e96f3e5e728c9012f956f3c756d4a5f3c6",
+      "archiveBytes": 37140522,
+      "unpackedBytes": 104346397,
+      "fileCount": 53,
+      "requiredFiles": [
+        "llama-server.exe",
+        "LICENSE-LLVM-OpenMP",
+        "models/qwen.gguf",
+        "models/mmproj.gguf"
+      ],
+      "kind": "qwen",
+      "model": "qwen3.5-4b",
+      "files": [
+        {
+          "path": "models/qwen.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/Qwen3.5-4B-Q4_K_M.gguf",
+          "sha256": "00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4",
+          "bytes": 2740937888
+        },
+        {
+          "path": "models/mmproj.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/e87f176479d0855a907a41277aca2f8ee7a09523/mmproj-F16.gguf",
+          "sha256": "cd88edcf8d031894960bb0c9c5b9b7e1fea6ebee02b9f7ce925a00d12891f864",
+          "bytes": 672423616
+        }
+      ]
+    },
+    {
+      "id": "qwen-2b",
+      "name": "Qwen 3.5 2B · rozpoznawanie zrzutów",
+      "version": "2026-10-30-1",
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11912/llama-b11912-bin-win-vulkan-x64.zip",
+      "sha256": "9d62f9075f9ecab062b81e33953a14e96f3e5e728c9012f956f3c756d4a5f3c6",
+      "archiveBytes": 37140522,
+      "unpackedBytes": 104346397,
+      "fileCount": 53,
+      "requiredFiles": [
+        "llama-server.exe",
+        "LICENSE-LLVM-OpenMP",
+        "models/qwen.gguf",
+        "models/mmproj.gguf"
+      ],
+      "kind": "qwen",
+      "model": "qwen3.5-2b",
+      "files": [
+        {
+          "path": "models/qwen.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf",
+          "sha256": "aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223",
+          "bytes": 1280835840
+        },
+        {
+          "path": "models/mmproj.gguf",
+          "url": "https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/f6d5376be1edb4d416d56da11e5397a961aca8ae/mmproj-F16.gguf",
+          "sha256": "7035e9cb8d7c6a9681d07eef9a364783e86ea4cd73faab2eabb4f43a101830c7",
+          "bytes": 668227264
+        }
+      ]
+    }
+  ]
 }

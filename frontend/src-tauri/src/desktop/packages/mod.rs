@@ -148,10 +148,16 @@ impl PackageManager {
         {
             return Err("Katalog tej wersji istnieje, ale nie przeszedł kontroli. Nie nadpisano go; sprawdź instalację.".into());
         }
-        // ZIP and extracted payload coexist until activation; keep a safety margin.
+        if local.is_some() && !spec.files.is_empty() {
+            return Err(
+                "Ten pakiet pobiera model z sieci; nie da się go zainstalować z ZIP.".into(),
+            );
+        }
+        // ZIP and extracted payload coexist until activation; keep a safety margin. Model files
+        // are moved, not copied, from their download into the package.
         check_space(
             &base,
-            spec.archive_bytes + spec.unpacked_bytes + 256 * 1024 * 1024,
+            spec.archive_bytes + spec.unpacked_bytes + spec.files_bytes() + 256 * 1024 * 1024,
         )?;
         // A download keeps its bytes in a named .part file, so an interrupted or cancelled download
         // continues next time. A ZIP chosen by the user is copied into a throwaway file.
@@ -184,7 +190,7 @@ impl PackageManager {
             )?;
             copy.as_file_mut()
         } else {
-            self.update("DOWNLOADING", 0, spec.archive_bytes);
+            self.update("DOWNLOADING", 0, download_total(spec));
             let file = downloaded.insert(
                 OpenOptions::new()
                     .read(true)
@@ -195,10 +201,10 @@ impl PackageManager {
                     .map_err(|_| "Nie można utworzyć pliku pobierania pakietu.")?,
             );
             tauri::async_runtime::block_on(download::download(
-                spec,
+                &spec.archive(),
                 file,
                 &|| self.cancelled(),
-                |n| self.update("DOWNLOADING", n, spec.archive_bytes),
+                |n| self.update("DOWNLOADING", n, download_total(spec)),
             ))?;
             file
         };
@@ -211,6 +217,7 @@ impl PackageManager {
             self.update("EXTRACTING", n, spec.unpacked_bytes)
         })?;
         archive::cancelled(&|| self.cancelled())?;
+        self.download_files(spec, &base, stage.path())?;
         let receipt = Receipt {
             id: spec.id.clone(),
             version: spec.version.clone(),
@@ -234,6 +241,62 @@ impl PackageManager {
         let _ = fs::remove_file(&part);
         Ok(())
     }
+}
+
+impl PackageManager {
+    /// Each model file keeps its own .part file, so an interrupted 2 GB download continues later.
+    fn download_files(&self, spec: &PackageSpec, base: &Path, stage: &Path) -> Result<(), String> {
+        let total = download_total(spec);
+        let mut done = spec.archive_bytes;
+        for (index, file) in spec.files.iter().enumerate() {
+            let part = base.join(format!("{}-{}-{index}.part", spec.id, spec.version));
+            let mut output = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .open(&part)
+                .map_err(|_| "Nie można utworzyć pliku pobierania modelu.")?;
+            self.update("DOWNLOADING", done, total);
+            tauri::async_runtime::block_on(download::download(
+                &file.source(),
+                &mut output,
+                &|| self.cancelled(),
+                |n| self.update("DOWNLOADING", done + n, total),
+            ))?;
+            drop(output);
+            let target = stage.join(catalog::portable_path(&file.path)?);
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|_| "Nie można utworzyć katalogu modelu w pakiecie.")?;
+            }
+            move_file(&part, &target, &|| self.cancelled())?;
+            done += file.bytes;
+        }
+        Ok(())
+    }
+}
+
+/// Same transient Windows locks as in `activate`: a scanner may still hold the fresh model file.
+fn move_file(from: &Path, to: &Path, cancel: &impl Fn() -> bool) -> Result<(), String> {
+    for attempt in 0..21 {
+        archive::cancelled(cancel)?;
+        match fs::rename(from, to) {
+            Ok(()) => return Ok(()),
+            Err(error) => {
+                let transient = cfg!(windows) && matches!(error.raw_os_error(), Some(5 | 32 | 33));
+                if !transient || attempt == 20 {
+                    return Err("Nie można przenieść modelu do pakietu. Pobrany plik zostaje; spróbuj ponownie.".into());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+        }
+    }
+    unreachable!()
+}
+
+fn download_total(spec: &PackageSpec) -> u64 {
+    spec.archive_bytes + spec.files_bytes()
 }
 
 /// One partial download per package version; the name holds only validated id and version.
@@ -293,9 +356,10 @@ fn installed(spec: &PackageSpec, data: &Path) -> bool {
         })
 }
 
+/// The installed Python package (OCR + caption), or the one bundled with the app.
 pub fn runtime(data: &Path, bundled: &Path) -> Result<PathBuf, String> {
     for spec in catalog::catalog()? {
-        if installed(&spec, data) {
+        if spec.kind == "python" && installed(&spec, data) {
             return Ok(spec.directory(data));
         }
     }
@@ -303,6 +367,15 @@ pub fn runtime(data: &Path, bundled: &Path) -> Result<PathBuf, String> {
         return Ok(bundled.to_path_buf());
     }
     Err("Pakiet AI nie jest zainstalowany. Pobierz go lub wybierz jego ZIP w sekcji Pakiet AI. Katalog działa bez niego.".into())
+}
+
+/// The first installed Qwen package in catalog order (the larger, better model comes first).
+pub fn qwen(data: &Path) -> Option<(PathBuf, PackageSpec)> {
+    catalog::catalog()
+        .ok()?
+        .into_iter()
+        .find(|spec| spec.kind == "qwen" && installed(spec, data))
+        .map(|spec| (spec.directory(data), spec))
 }
 
 fn check_space(path: &Path, needed: u64) -> Result<(), String> {
