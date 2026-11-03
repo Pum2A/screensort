@@ -57,6 +57,19 @@ public class ReviewService {
     return reviews.item(batchId, fileId).orElseThrow();
   }
 
+  /** "Cofnij": the image waits for a decision again. Only the exact decision the owner saw is withdrawn. */
+  @Transactional
+  public ReviewItem withdraw(UUID batchId, long fileId, long revision) {
+    if (fileId <= 0 || revision < 0) throw new ReviewException(400, "INVALID_REQUEST", "Nieprawidłowe dane formularza.");
+    files.findForNamingById(fileId).orElseThrow(() -> new ReviewException(404, "FILE_NOT_FOUND", "Plik nie istnieje w katalogu."));
+    reviews.item(batchId, fileId).orElseThrow(() ->
+        new ReviewException(404, "ITEM_NOT_FOUND", "Ten plik nie należy do wskazanej analizy folderu."));
+    if (!reviews.withdraw(fileId, revision)) {
+      throw new ReviewException(409, "REVIEW_CHANGED", "Zapisano już inną decyzję. Wczytaj ją przed kolejną zmianą.");
+    }
+    return reviews.item(batchId, fileId).orElseThrow();
+  }
+
   private static void validate(long fileId, Request request) {
     if (fileId <= 0 || request == null || request.analysisId() == null || request.analysisId() <= 0
         || request.sourceSha256() == null || !request.sourceSha256().matches("[0-9a-f]{64}")

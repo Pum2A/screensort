@@ -83,6 +83,16 @@ public class ReviewStore {
         """, fileId, analysisId, sha256, decision, category, namingRevision);
   }
 
+  /**
+   * Removes the decision only if it is still the one the owner saw; the approved name stays in
+   * file_naming, so the next proposal shows it again. Returns false when the decision changed.
+   */
+  @Transactional
+  public boolean withdraw(long fileId, long revision) {
+    return jdbc.update("delete from file_organization_review where file_record_id = ? and revision = ?",
+        fileId, revision) == 1;
+  }
+
   private ReviewItem item(ResultSet row, int index) throws SQLException {
     String currentSha = row.getString("current_sha");
     String decision = row.getString("decision");

@@ -7,6 +7,7 @@ import {foundNewImages} from '../src/analysis/autoAnalysis.js'
 import {imagesLabel} from '../src/app/imagesLabel.js'
 import {etaLabel, feedEvents} from '../src/gallery/live.js'
 import {copyGroups, copyRoot} from '../src/export/copyPlan.js'
+import {decidedMessage} from '../src/gallery/useBulkReview.js'
 import type {LibraryEntry} from '../src/gallery/model.js'
 
 const idle: OrganizeState = {ready: false, busyElsewhere: false, fileCount: 12, desktop: true,
@@ -73,4 +74,11 @@ test('the organized copy holds only approved images, grouped by category in the 
         [['PROGRAMMING', ['kod.png'], 10], ['GAMES', ['roblox.png', 'minecraft.png'], 35]])
     assert.equal(copyRoot('D:\\Out\\'), 'D:\\Out\\ScreenSort')
     assert.equal(copyRoot('/home/me/out'), '/home/me/out/ScreenSort')
+})
+
+test('the undo toast names what was decided in Polish', () => {
+    assert.equal(decidedMessage({decision: 'APPROVED'}, 1, null), 'Zatwierdzono 1 nazwę')
+    assert.equal(decidedMessage({decision: 'APPROVED', category: 'GAMES'}, 3, 'Gry'), 'Zatwierdzono 3 nazwy · kategoria Gry')
+    assert.equal(decidedMessage({decision: 'APPROVED'}, 12, null), 'Zatwierdzono 12 nazw')
+    assert.equal(decidedMessage({decision: 'SKIPPED'}, 2, null), 'Pominięto 2 obrazy')
 })

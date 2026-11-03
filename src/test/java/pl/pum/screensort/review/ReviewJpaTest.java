@@ -216,6 +216,20 @@ class ReviewJpaTest {
     assertThat(restored.approvedName()).isEqualTo("second.png");
   }
 
+  @Test void undoWithdrawsOnlyTheDecisionTheOwnerSawAndKeepsTheName(@TempDir Path folder) {
+    var fixture = prepare(folder);
+    var first = reviews.read(fixture.batchId(), fixture.fileId());
+    var approved = reviews.save(fixture.batchId(), fixture.fileId(), approve(first, "first.png"));
+    assertThatThrownBy(() -> reviews.withdraw(fixture.batchId(), fixture.fileId(), approved.review().revision() + 1))
+        .isInstanceOfSatisfying(ReviewException.class, error -> assertThat(error.status()).isEqualTo(409));
+
+    var undone = reviews.withdraw(fixture.batchId(), fixture.fileId(), approved.review().revision());
+
+    assertThat(undone.review()).isNull();
+    assertThat(undone.approvedName()).isEqualTo("first.png");
+    assertThat(reviews.save(fixture.batchId(), fixture.fileId(), approve(undone, "again.png")).review().matchesCatalog()).isTrue();
+  }
+
   @Test void rejectsAnOldFormRatherThanOverwritingTheCurrentDecision(@TempDir Path folder) {
     var fixture = prepare(folder);
     var first = reviews.read(fixture.batchId(), fixture.fileId());

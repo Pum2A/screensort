@@ -21,4 +21,10 @@ public class ReviewController {
       @RequestBody ReviewService.Request request) {
     return ResponseEntity.ok().header("Cache-Control", "no-store").body(reviews.save(batchId, fileId, request));
   }
+
+  @DeleteMapping
+  public ResponseEntity<ReviewItem> withdraw(@PathVariable UUID batchId, @PathVariable long fileId,
+      @RequestParam long revision) {
+    return ResponseEntity.ok().header("Cache-Control", "no-store").body(reviews.withdraw(batchId, fileId, revision));
+  }
 }

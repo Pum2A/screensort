@@ -100,6 +100,7 @@ window.fetch = async (input, options) => {
     const review = url.pathname.match(/\/items\/(\d+)\/review$/)
     if (review) {
         const index = Number(review[1]) - 1, item = rows[index]
+        if (method === 'DELETE') rows[index] = {...item, review: null}
         if (method === 'PUT') {
             await new Promise(resolve => setTimeout(resolve, 250)) // Test-only latency: make saving feedback observable.
             const body = JSON.parse(String(options?.body))
