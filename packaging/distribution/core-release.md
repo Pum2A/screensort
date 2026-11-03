@@ -1,5 +1,25 @@
 ## ScreenSort Windows x64 preview
 
+New in 0.5.0: every screen of the new design, plus search in the text on your images.
+
+- Opening an image fills the window: zoom, rotate and full screen, neighbouring images
+  below, and the proposal beside it. Approve with Enter, skip with S, pick a category with
+  1-5; the next image opens by itself.
+- A first-start screen: drop a folder on the window, choose one with Ctrl+O, or pick
+  "Zrzuty ekranu", "Pobrane" or "Pulpit" with their number of images.
+- While the AI works, the library shows live progress: a ring with the time left, a lime
+  "Gotowe teraz" card to approve certain proposals early, and the latest new names.
+- "Silnik AI" is a page of its own: what is installed or downloading (with speed and time
+  left), what each model does, settings, privacy and disk use.
+- New "Kopie" view: the folders the organized copy will create, with thumbnails and new
+  names, and one card to save it.
+- Right-click any image for preview, approve, change category, copy its text or exclude it.
+  After a decision, "Cofnij" (or Ctrl+Z) takes it back within eight seconds.
+- Search finds images by the text on them or by what the AI recognised, not only by name,
+  with the matching words highlighted.
+
+The AI engine packages are unchanged and do not need to be downloaded again.
+
 New in 0.4.0: a local Qwen model names your screenshots, and one button does the rest.
 
 - New AI engine profiles "Qwen 3.5 4B" and "Qwen 3.5 2B" in "Silnik AI". The model looks
