@@ -7,7 +7,7 @@ export function WorkspaceHeader({view, folderLabel}: {view: WorkspaceView, folde
     const folder = folderLabel || 'Folder'
     const titles = {catalog: [`Foldery${folderLabel ? ` / ${folderLabel}` : ''}`, folderLabel || 'Biblioteka'],
         organization: ['Analiza i porządek', 'Do decyzji'], duplicates: [`${folder} / Duplikaty`, 'Duplikaty'],
-        engine: ['Ustawienia / Silnik AI', 'Silnik AI']} as const
+        copy: [`${folder} / Kopia`, 'Uporządkowana kopia'], engine: ['Ustawienia / Silnik AI', 'Silnik AI']} as const
     const [breadcrumb, title] = titles[view]
     return <header className="workspace-header">
         <div className="workspace-title">

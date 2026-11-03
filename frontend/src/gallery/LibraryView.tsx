@@ -31,6 +31,7 @@ type Props = {
     /** One click: start the AI engine if needed, analyse the folder, show the proposals. */
     onOrganize: () => void
     onReview: () => void
+    onCopy: () => void
     onDuplicates: () => void
 }
 
@@ -72,7 +73,7 @@ function time(value: string | null): string {
 }
 
 /** Figma v1+ "01 · Biblioteka": the whole folder on one screen, filters by AI category, bulk decisions. */
-export function LibraryView({folderPath, library, loading, error, onRetry, active, onScan, scanDisabled, onOrganize, onReview, onDuplicates}: Props) {
+export function LibraryView({folderPath, library, loading, error, onRetry, active, onScan, scanDisabled, onOrganize, onReview, onCopy, onDuplicates}: Props) {
     const [filter, setFilter] = useState<LibraryFilter>('all')
     const [sort, setSort] = useState<LibrarySort>('newest')
     const [query, setQuery] = useState('')
@@ -168,7 +169,7 @@ export function LibraryView({folderPath, library, loading, error, onRetry, activ
                 <div className="lib-quick">
                     <button disabled={scanDisabled} onClick={onScan} title="Wczytaj folder ponownie"><span><PixelIcon name="scan" size={14}/></span>Odśwież</button>
                     <button className="lib-quick-main" disabled={scanDisabled} onClick={onOrganize}><span><PixelIcon name="sparkles" size={14}/></span>Uporządkuj z AI</button>
-                    <button onClick={onReview}><span><PixelIcon name="download" size={14}/></span>Kopia</button>
+                    <button onClick={onCopy}><span><PixelIcon name="download" size={14}/></span>Kopia</button>
                 </div>
                 <div className="lib-progress">
                     <div className="lib-bar" aria-hidden="true"><i className="lib-bar-ink" style={{width: share(counts.approved)}}/>
