@@ -144,7 +144,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
 
                 {/* Keep every view mounted: switching tabs must not throw away a review draft or a selection. */}
                 <section hidden={view !== 'catalog'} id="catalog" aria-label="Biblioteka">
-                    {catalogFolder ? <LibraryView library={library.data} loading={library.isPending} active={view === 'catalog'}
+                    {catalogFolder ? <LibraryView folderPath={catalogFolder} library={library.data} loading={library.isPending} active={view === 'catalog'}
                         error={library.isError ? library.error.message : null} onRetry={() => void library.refetch()}
                         onScan={() => {setError(null); void scan.start(catalogFolder)}} scanDisabled={locked}
                         onOrganize={() => {setOrganizeRequest(value => ({folder: catalogFolder, id: (value?.id ?? 0) + 1})); navigate('organization')}}

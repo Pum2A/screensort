@@ -113,3 +113,47 @@
     .lib-bulk { left: 50%; max-width: calc(100vw - 32px); overflow-x: auto; }
     .lib-search input { width: 110px; }
 }
+
+/* Figma v1+ "04 · Skanowanie": the top row while the AI works. Ink border and hard shadow on the progress card, lime on "ready now". */
+.lib-live { grid-template-columns: minmax(0, 1fr) 232px 212px; }
+.lib-live-main { flex-direction: row; align-items: center; gap: 18px; border-color: var(--color-ink); box-shadow: 0 3px 0 var(--color-ink); }
+.lib-ring { flex-shrink: 0; transform: rotate(-90deg); }
+.lib-ring circle { fill: none; stroke-width: 8; stroke: var(--color-fill); }
+.lib-ring circle + circle { stroke: var(--color-ink); stroke-linecap: round; transition: stroke-dashoffset var(--motion-duration) var(--motion-ease); }
+.lib-live-count { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lib-live-count strong { display: flex; align-items: baseline; gap: 6px; font-size: 40px; font-weight: 700; letter-spacing: -.04em; line-height: 1; white-space: nowrap; }
+.lib-live-count strong > span { font-size: 18px; font-weight: 500; color: var(--color-muted); letter-spacing: 0; }
+.lib-live-count em { align-self: center; padding: 2px 6px; border-radius: var(--radius-badge); background: var(--color-lime); font: normal 500 11px var(--font-mono); letter-spacing: 0; color: var(--color-ink); }
+.lib-stages { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lib-stages li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: var(--radius-control); background: var(--color-canvas); }
+.lib-stages li > span { display: flex; flex-direction: column; font-size: 12px; font-weight: 600; }
+.lib-stages small { font: 400 10px var(--font-mono); color: var(--color-muted); }
+.lib-stages li[data-done="true"] { border-color: var(--color-ink); background: var(--color-ink); color: var(--color-surface); }
+.lib-stages li[data-done="true"] small { color: var(--color-lime); }
+.lib-stages li[data-active="true"] { border-color: var(--color-ink); }
+.lib-live-pause { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.lib-live-ready { border-color: var(--color-ink); background: var(--color-lime); box-shadow: 0 3px 0 var(--color-ink); }
+.lib-live-ready .lib-card-label, .lib-live-ready > small { color: var(--color-ink); }
+
+.lib-feed header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lib-feed h2 { margin: 0; padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-lime); font-size: 14px; font-weight: 700; }
+.lib-feed header small { font-size: 11px; color: var(--color-muted); }
+.lib-feed ol { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 0; padding: 0; list-style: none; min-height: 40px; }
+.lib-feed li { display: flex; align-items: center; gap: 10px; animation: lib-feed-in var(--motion-duration) var(--motion-ease); }
+.lib-feed-icon { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; background: var(--color-fill); }
+.lib-feed li[data-kind="failed"] .lib-feed-icon { background: var(--color-warn-soft); color: var(--color-warn-ink); }
+.lib-feed-text { display: flex; flex-direction: column; min-width: 0; }
+.lib-feed-text strong { font-size: 13px; font-weight: 600; }
+.lib-feed-text small { font: 400 11px var(--font-mono); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-feed time { margin-left: auto; font: 400 11px var(--font-mono); color: var(--color-subtle); }
+.lib-feed-note { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; padding: 10px 12px; border-radius: var(--radius-control); background: var(--color-canvas); font-size: 11px; color: var(--color-muted); }
+.lib-feed-note strong { font-size: 12px; color: var(--color-ink); }
+@keyframes lib-feed-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Tiles while the AI works: the one being analysed gets an ink frame, the queue waits faded. */
+.lib-tile[data-state="queued"]:not([data-running="true"]) .lib-thumb { opacity: .55; }
+.lib-tile[data-running="true"] .lib-thumb { outline: 1.5px solid var(--color-ink); outline-offset: -1.5px; }
+.lib-tile[data-running="true"] .lib-name { color: var(--color-muted); }
+
+@media (max-width: 1100px) { .lib-live { grid-template-columns: 1fr 1fr; } .lib-live-main { grid-column: 1 / -1; flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .lib-feed li { animation: none; } .lib-ring circle + circle { transition: none; } }
