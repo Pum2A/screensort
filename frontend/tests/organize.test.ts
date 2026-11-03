@@ -8,6 +8,7 @@ import {imagesLabel} from '../src/app/imagesLabel.js'
 import {etaLabel, feedEvents} from '../src/gallery/live.js'
 import {copyGroups, copyRoot} from '../src/export/copyPlan.js'
 import {decidedMessage} from '../src/gallery/useBulkReview.js'
+import {filterEntries} from '../src/gallery/model.js'
 import type {LibraryEntry} from '../src/gallery/model.js'
 
 const idle: OrganizeState = {ready: false, busyElsewhere: false, fileCount: 12, desktop: true,
@@ -81,4 +82,11 @@ test('the undo toast names what was decided in Polish', () => {
     assert.equal(decidedMessage({decision: 'APPROVED', category: 'GAMES'}, 3, 'Gry'), 'Zatwierdzono 3 nazwy · kategoria Gry')
     assert.equal(decidedMessage({decision: 'APPROVED'}, 12, null), 'Zatwierdzono 12 nazw')
     assert.equal(decidedMessage({decision: 'SKIPPED'}, 2, null), 'Pominięto 2 obrazy')
+})
+
+test('the grid keeps images whose text matches the search next to name matches', () => {
+    const entry = (id: number, name: string) => ({file: {id, originalName: name}, item: null, state: 'fresh', category: null, copies: 1}) as unknown as LibraryEntry
+    const entries = [entry(1, 'faktura_vat.png'), entry(2, 'IMG_2231.png'), entry(3, 'roblox.png')]
+    assert.deepEqual(filterEntries(entries, 'all', 'faktura').map(item => item.file.id), [1])
+    assert.deepEqual(filterEntries(entries, 'all', 'faktura', new Set([2])).map(item => item.file.id), [1, 2])
 })

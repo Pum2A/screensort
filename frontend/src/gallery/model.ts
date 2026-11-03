@@ -48,10 +48,13 @@ export function libraryEntries(library: Library): LibraryEntry[] {
     })
 }
 
-export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter, query: string): LibraryEntry[] {
+/** {@code textIds}: files whose text on the image matches the same query, shown next to name matches. */
+export function filterEntries(entries: LibraryEntry[], filter: LibraryFilter, query: string,
+    textIds: ReadonlySet<number> | null = null): LibraryEntry[] {
     const search = query.trim().normalize('NFKC').toLocaleLowerCase('pl-PL')
     return entries.filter(entry => (filter === 'all' || (filter === 'pending' ? isPending(entry.state) : entry.category === filter))
-        && (!search || entry.file.originalName.normalize('NFKC').toLocaleLowerCase('pl-PL').includes(search)))
+        && (!search || entry.file.originalName.normalize('NFKC').toLocaleLowerCase('pl-PL').includes(search)
+            || !!textIds?.has(entry.file.id)))
 }
 
 export function sortEntries(entries: LibraryEntry[], sort: LibrarySort): LibraryEntry[] {
