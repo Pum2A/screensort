@@ -2,7 +2,7 @@ import {useEffect, useId, useMemo, useRef, useState} from 'react'
 import type {MouseEvent} from 'react'
 import {AnimatePresence} from 'motion/react'
 import {CatalogImage} from './CatalogImage.js'
-import {ImageDetailsDialog} from './details/ImageDetailsDialog.js'
+import {ImageViewer} from './details/ImageViewer.js'
 import {imageUrl} from './catalogApi.js'
 import {formatSize} from './format.js'
 import {categoryLabels} from '../review/state.js'
@@ -78,7 +78,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
     const [notice, setNotice] = useState<string | null>(null)
     const [previewId, setPreviewId] = useState<number | null>(null)
     const previewTrigger = useRef<HTMLButtonElement | null>(null)
-    const dialogId = useId(), searchId = useId(), sortId = useId()
+    const searchId = useId(), sortId = useId()
     const bulk = useBulkReview(library?.batchId ?? null)
 
     const entries = useMemo(() => library ? libraryEntries(library) : [], [library])
@@ -91,7 +91,8 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
     const preview = entries.find(entry => entry.file.id === previewId)
 
     useEffect(() => {
-        if (!active) return
+        // The image viewer has its own keys; the grid underneath must not react to them.
+        if (!active || previewId !== null) return
         function onKey(event: KeyboardEvent) {
             const typing = event.target instanceof HTMLElement && event.target.closest('input, textarea, select, dialog')
             if (typing) return
@@ -100,7 +101,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [active, order])
+    }, [active, order, previewId])
 
     function toggle(id: number, event: MouseEvent) {
         setSelected(current => {
@@ -232,7 +233,8 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
             <button className="lib-bulk-close" aria-label="Odznacz wszystkie" onClick={() => {setSelected(new Set()); setMenuOpen(false)}}><PixelIcon name="x" size={10}/></button>
         </div>}
 
-        <AnimatePresence>{preview && <ImageDetailsDialog key={preview.file.id} id={dialogId} file={preview.file}
-            trigger={previewTrigger} onClose={() => setPreviewId(null)}/>}</AnimatePresence>
+        <AnimatePresence>{preview && <ImageViewer entries={visible.some(entry => entry.file.id === preview.file.id) ? visible : entries}
+            fileId={preview.file.id} batchId={library.batchId ?? null} trigger={previewTrigger}
+            onNavigate={setPreviewId} onClose={() => setPreviewId(null)}/>}</AnimatePresence>
     </div>
 }
