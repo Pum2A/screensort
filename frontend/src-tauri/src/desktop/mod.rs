@@ -531,6 +531,8 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
             ) || matches(&routes.naming, route)
                 || matches(&routes.review, route)
         }
+        // "Cofnij": withdraws one decision; nothing else can be deleted through the bridge.
+        "DELETE" => matches(&routes.review, route),
         "GET" => {
             matches!(
                 route,
@@ -732,6 +734,14 @@ mod tests {
         assert!(allowed("GET", "/api/settings/auto-analysis", false));
         assert!(allowed("PUT", "/api/settings/auto-analysis", false));
         assert!(!allowed("DELETE", "/api/settings/auto-analysis", false));
+        let review =
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001/items/7/review";
+        assert!(allowed("DELETE", &format!("{review}?revision=0"), false));
+        assert!(!allowed(
+            "DELETE",
+            "/api/organization/batches/00000000-0000-0000-0000-000000000001",
+            false
+        ));
         assert!(!allowed("PUT", "/api/settings/other", false));
         assert!(!allowed("GET", "/api/library/../catalog", false));
         assert!(allowed("GET", "/api/catalog/files/1/thumbnail?v=x", true));
