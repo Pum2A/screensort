@@ -1,12 +1,10 @@
-import {useRef, useState} from 'react'
-import {AnimatePresence} from 'motion/react'
+import {useState} from 'react'
 import App from '../../src/app/App.js'
 import {MotionProvider} from '../../src/ui/MotionProvider.js'
 import {QueryProvider} from '../../src/http/QueryProvider.js'
-import {Modal} from '../../src/ui/Modal.js'
 import {StartupScreen} from '../../src/tauri/StartupScreen.js'
 import {FirstStart} from '../../src/app/FirstStart.js'
-import {AnalysisEngineContent} from '../../src/tauri/packages/AnalysisEngineContent.js'
+import {EngineView} from '../../src/tauri/EngineView.js'
 import type {PackageStatus} from '../../src/tauri/packages/state.js'
 import {AppUpdates} from '../../src/tauri/updates/context.js'
 import type {UpdateStatus} from '../../src/tauri/updates/state.js'
@@ -23,18 +21,17 @@ function FixtureUpdates({scenario, children}: {scenario: string; children: React
 }
 
 function EngineFixture({scenario}: {scenario: string}) {
-    const [visible, setVisible] = useState(true)
     const [starting, setStarting] = useState(scenario === 'warmup')
-    const [downloading, setDownloading] = useState(false)
-    const trigger = useRef<HTMLButtonElement>(null)
-    const status: PackageStatus = {bundled: scenario === 'warmup' || scenario === 'engine-error', packages: [{installed: false, package: {id: 'fixture-qwen', name: 'Qwen 3.5 4B · rozpoznawanie zrzutów', version: 'dane-testowe', archiveBytes: 37140522, unpackedBytes: 104346397, url: 'https://example.invalid/never-requested', kind: 'qwen', files: [{bytes: 2740937888}, {bytes: 672423616}]}}, {installed: false, package: {id: 'fixture', name: 'Profil CPU', version: 'dane-testowe', archiveBytes: 747507987, unpackedBytes: 1365180817, url: 'https://example.invalid/never-requested', kind: 'python', files: []}}],
-        progress: {phase: downloading ? 'DOWNLOADING' : 'PREPARING', busy: downloading, completedBytes: 247507987, totalBytes: 747507987, error: null}}
-    return <div style={{padding: 40}}><button ref={trigger} className="primary-button" onClick={() => setVisible(true)}>Otwórz ustawienia silnika</button>
-        <AnimatePresence>{visible && <Modal title="Analiza na Twoim komputerze" subtitle="SILNIK ANALIZY" trigger={trigger} onClose={() => setVisible(false)}>
-            <AnalysisEngineContent status={status} starting={starting} ready={false} requesting={false}
-                error={scenario === 'engine-error' ? 'Serwis analizy nie zgłosił gotowości. Katalog nadal działa.' : null}
-                onStart={() => setStarting(true)} onInstall={() => setDownloading(true)} onCancel={() => setDownloading(false)}/>
-        </Modal>}</AnimatePresence></div>
+    const [downloading, setDownloading] = useState(scenario === 'engine')
+    const [auto, setAuto] = useState(false)
+    const installed = scenario === 'warmup' || scenario === 'engine-error'
+    const status: PackageStatus = {bundled: false, packages: [{installed, package: {id: 'fixture-qwen', name: 'Qwen 3.5 4B · rozpoznawanie zrzutów', version: 'dane-testowe', archiveBytes: 37140522, unpackedBytes: 104346397, url: 'https://example.invalid/never-requested', kind: 'qwen', files: [{bytes: 2740937888}, {bytes: 672423616}]}},
+        {installed: false, package: {id: 'fixture', name: 'Profil CPU', version: 'dane-testowe', archiveBytes: 747507987, unpackedBytes: 1365180817, url: 'https://example.invalid/never-requested', kind: 'python', files: []}}],
+        progress: {phase: downloading ? 'DOWNLOADING' : 'PREPARING', busy: downloading, completedBytes: 1247507987, totalBytes: 3450501926, error: null}}
+    return <div style={{padding: 24}}><EngineView status={status} requesting={false} speed={downloading ? 4.2 * 1024 * 1024 : null}
+        runtime={{ready: false, starting, error: scenario === 'engine-error' ? 'Serwis analizy nie zgłosił gotowości. Katalog nadal działa.' : null}}
+        autoAnalysis={{enabled: auto, loading: false, change: setAuto}} error={null}
+        onStart={() => setStarting(true)} onInstall={() => setDownloading(true)} onCancel={() => setDownloading(false)}/></div>
 }
 
 export function WorkspacePreview({scenario, mobile, onConflict}: {scenario: string; mobile: boolean; onConflict: () => void}) {

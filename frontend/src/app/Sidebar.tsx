@@ -47,6 +47,6 @@ export function Sidebar({view, onView, counts, folder, folderLabel, onAddFolder,
             <span className="sidebar-chip sidebar-chip-dashed"><PixelIcon name="plus"/></span>{folder ? 'Zmień folder' : 'Dodaj folder'}
         </button>}
         <div className="sidebar-spacer"/>
-        <DesktopAnalysisControls/>
+        <DesktopAnalysisControls active={view === 'engine'} onOpen={() => onView('engine')}/>
     </aside>
 }

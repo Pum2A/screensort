@@ -20,6 +20,7 @@ import {foundNewImages, useAutoAnalysis} from '../analysis/autoAnalysis.js'
 import {rejectionLabel} from '../gallery/reading/rejectionLabels.js'
 import {Sidebar} from './Sidebar.js'
 import {FirstStart} from './FirstStart.js'
+import {EnginePage} from '../tauri/EnginePage.js'
 import {WorkspaceHeader} from './WorkspaceHeader.js'
 import {storedFolder} from './state.js'
 import type {WorkspaceView} from './state.js'
@@ -155,6 +156,7 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
                 <section hidden={view !== 'duplicates'} id="duplicates" aria-label="Duplikaty">
                     <DuplicatesView library={library.data} onBack={() => navigate('catalog')}/>
                 </section>
+                <section hidden={view !== 'engine'} id="engine" aria-label="Silnik AI">{view === 'engine' && <EnginePage/>}</section>
                 <section hidden={view !== 'organization'} id="organization" aria-label="Analiza i przegląd propozycji">
                     {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} countReady={catalogCount.isSuccess} scanning={scan.busy} active={view === 'organization'} organizeRequest={organizeRequest} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
                         : <div className="catalog-empty"><FolderOpen size={32}/><h3>Najpierw wybierz folder.</h3><p>Po wybraniu folderu jego obrazy wczytują się same.</p><button className="secondary-button" onClick={() => setView('catalog')}>Wróć do katalogu</button></div>)}
