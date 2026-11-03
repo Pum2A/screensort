@@ -1,7 +1,15 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-30. Bieżący etap źródłowy: **0.4.0 preview**.
+Sprawdzone 2026-11-03. Bieżący etap źródłowy: **0.5.0 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Wydanie 0.5.0 (PR #58–#64, wydanie #65): wszystkie ekrany v1+ z Figmy. Pełnoekranowy podgląd
+zdjęcia z decyzją obok (Enter / S / 1–5), ekran pierwszego startu (przeciąganie folderu, komenda
+Rust `known_image_folders`), postęp analizy na żywo w bibliotece, strona „Silnik AI”, widok „Kopie”
+z drzewem kategorii, menu pod prawym przyciskiem i „Cofnij” (nowe `DELETE …/review?revision=N`)
+oraz wyszukiwanie w tekście z obrazów i opisie AI (`GET /api/library/search`). Wydanie 0.5.0
+zostało opublikowane 2026-11-03 w kanale `updates-preview`. Test w zainstalowanej aplikacji
+(pobranie modelu Qwen, przeciąganie folderu, zapis kopii) czeka na właściciela.
 
 Wydanie 0.4.0 (PR #51–#55, wydanie #56): nowy silnik obrazu Qwen 3.5. Java
 rozmawia z lokalnym `llama-server` (llama.cpp) przez interfejs `AnalysisEngine`
