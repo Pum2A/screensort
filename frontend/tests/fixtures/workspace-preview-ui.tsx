@@ -5,6 +5,7 @@ import {MotionProvider} from '../../src/ui/MotionProvider.js'
 import {QueryProvider} from '../../src/http/QueryProvider.js'
 import {Modal} from '../../src/ui/Modal.js'
 import {StartupScreen} from '../../src/tauri/StartupScreen.js'
+import {FirstStart} from '../../src/app/FirstStart.js'
 import {AnalysisEngineContent} from '../../src/tauri/packages/AnalysisEngineContent.js'
 import type {PackageStatus} from '../../src/tauri/packages/state.js'
 import {AppUpdates} from '../../src/tauri/updates/context.js'
@@ -37,10 +38,13 @@ function EngineFixture({scenario}: {scenario: string}) {
 }
 
 export function WorkspacePreview({scenario, mobile, onConflict}: {scenario: string; mobile: boolean; onConflict: () => void}) {
-    const modes = [['catalog', 'Katalog'], ['organized', 'Porządkowanie'], ['paused', 'Pauza 7/94'], ['startup', 'Start aplikacji'], ['engine', 'Pobieranie silnika'], ['warmup', 'Ładowanie modeli'], ['engine-error', 'Błąd silnika'], ['updates', 'Aktualizacje']]
+    const modes = [['catalog', 'Katalog'], ['organized', 'Porządkowanie'], ['paused', 'Pauza 7/94'], ['startup', 'Start aplikacji'], ['first-start', 'Pierwszy start'], ['engine', 'Pobieranie silnika'], ['warmup', 'Ładowanie modeli'], ['engine-error', 'Błąd silnika'], ['updates', 'Aktualizacje']]
     return <QueryProvider><MotionProvider><FixtureUpdates scenario={scenario}><div className="fixture-toolbar" style={{display: 'flex', flexWrap: 'wrap', gap: '5px 15px', alignItems: 'center', background: '#fff5d9', color: '#816523', borderBottom: '1px solid #e4d7af', padding: '8px 14px', font: '11px Segoe UI, sans-serif'}}>
         <strong>PODGLĄD UI · DANE FIKCYJNE</strong>{modes.map(([mode, label]) => <a key={mode} href={'?scenario=' + mode}>{label}</a>)}<a href="?mobile=1">Telefon 390 px</a><button onClick={onConflict}>Symuluj konflikt #1</button><span>Brak połączenia z prywatną bazą i modelami.</span></div>
         {mobile ? <iframe title="ScreenSort na telefonie" src="?frame=1" style={{display: 'block', width: 390, maxWidth: '100%', height: 1100, margin: '20px auto', border: '1px solid #d8dfcf'}}/>
+            : scenario === 'first-start' ? <FirstStart onChoose={() => undefined} onOpen={() => undefined} error={null}
+                loadFolders={() => Promise.resolve([{kind: 'screenshots', path: 'C:\fixture\Screenshots', images: 312},
+                    {kind: 'downloads', path: 'C:\fixture\Downloads', images: 128}, {kind: 'desktop', path: 'C:\fixture\Desktop', images: 41}])}/>
             : scenario === 'startup' ? <StartupScreen status={{phase: 'Uruchamiamy backend i sprawdzamy migracje…', backendReady: false, analysisReady: false, analysisStarting: false, error: null}}/>
                 : ['engine', 'warmup', 'engine-error'].includes(scenario) ? <EngineFixture scenario={scenario}/> : <App initialFolder="synthetic-fixture"/>}
     </FixtureUpdates></MotionProvider></QueryProvider>

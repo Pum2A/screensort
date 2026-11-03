@@ -1,0 +1,37 @@
+/* Figma v1+ "05 · Pierwszy start": one centred column, 22 px apart, on the canvas colour. */
+.first-start { min-height: 100dvh; display: grid; place-items: center; padding: 32px 16px; background: var(--color-canvas); color: var(--color-ink); }
+.first-start-center { display: flex; flex-direction: column; align-items: center; gap: 22px; max-width: 100%; text-align: center; }
+.first-start-mark { image-rendering: pixelated; }
+.first-start h1 { margin: 0; font-size: 36px; font-weight: 700; letter-spacing: -.03em; line-height: 1.15; }
+.first-start-lead { max-width: 600px; margin: 0; color: var(--color-muted); font-size: 15px; line-height: 22px; }
+
+.first-start-drop { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(560px, 100%); padding: 34px 40px; border: 1.5px dashed var(--color-ink); border-radius: 20px; background: var(--color-surface); box-shadow: 0 3px 0 var(--color-ink); transition: background var(--motion-duration) var(--motion-ease), transform var(--motion-duration) var(--motion-ease); }
+.first-start-drop[data-hover="true"] { background: color-mix(in srgb, var(--color-lime) 15%, var(--color-surface)); transform: translateY(-2px); }
+.first-start-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--color-lime); }
+.first-start-drop > strong { font-size: 18px; font-weight: 600; letter-spacing: -.015em; }
+.first-start-or { color: var(--color-subtle); font-size: 13px; }
+.first-start-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.first-start-primary, .first-start-secondary { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; letter-spacing: -.005em; }
+.first-start-primary { border: 0; background: var(--color-ink); color: var(--color-surface); }
+.first-start-primary kbd { padding: 2px 6px; border-radius: var(--radius-badge); background: var(--color-ink-raised); color: var(--color-fill); font: 500 10px var(--font-mono); }
+.first-start-secondary { border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink); }
+.first-start-primary:hover { background: var(--color-ink-raised); }
+.first-start-secondary:hover { background: var(--color-fill); }
+.first-start-error { max-width: 560px; margin: -8px 0 0; color: var(--danger); font-size: 13px; }
+
+.first-start-found { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.first-start-found h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.first-start-found > div { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.first-start-found button { display: flex; align-items: center; gap: 10px; width: 176px; padding: 10px; border: 1px solid var(--color-line); border-radius: 14px; background: var(--color-surface); color: var(--color-ink); text-align: left; }
+.first-start-found button:hover { border-color: var(--color-ink); }
+.first-start-mosaic { display: grid; grid-template-columns: 1fr 1fr; width: 40px; height: 40px; flex-shrink: 0; overflow: hidden; border-radius: 8px; background: var(--color-fill); }
+.first-start-mosaic i { border: .5px solid var(--color-line); }
+.first-start-folder { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.first-start-folder strong { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.first-start-folder small { color: var(--color-subtle); font: 400 10px var(--font-mono); }
+
+.first-start-trust { display: flex; flex-wrap: wrap; justify-content: center; gap: 18px; margin: 0; padding: 0; list-style: none; }
+.first-start-trust li { display: inline-flex; align-items: center; gap: 6px; color: var(--color-muted); font-size: 12px; font-weight: 500; }
+
+@media (max-width: 640px) { .first-start h1 { font-size: 28px; } .first-start-drop { padding: 26px 18px; } }
+@media (prefers-reduced-motion: reduce) { .first-start-drop { transition: none; } }

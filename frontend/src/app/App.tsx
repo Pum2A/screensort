@@ -19,6 +19,7 @@ import type {OrganizeRequest} from '../analysis/OrganizationPanel.js'
 import {foundNewImages, useAutoAnalysis} from '../analysis/autoAnalysis.js'
 import {rejectionLabel} from '../gallery/reading/rejectionLabels.js'
 import {Sidebar} from './Sidebar.js'
+import {FirstStart} from './FirstStart.js'
 import {WorkspaceHeader} from './WorkspaceHeader.js'
 import {storedFolder} from './state.js'
 import type {WorkspaceView} from './state.js'
@@ -99,10 +100,16 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         } catch {setError('Nie udało się otworzyć okna wyboru folderu.')}
     }
 
+    function openFolder(folder: string) {
+        setError(null); setFolderPath(folder); scan.clear(); showCatalog(folder)
+    }
+
     const entries = library.data ? libraryEntries(library.data) : []
     const counts = {total: library.data ? entries.length : null, pending: entries.filter(entry => isPending(entry.state)).length,
         duplicates: duplicateGroups(library.data?.files ?? []).length}
     const label = catalogFolder ? folderName(catalogFolder) : ''
+
+    if (desktop && !catalogFolder) return <FirstStart onChoose={() => void handleChooseFolder()} onOpen={openFolder} error={error}/>
 
     return <div className="app-shell">
         <Sidebar view={view} onView={navigate} counts={counts} folder={catalogFolder}

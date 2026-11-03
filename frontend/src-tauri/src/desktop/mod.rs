@@ -1,6 +1,7 @@
 //! Trusted native bridge: ports and session credentials never enter the webview.
 
 mod events;
+pub mod folders;
 mod packages;
 mod paths;
 mod processes;
