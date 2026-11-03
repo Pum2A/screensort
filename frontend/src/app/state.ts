@@ -1,4 +1,4 @@
-export type WorkspaceView = 'catalog' | 'organization' | 'duplicates' | 'engine'
+export type WorkspaceView = 'catalog' | 'organization' | 'duplicates' | 'copy' | 'engine'
 
 export function storedFolder(desktop: boolean): string {
     try { return localStorage.getItem('screensort.lastFolder') ?? (desktop ? '' : 'demo-images') }

@@ -1,0 +1,66 @@
+/* Figma v1+ "07 · Kopia uporządkowana": the structure on the left, settings and the save card in a 312 px column. */
+.copy-page { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 12px; margin-top: 18px; align-items: start; }
+.copy-tree, .copy-box { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; border: 1px solid var(--color-line); border-radius: var(--radius-card); background: var(--color-surface); min-width: 0; }
+.copy-tree-head { display: flex; align-items: center; gap: 10px; }
+.copy-tree-head h2, .copy-box h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.copy-tree-head small { flex: 1; font: 400 11px var(--font-mono); color: var(--color-muted); }
+.copy-mark { padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-lime); font-weight: 700; }
+.copy-pill { padding: 8px 14px; border: 1px solid var(--color-line); border-radius: 999px; background: var(--color-surface); color: var(--color-ink); font-size: 13px; font-weight: 600; }
+.copy-pill:hover:not(:disabled) { background: var(--color-fill); }
+.copy-pill:disabled { opacity: .45; }
+
+.copy-destination { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--color-line); border-radius: var(--radius-control); background: var(--color-canvas); }
+.copy-destination code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.copy-destination input { flex: 1; min-width: 0; border: 0; background: transparent; font: 400 12px var(--font-mono); }
+.copy-link { padding: 0; border: 0; background: none; color: var(--color-ink); font-size: 12px; font-weight: 600; }
+.copy-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+.copy-groups { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.copy-groups > li { border-radius: var(--radius-control); }
+.copy-groups > li[data-open="true"] { background: var(--color-canvas); padding-bottom: 12px; }
+.copy-group { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--color-ink); text-align: left; }
+.copy-group:hover { background: var(--color-fill); }
+.copy-group-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 7px; background: var(--color-fill); }
+.copy-groups > li[data-open="true"] .copy-group-icon { background: var(--color-ink); color: var(--color-lime); }
+.copy-group strong { font-size: 13px; font-weight: 600; }
+.copy-group small { flex: 1; font: 400 11px var(--font-mono); color: var(--color-subtle); }
+.copy-group-size { font: 400 11px var(--font-mono); color: var(--color-subtle); }
+.copy-files { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; padding: 4px 12px 0 42px; }
+.copy-files figure { display: flex; flex-direction: column; gap: 6px; margin: 0; min-width: 0; }
+.copy-files .catalog-image { border-radius: 8px; border: 1px solid var(--color-line); }
+.copy-files figcaption { display: flex; flex-direction: column; min-width: 0; }
+.copy-files figcaption strong { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.copy-files figcaption small { font: 400 10px var(--font-mono); color: var(--color-subtle); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.copy-more { grid-column: 1 / -1; margin: 0; font-size: 12px; color: var(--color-muted); }
+.copy-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 24px 4px; }
+.copy-empty p { margin: 0; color: var(--color-muted); font-size: 13px; }
+.copy-primary { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--color-ink); color: var(--color-surface); font-size: 13px; font-weight: 600; }
+
+.copy-side { display: flex; flex-direction: column; gap: 12px; }
+.copy-setting { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--color-fill); }
+.copy-setting:last-child { padding-bottom: 0; border-bottom: 0; }
+.copy-setting > span { display: flex; flex-direction: column; min-width: 0; }
+.copy-setting strong { font-size: 13px; font-weight: 600; }
+.copy-setting small { font: 400 10px var(--font-mono); color: var(--color-subtle); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-setting > :last-child { flex-shrink: 0; }
+
+.copy-ready { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; border: 1.5px solid var(--color-ink); border-radius: var(--radius-card); background: var(--color-lime); box-shadow: 0 3px 0 var(--color-ink); }
+.copy-ready h2 { margin: 0; font-size: 13px; font-weight: 600; }
+.copy-ready p { display: flex; align-items: baseline; gap: 10px; margin: 0; }
+.copy-ready p strong { font-size: 32px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
+.copy-ready p span, .copy-ready small { font: 400 11px var(--font-mono); color: var(--color-ink); }
+.copy-ready progress { width: 100%; height: 8px; accent-color: var(--color-ink); }
+.copy-save { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 16px; border: 0; border-radius: 999px; background: var(--color-ink); color: var(--color-surface); font-size: 13px; font-weight: 600; }
+.copy-save:disabled { opacity: .45; }
+.copy-ready small.copy-error { color: var(--danger); }
+
+.copy-previous { display: flex; align-items: center; gap: 10px; }
+.copy-previous > span { display: flex; flex-direction: column; }
+.copy-previous strong { font-size: 12px; font-weight: 600; }
+.copy-previous small { font: 400 11px var(--font-mono); color: var(--color-muted); }
+.copy-output { padding: 8px 10px; border-radius: 8px; background: var(--color-canvas); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.copy-issues summary { font-size: 12px; font-weight: 600; cursor: pointer; }
+.copy-issues ul { margin: 8px 0 0; padding-left: 16px; font-size: 12px; color: var(--color-muted); }
+.copy-issues strong { display: block; color: var(--color-ink); }
+
+@media (max-width: 1000px) { .copy-page { grid-template-columns: 1fr; } .copy-files { padding-left: 12px; } }

@@ -9,7 +9,7 @@ type Props = {
     view: WorkspaceView
     onView: (view: WorkspaceView) => void
     /** total is null until the library has loaded. */
-    counts: {total: number | null, pending: number, duplicates: number}
+    counts: {total: number | null, pending: number, duplicates: number, approved: number}
     folder: string
     folderLabel: string
     /** Opens the folder picker; absent outside the desktop shell. */
@@ -21,6 +21,7 @@ const items: {view: WorkspaceView, label: string, icon: PixelIconName}[] = [
     {view: 'catalog', label: 'Biblioteka', icon: 'images'},
     {view: 'organization', label: 'Do decyzji', icon: 'inbox'},
     {view: 'duplicates', label: 'Duplikaty', icon: 'layers'},
+    {view: 'copy', label: 'Kopie', icon: 'copy'},
 ]
 
 /** Figma v1+ sidebar: views, the folder being worked on, and the AI engine at the bottom. */
@@ -36,6 +37,7 @@ export function Sidebar({view, onView, counts, folder, folderLabel, onAddFolder,
                 {item.view === 'catalog' && counts.total !== null && <span className="sidebar-count">{counts.total}</span>}
                 {item.view === 'organization' && counts.pending > 0 && <span className="sidebar-count sidebar-count-lime">{counts.pending}</span>}
                 {item.view === 'duplicates' && counts.duplicates > 0 && <span className="sidebar-count">{counts.duplicates}</span>}
+                {item.view === 'copy' && counts.approved > 0 && <span className="sidebar-count">{counts.approved}</span>}
             </button>)}
         </nav>
         <p className="sidebar-section">FOLDERY</p>

@@ -6,6 +6,7 @@ import type {Batch} from '../src/analysis/batchApi.js'
 import {foundNewImages} from '../src/analysis/autoAnalysis.js'
 import {imagesLabel} from '../src/app/imagesLabel.js'
 import {etaLabel, feedEvents} from '../src/gallery/live.js'
+import {copyGroups, copyRoot} from '../src/export/copyPlan.js'
 import type {LibraryEntry} from '../src/gallery/model.js'
 
 const idle: OrganizeState = {ready: false, busyElsewhere: false, fileCount: 12, desktop: true,
@@ -61,4 +62,15 @@ test('the live feed reports new proposals and failures, not decisions, and the E
     assert.equal(etaLabel(1, 10_000, 20), null)
     assert.equal(etaLabel(10, 20_000, 30), 'ok. 1:00')
     assert.equal(etaLabel(4, 60_000, 400), 'ok. 1 h 40 min')
+})
+
+test('the organized copy holds only approved images, grouped by category in the app order', () => {
+    const entry = (id: number, state: LibraryEntry['state'], category: LibraryEntry['category'], approvedName: string | null, sizeBytes = 10) =>
+        ({file: {id, originalName: `IMG_${id}.png`, sizeBytes}, item: {approvedName}, state, category, copies: 1}) as LibraryEntry
+    const groups = copyGroups([entry(1, 'approved', 'GAMES', 'roblox.png', 30), entry(2, 'approved', 'PROGRAMMING', 'kod.png'),
+        entry(3, 'skipped', 'GAMES', null), entry(4, 'sure', 'GAMES', null), entry(5, 'approved', 'GAMES', 'minecraft.png', 5)])
+    assert.deepEqual(groups.map(group => [group.category, group.files.map(file => file.name), group.bytes]),
+        [['PROGRAMMING', ['kod.png'], 10], ['GAMES', ['roblox.png', 'minecraft.png'], 35]])
+    assert.equal(copyRoot('D:\\Out\\'), 'D:\\Out\\ScreenSort')
+    assert.equal(copyRoot('/home/me/out'), '/home/me/out/ScreenSort')
 })

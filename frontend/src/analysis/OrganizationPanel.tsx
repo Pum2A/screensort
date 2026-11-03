@@ -9,7 +9,6 @@ import {useAutoAnalysis} from './autoAnalysis.js'
 import type {Batch} from './batchApi.js'
 import {libraryKeys} from '../gallery/libraryApi.js'
 import {ReviewBoard} from '../review/ReviewBoard.js'
-import {OrganizationPlanPreview} from '../export/OrganizationPlanPreview.js'
 import './OrganizationPanel.css'
 import {useUpdateBlocker} from '../tauri/updates/context.js'
 
@@ -23,7 +22,10 @@ type Props = {folderPath: string; fileCount: number; scanning: boolean; active: 
     /** False while the file count is still loading: a request waits instead of reading a stale 0. */
     countReady?: boolean
     organizeRequest?: OrganizeRequest | null
-    onEditingChange?: (editing: boolean) => void; onExportingChange?: (busy: boolean) => void}
+    /** True while the organized copy is being written in the Kopie view. */
+    exporting?: boolean
+    onOpenCopy?: () => void
+    onEditingChange?: (editing: boolean) => void}
 
 // A paused batch can still finish the image it was working on, so "processing" keeps polling alive too.
 function inProgress(batch: Batch): boolean {
@@ -34,24 +36,20 @@ function progressSignature(batch: Batch): string {
     return `${batch.id}:${batch.status}:${batch.completed}:${batch.failed}:${batch.processing}`
 }
 
-export function OrganizationPanel({folderPath, fileCount, scanning, active, countReady = true, organizeRequest = null, onEditingChange, onExportingChange}: Props) {
+export function OrganizationPanel({folderPath, fileCount, scanning, active, countReady = true, organizeRequest = null, exporting = false, onOpenCopy, onEditingChange}: Props) {
     const ready = useAnalysisReady()
     const runtime = useContext(DesktopRuntime)
     // Set by a click while the engine is not ready yet: start the engine, then the analysis.
     const [pending, setPending] = useState(false)
     const autoAnalysis = useAutoAnalysis()
     const queryClient = useQueryClient()
-    const [revision, setRevision] = useState(0)
     const [editingReview, setEditingReview] = useState(false)
-    const [planOpen, setPlanOpen] = useState(false)
-    const [exporting, setExporting] = useState(false)
     const [ocr, setOcr] = useState(true)
     const [visual, setVisual] = useState(true)
 
     const reportEditing = useCallback((editing: boolean) => {
         setEditingReview(editing); onEditingChange?.(editing)
     }, [onEditingChange])
-    const reportExporting = useCallback((busy: boolean) => {setExporting(busy); onExportingChange?.(busy)}, [onExportingChange])
     useEffect(() => () => onEditingChange?.(false), [onEditingChange])
 
     // Only the batch is polled. The review board follows its counters (effect below), so one timer drives both.
@@ -82,11 +80,9 @@ export function OrganizationPanel({folderPath, fileCount, scanning, active, coun
     const action = useMutation({
         mutationFn: (kind: 'START' | 'PAUSE' | 'RESUME' | 'CANCEL') =>
             kind === 'START' ? startBatch(folderPath, ocr, visual) : controlBatch(job?.id ?? '', kind),
-        onSuccess: (next, kind) => {
+        onSuccess: next => {
             queryClient.setQueryData(organizationKeys.latest(folderPath), next)
-            if (kind === 'START') setPlanOpen(false)
             void refreshBoard()
-            setRevision(value => value + 1)
         },
     })
     const working = action.isPending
@@ -95,7 +91,6 @@ export function OrganizationPanel({folderPath, fileCount, scanning, active, coun
         action.reset()
         void queryClient.invalidateQueries({queryKey: organizationKeys.latest(folderPath)})
         void refreshBoard()
-        setRevision(value => value + 1)
     }
 
     const error = action.error?.message ?? batchQuery.error?.message ?? null
@@ -177,12 +172,10 @@ export function OrganizationPanel({folderPath, fileCount, scanning, active, coun
             </div>}
             <div className="review-section-heading"><div><h3>Przegląd propozycji</h3></div>
                 <div className="review-section-actions"><details className="proposal-explanation"><summary><Info size={15}/>Jak powstają propozycje?</summary><p>Model AI rozpoznaje aplikację i temat zrzutu, a z tego powstaje nazwa (np. discord_planowanie_wyjazdu) i kategoria. Bez modelu Qwen nazwy łączą słowa z tekstu na obrazie z opisem wizualnym. Propozycje z małej ilości informacji są oznaczone jako niepewne. Zatwierdzenie zapisuje decyzję, nie zmienia pliku na dysku.</p></details>
-                    {job.status === 'COMPLETED' && <button type="button" className="secondary-button" disabled={editingReview || working || exporting}
-                        aria-expanded={planOpen} onClick={() => setPlanOpen(value => !value)}><FolderTree size={16}/>{planOpen ? 'Ukryj plan' : 'Zapisz i uporządkuj'}</button>}</div></div>
-            {planOpen && <OrganizationPlanPreview batchId={job.id} revision={revision} disabled={editingReview || working || scanning || !!running}
-                onClose={() => setPlanOpen(false)} onBusyChange={reportExporting}/>}
+                    {job.status === 'COMPLETED' && onOpenCopy && <button type="button" className="secondary-button" disabled={editingReview || working}
+                        onClick={onOpenCopy}><FolderTree size={16}/>Zapisz uporządkowaną kopię</button>}</div></div>
             <ReviewBoard key={job.id} folderPath={folderPath} batchId={job.id} disabled={scanning || exporting || working} active={active}
-                onSaved={() => setRevision(value => value + 1)} onEditingChange={reportEditing}/>
+                onSaved={() => undefined} onEditingChange={reportEditing}/>
             {paused && <button className="text-button" disabled={blocked} onClick={() => action.mutate('START')}>Zamiast wznawiać, rozpocznij nową analizę całego folderu</button>}
         </> : <div className="organization-empty"><span><Sparkles size={27}/></span><h3>Brak wyników analizy</h3><p>„Uporządkuj z AI” obejmie wszystkie {fileCount} obrazów w tym folderze. Po analizie pojawi się tutaj przegląd nazw i kategorii.</p><small>AI działa na Twoim komputerze · bez wysyłania zdjęć</small></div>}
     </section>
