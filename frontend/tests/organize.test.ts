@@ -4,6 +4,7 @@ import {organizeStep, wantsAnalysis} from '../src/analysis/organize.js'
 import type {OrganizeState} from '../src/analysis/organize.js'
 import type {Batch} from '../src/analysis/batchApi.js'
 import {foundNewImages} from '../src/analysis/autoAnalysis.js'
+import {imagesLabel} from '../src/app/imagesLabel.js'
 
 const idle: OrganizeState = {ready: false, busyElsewhere: false, fileCount: 12, desktop: true,
     engineStarting: false, engineError: null, engineRequested: false}
@@ -40,4 +41,9 @@ test('only a folder read that found new or changed images starts an automatic an
     assert.equal(foundNewImages(summary), false)
     assert.equal(foundNewImages({...summary, newImages: 3}), true)
     assert.equal(foundNewImages({...summary, rescannedImages: 1}), true)
+})
+
+test('image counts on the first start use Polish plural forms', () => {
+    assert.deepEqual([1, 2, 4, 5, 12, 14, 22, 25, 112, 312].map(imagesLabel),
+        ['1 obraz', '2 obrazy', '4 obrazy', '5 obrazów', '12 obrazów', '14 obrazów', '22 obrazy', '25 obrazów', '112 obrazów', '312 obrazów'])
 })
