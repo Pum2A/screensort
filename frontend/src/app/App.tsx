@@ -19,6 +19,9 @@ import type {OrganizeRequest} from '../analysis/OrganizationPanel.js'
 import {foundNewImages, useAutoAnalysis} from '../analysis/autoAnalysis.js'
 import {rejectionLabel} from '../gallery/reading/rejectionLabels.js'
 import {Sidebar} from './Sidebar.js'
+import {FirstStart} from './FirstStart.js'
+import {EnginePage} from '../tauri/EnginePage.js'
+import {CopyView} from '../export/CopyView.js'
 import {WorkspaceHeader} from './WorkspaceHeader.js'
 import {storedFolder} from './state.js'
 import type {WorkspaceView} from './state.js'
@@ -99,10 +102,16 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
         } catch {setError('Nie udało się otworzyć okna wyboru folderu.')}
     }
 
+    function openFolder(folder: string) {
+        setError(null); setFolderPath(folder); scan.clear(); showCatalog(folder)
+    }
+
     const entries = library.data ? libraryEntries(library.data) : []
     const counts = {total: library.data ? entries.length : null, pending: entries.filter(entry => isPending(entry.state)).length,
-        duplicates: duplicateGroups(library.data?.files ?? []).length}
+        duplicates: duplicateGroups(library.data?.files ?? []).length, approved: entries.filter(entry => entry.state === 'approved').length}
     const label = catalogFolder ? folderName(catalogFolder) : ''
+
+    if (desktop && !catalogFolder) return <FirstStart onChoose={() => void handleChooseFolder()} onOpen={openFolder} error={error}/>
 
     return <div className="app-shell">
         <Sidebar view={view} onView={navigate} counts={counts} folder={catalogFolder}
@@ -137,19 +146,25 @@ function App({initialFolder}: {initialFolder?: string} = {}) {
 
                 {/* Keep every view mounted: switching tabs must not throw away a review draft or a selection. */}
                 <section hidden={view !== 'catalog'} id="catalog" aria-label="Biblioteka">
-                    {catalogFolder ? <LibraryView library={library.data} loading={library.isPending} active={view === 'catalog'}
+                    {catalogFolder ? <LibraryView folderPath={catalogFolder} library={library.data} loading={library.isPending} active={view === 'catalog'}
                         error={library.isError ? library.error.message : null} onRetry={() => void library.refetch()}
                         onScan={() => {setError(null); void scan.start(catalogFolder)}} scanDisabled={locked}
                         onOrganize={() => {setOrganizeRequest(value => ({folder: catalogFolder, id: (value?.id ?? 0) + 1})); navigate('organization')}}
-                        onReview={() => navigate('organization')} onDuplicates={() => navigate('duplicates')}/>
+                        onReview={() => navigate('organization')} onCopy={() => navigate('copy')} onDuplicates={() => navigate('duplicates')}/>
                         : <div className="catalog-empty"><FolderOpen size={36}/><h3>Wybierz folder na początek.</h3>
                             <p>Wybierz folder ze zrzutami ekranu. Twoje obrazy zostają dokładnie tam, gdzie są.</p></div>}
                 </section>
                 <section hidden={view !== 'duplicates'} id="duplicates" aria-label="Duplikaty">
                     <DuplicatesView library={library.data} onBack={() => navigate('catalog')}/>
                 </section>
+                {/* Mounted with the folder, so a running copy keeps the update blocker even on another view. */}
+                <section hidden={view !== 'copy'} id="copy" aria-label="Uporządkowana kopia">
+                    {catalogFolder && <CopyView key={catalogFolder} entries={entries} batchId={library.data?.batchId ?? null}
+                        busyElsewhere={scan.busy || editingReview} onBusyChange={setExporting} onReview={() => navigate('organization')}/>}
+                </section>
+                <section hidden={view !== 'engine'} id="engine" aria-label="Silnik AI">{view === 'engine' && <EnginePage/>}</section>
                 <section hidden={view !== 'organization'} id="organization" aria-label="Analiza i przegląd propozycji">
-                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} countReady={catalogCount.isSuccess} scanning={scan.busy} active={view === 'organization'} organizeRequest={organizeRequest} onEditingChange={setEditingReview} onExportingChange={setExporting}/>
+                    {organizationVisited && (catalogFolder ? <OrganizationPanel key={catalogFolder} folderPath={catalogFolder} fileCount={catalogCount.data ?? counts.total ?? 0} countReady={catalogCount.isSuccess} scanning={scan.busy} active={view === 'organization'} organizeRequest={organizeRequest} exporting={exporting} onOpenCopy={() => navigate('copy')} onEditingChange={setEditingReview}/>
                         : <div className="catalog-empty"><FolderOpen size={32}/><h3>Najpierw wybierz folder.</h3><p>Po wybraniu folderu jego obrazy wczytują się same.</p><button className="secondary-button" onClick={() => setView('catalog')}>Wróć do katalogu</button></div>)}
                 </section>
                 <m.footer initial={{opacity: 0}} animate={{opacity: 1}} className="app-footer"><span><ShieldCheck size={14}/>Oryginały bez zmian. Decyzje należą do Ciebie.</span><span>ScreenSort · wersja rozwojowa</span></m.footer>

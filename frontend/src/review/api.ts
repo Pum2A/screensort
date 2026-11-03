@@ -35,6 +35,11 @@ export function readReview(batchId: string, fileId: number, signal?: AbortSignal
     return forFile(fileId, reviewPath(batchId, fileId), {signal})
 }
 
+/** "Cofnij": the decision with this revision is removed and the image waits for a decision again. */
+export function withdrawReview(batchId: string, fileId: number, revision: number, signal?: AbortSignal): Promise<BatchItem> {
+    return forFile(fileId, `${reviewPath(batchId, fileId)}?revision=${revision}`, {method: 'DELETE', signal})
+}
+
 export function saveReview(batchId: string, fileId: number, request: ReviewWrite, signal?: AbortSignal): Promise<BatchItem> {
     return forFile(fileId, reviewPath(batchId, fileId), {method: 'PUT', signal, body: request})
 }

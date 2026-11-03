@@ -35,6 +35,7 @@ pub fn run() {
             desktop::start_analysis_runtime,
             desktop::backend_request,
             desktop::backend_image,
+            desktop::folders::known_image_folders,
             updates::app_update_status,
             updates::check_app_update,
             updates::download_app_update,

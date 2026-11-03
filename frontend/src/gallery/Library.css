@@ -113,3 +113,92 @@
     .lib-bulk { left: 50%; max-width: calc(100vw - 32px); overflow-x: auto; }
     .lib-search input { width: 110px; }
 }
+
+/* Figma v1+ "04 · Skanowanie": the top row while the AI works. Ink border and hard shadow on the progress card, lime on "ready now". */
+.lib-live { grid-template-columns: minmax(0, 1fr) 232px 212px; }
+.lib-live-main { flex-direction: row; align-items: center; gap: 18px; border-color: var(--color-ink); box-shadow: 0 3px 0 var(--color-ink); }
+.lib-ring { flex-shrink: 0; transform: rotate(-90deg); }
+.lib-ring circle { fill: none; stroke-width: 8; stroke: var(--color-fill); }
+.lib-ring circle + circle { stroke: var(--color-ink); stroke-linecap: round; transition: stroke-dashoffset var(--motion-duration) var(--motion-ease); }
+.lib-live-count { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lib-live-count strong { display: flex; align-items: baseline; gap: 6px; font-size: 40px; font-weight: 700; letter-spacing: -.04em; line-height: 1; white-space: nowrap; }
+.lib-live-count strong > span { font-size: 18px; font-weight: 500; color: var(--color-muted); letter-spacing: 0; }
+.lib-live-count em { align-self: center; padding: 2px 6px; border-radius: var(--radius-badge); background: var(--color-lime); font: normal 500 11px var(--font-mono); letter-spacing: 0; color: var(--color-ink); }
+.lib-stages { display: flex; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.lib-stages li { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-line); border-radius: var(--radius-control); background: var(--color-canvas); }
+.lib-stages li > span { display: flex; flex-direction: column; font-size: 12px; font-weight: 600; }
+.lib-stages small { font: 400 10px var(--font-mono); color: var(--color-muted); }
+.lib-stages li[data-done="true"] { border-color: var(--color-ink); background: var(--color-ink); color: var(--color-surface); }
+.lib-stages li[data-done="true"] small { color: var(--color-lime); }
+.lib-stages li[data-active="true"] { border-color: var(--color-ink); }
+.lib-live-pause { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; }
+.lib-live-ready { border-color: var(--color-ink); background: var(--color-lime); box-shadow: 0 3px 0 var(--color-ink); }
+.lib-live-ready .lib-card-label, .lib-live-ready > small { color: var(--color-ink); }
+
+.lib-feed header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lib-feed h2 { margin: 0; padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-lime); font-size: 14px; font-weight: 700; }
+.lib-feed header small { font-size: 11px; color: var(--color-muted); }
+.lib-feed ol { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 0; padding: 0; list-style: none; min-height: 40px; }
+.lib-feed li { display: flex; align-items: center; gap: 10px; animation: lib-feed-in var(--motion-duration) var(--motion-ease); }
+.lib-feed-icon { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 7px; background: var(--color-fill); }
+.lib-feed li[data-kind="failed"] .lib-feed-icon { background: var(--color-warn-soft); color: var(--color-warn-ink); }
+.lib-feed-text { display: flex; flex-direction: column; min-width: 0; }
+.lib-feed-text strong { font-size: 13px; font-weight: 600; }
+.lib-feed-text small { font: 400 11px var(--font-mono); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-feed time { margin-left: auto; font: 400 11px var(--font-mono); color: var(--color-subtle); }
+.lib-feed-note { display: flex; flex-direction: column; gap: 2px; margin: 8px 0 0; padding: 10px 12px; border-radius: var(--radius-control); background: var(--color-canvas); font-size: 11px; color: var(--color-muted); }
+.lib-feed-note strong { font-size: 12px; color: var(--color-ink); }
+@keyframes lib-feed-in { from { opacity: 0; transform: translateY(-4px); } }
+
+/* Tiles while the AI works: the one being analysed gets an ink frame, the queue waits faded. */
+.lib-tile[data-state="queued"]:not([data-running="true"]) .lib-thumb { opacity: .55; }
+.lib-tile[data-running="true"] .lib-thumb { outline: 1.5px solid var(--color-ink); outline-offset: -1.5px; }
+.lib-tile[data-running="true"] .lib-name { color: var(--color-muted); }
+
+@media (max-width: 1100px) { .lib-live { grid-template-columns: 1fr 1fr; } .lib-live-main { grid-column: 1 / -1; flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .lib-feed li { animation: none; } .lib-ring circle + circle { transition: none; } }
+
+/* Figma v1+ "09 · Stany": the tile menu with its category submenu, and the undo toast. */
+.tile-menu { position: fixed; z-index: 70; display: flex; flex-direction: column; min-width: 232px; padding: 6px; border: 1px solid var(--color-line); border-radius: 14px; background: var(--color-surface); box-shadow: var(--shadow-float); }
+.tile-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; border-radius: 8px; background: transparent; color: var(--color-ink); font-size: 13px; font-weight: 500; text-align: left; }
+.tile-menu button:hover:not(:disabled), .tile-menu button:focus-visible { background: var(--color-fill); outline: none; }
+.tile-menu button:disabled { color: var(--color-subtle); }
+.tile-menu kbd { margin-left: auto; padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-fill); color: var(--color-muted); font: 500 10px var(--font-mono); }
+.tile-menu > button > :last-child:not(kbd):not(:first-child) { margin-left: auto; }
+.tile-menu-line { height: 1px; margin: 4px 6px; background: var(--color-fill); }
+.tile-submenu { position: absolute; left: calc(100% + 6px); top: 96px; display: flex; flex-direction: column; min-width: 180px; padding: 6px; border: 1px solid var(--color-line); border-radius: 14px; background: var(--color-surface); box-shadow: var(--shadow-float); }
+.tile-submenu button[aria-checked="true"] { background: var(--color-lime); font-weight: 600; }
+.tile-submenu button[aria-checked="true"] kbd { background: var(--color-ink); color: var(--color-lime); }
+
+.undo-toast { position: fixed; left: 50%; bottom: 24px; z-index: 65; translate: -50% 0; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 10px; overflow: hidden; border-radius: 999px; background: var(--color-ink); color: var(--color-surface); font-size: 13px; font-weight: 500; box-shadow: var(--shadow-float); animation: undo-in var(--motion-duration) var(--motion-ease); }
+.undo-toast-check { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--color-lime); color: var(--color-ink); }
+.undo-toast button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--color-ink-raised); border-radius: 999px; background: transparent; color: var(--color-lime); font-size: 13px; font-weight: 600; }
+.undo-toast button:hover:not(:disabled) { background: var(--color-ink-raised); }
+.undo-toast kbd { padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-ink-raised); color: var(--color-fill); font: 500 10px var(--font-mono); }
+.undo-toast > i { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: var(--color-lime); transform-origin: left; animation: undo-time 8s linear forwards; }
+@keyframes undo-in { from { opacity: 0; translate: -50% 8px; } }
+@keyframes undo-time { to { transform: scaleX(0); } }
+@media (prefers-reduced-motion: reduce) { .undo-toast, .undo-toast > i { animation: none; } }
+
+/* Figma v1+ "09 · Stany": search over names and the text on images, results under the field. */
+.lib-search-box { position: relative; }
+.lib-search { width: 260px; }
+.lib-search input { flex: 1; width: auto; min-width: 0; }
+.lib-search[data-active="true"] { background: var(--color-surface); box-shadow: inset 0 0 0 1.5px var(--color-ink); }
+.lib-search-clear { display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 50%; background: var(--color-line); color: var(--color-ink); }
+.lib-search-results { position: absolute; top: calc(100% + 6px); right: 0; z-index: 40; width: min(420px, calc(100vw - 32px)); padding: 6px; border: 1.5px solid var(--color-ink); border-radius: 14px; background: var(--color-surface); box-shadow: 0 3px 0 var(--color-ink); }
+.lib-search-head, .lib-search-foot, .lib-search-empty { margin: 0; padding: 6px 8px; font: 400 10px var(--font-mono); color: var(--color-muted); }
+.lib-search-foot { display: flex; align-items: center; gap: 6px; border-top: 1px solid var(--color-fill); margin-top: 4px; }
+.lib-search-foot kbd { padding: 1px 6px; border-radius: var(--radius-badge); background: var(--color-fill); font: 500 10px var(--font-mono); }
+.lib-search-empty { font-family: var(--font-sans); font-size: 13px; }
+.lib-search-results > button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: 10px; background: transparent; color: var(--color-ink); text-align: left; }
+.lib-search-results > button:hover, .lib-search-results > button:focus-visible { background: var(--color-fill); outline: none; }
+.lib-search-thumb { width: 54px; height: 36px; flex-shrink: 0; overflow: hidden; border-radius: 6px; background: var(--color-fill); }
+.lib-search-thumb .catalog-image { width: 100%; height: 100%; }
+.lib-search-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.lib-search-text strong { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-search-text small { font: 400 11px var(--font-mono); color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lib-search-text mark { padding: 0 2px; border-radius: 3px; background: var(--color-lime); color: var(--color-ink); }
+.lib-search-tag { flex-shrink: 0; padding: 2px 6px; border-radius: var(--radius-badge); background: var(--color-fill); font: 500 10px var(--font-mono); color: var(--color-muted); }
+.lib-search-tag[data-kind="name"] { background: var(--color-ink); color: var(--color-lime); }
+@media (max-width: 720px) { .lib-search { width: 100%; } .lib-search-box { flex: 1; } }

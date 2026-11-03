@@ -4,7 +4,7 @@
 
 **Turn a folder of screenshot chaos into named, sorted copies — on your own computer.**
 
-![Version](https://img.shields.io/badge/version-0.4.0_preview-191C1F?style=flat-square&labelColor=CDFF47)
+![Version](https://img.shields.io/badge/version-0.5.0_preview-191C1F?style=flat-square&labelColor=CDFF47)
 ![Windows](https://img.shields.io/badge/Windows-x64-191C1F?style=flat-square)
 ![Local first](https://img.shields.io/badge/AI-runs_locally-191C1F?style=flat-square)
 ![Java](https://img.shields.io/badge/Java_25-Spring_Boot_4-191C1F?style=flat-square&logo=openjdk&logoColor=white)
@@ -33,6 +33,7 @@ once, and ScreenSort then writes a **sorted copy** into category folders.
 - 🗂️ **Originals are never touched.** ScreenSort never renames, moves or deletes a source file. Only approved images are copied, and each copy is checked against its SHA-256.
 - ⚡ **Built for bulk.** Select many images (Shift+click, Ctrl+A), set a category with keys 1–5, and approve them all at once.
 - 🧩 **Finds duplicates.** Byte-identical files are grouped, and you choose which copy goes into the sorted folder.
+- 🔎 **Search what is on the image.** Find a screenshot by the text on it ("faktura", "git log") or by the app the AI recognised.
 
 > **Status:** working preview for Windows x64. The AI proposals are a first version and
 > need your review. This is an ongoing personal project, not a finished product.

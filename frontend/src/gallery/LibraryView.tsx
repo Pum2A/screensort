@@ -2,7 +2,8 @@ import {useEffect, useId, useMemo, useRef, useState} from 'react'
 import type {MouseEvent} from 'react'
 import {AnimatePresence} from 'motion/react'
 import {CatalogImage} from './CatalogImage.js'
-import {ImageDetailsDialog} from './details/ImageDetailsDialog.js'
+import {ImageViewer} from './details/ImageViewer.js'
+import {LiveFeed, LiveProgress, isLive, useLiveBatch, useLiveFeed} from './LiveProgress.js'
 import {imageUrl} from './catalogApi.js'
 import {formatSize} from './format.js'
 import {categoryLabels} from '../review/state.js'
@@ -13,10 +14,16 @@ import {categories, countEntries, duplicateGroups, filterEntries, isPending, las
     sortEntries, todayCount} from './model.js'
 import type {BulkAction, LibraryEntry, LibraryFilter, LibrarySort} from './model.js'
 import type {Library} from './libraryTypes.js'
-import {bulkMessage, useBulkReview} from './useBulkReview.js'
+import {bulkMessage, decidedMessage, useBulkReview, useUndoReview} from './useBulkReview.js'
+import type {UndoStep} from './useBulkReview.js'
+import {TileMenu, UndoToast} from './TileMenu.js'
+import {LibrarySearch} from './LibrarySearch.js'
+import type {TileAction} from './TileMenu.js'
+import {latestAnalysis} from '../analysis/api.js'
 import './Library.css'
 
 type Props = {
+    folderPath: string
     library: Library | undefined
     loading: boolean
     error: string | null
@@ -29,6 +36,7 @@ type Props = {
     /** One click: start the AI engine if needed, analyse the folder, show the proposals. */
     onOrganize: () => void
     onReview: () => void
+    onCopy: () => void
     onDuplicates: () => void
 }
 
@@ -48,10 +56,13 @@ function Badge({entry}: {entry: LibraryEntry}) {
     }
 }
 
-function Tile({entry, selected, onToggle, onOpen}: {entry: LibraryEntry, selected: boolean,
-    onToggle: (event: MouseEvent) => void, onOpen: (event: MouseEvent<HTMLButtonElement>) => void}) {
+function Tile({entry, selected, onToggle, onOpen, onMenu}: {entry: LibraryEntry, selected: boolean,
+    onToggle: (event: MouseEvent) => void, onOpen: (event: MouseEvent<HTMLButtonElement>) => void,
+    onMenu: (event: MouseEvent) => void}) {
     const src = imageUrl(entry.file, 'thumbnail')
-    return <div className="lib-tile" data-selected={selected} data-state={entry.state}>
+    // The model is looking at this one right now; the others in the queue wait faded.
+    const running = entry.item?.status === 'RUNNING'
+    return <div className="lib-tile" data-selected={selected} data-state={entry.state} data-running={running} onContextMenu={onMenu}>
         <button type="button" className="lib-thumb" aria-label={`${entry.file.originalName}, ${stateLabel[entry.state]}`} onClick={onOpen}>
             <CatalogImage key={src} src={src} name=""/>
         </button>
@@ -59,7 +70,7 @@ function Tile({entry, selected, onToggle, onOpen}: {entry: LibraryEntry, selecte
             className="lib-check" onClick={onToggle}>{selected && <PixelIcon name="check" size={10}/>}</button>
         <span className="lib-badges"><Badge entry={entry}/></span>
         {entry.copies > 1 && <span className="lib-copies" title="Identyczna treść w innym pliku">{entry.copies}×</span>}
-        <span className="lib-name" title={entry.file.originalName}>{entry.file.originalName}</span>
+        <span className="lib-name" title={entry.file.originalName}>{running ? 'AI analizuje…' : entry.file.originalName}</span>
     </div>
 }
 
@@ -68,30 +79,44 @@ function time(value: string | null): string {
 }
 
 /** Figma v1+ "01 · Biblioteka": the whole folder on one screen, filters by AI category, bulk decisions. */
-export function LibraryView({library, loading, error, onRetry, active, onScan, scanDisabled, onOrganize, onReview, onDuplicates}: Props) {
+export function LibraryView({folderPath, library, loading, error, onRetry, active, onScan, scanDisabled, onOrganize, onReview, onCopy, onDuplicates}: Props) {
     const [filter, setFilter] = useState<LibraryFilter>('all')
     const [sort, setSort] = useState<LibrarySort>('newest')
     const [query, setQuery] = useState('')
+    const [textIds, setTextIds] = useState<ReadonlySet<number> | null>(null)
     const [selected, setSelected] = useState<ReadonlySet<number>>(new Set())
     const [anchor, setAnchor] = useState<number | null>(null)
     const [menuOpen, setMenuOpen] = useState(false)
     const [notice, setNotice] = useState<string | null>(null)
     const [previewId, setPreviewId] = useState<number | null>(null)
     const previewTrigger = useRef<HTMLButtonElement | null>(null)
-    const dialogId = useId(), searchId = useId(), sortId = useId()
+    const sortId = useId()
     const bulk = useBulkReview(library?.batchId ?? null)
+    const undo = useUndoReview(library?.batchId ?? null)
+    const [menu, setMenu] = useState<{entry: LibraryEntry, x: number, y: number} | null>(null)
+    const [toast, setToast] = useState<{message: string, steps: UndoStep[]} | null>(null)
+    const liveQuery = useLiveBatch(folderPath)
+    const liveBatch = isLive(liveQuery.data) ? liveQuery.data : null
 
     const entries = useMemo(() => library ? libraryEntries(library) : [], [library])
+    const events = useLiveFeed(entries, liveBatch !== null)
+    const [now, setNow] = useState(() => Date.now())
+    useEffect(() => {
+        if (!liveBatch) return
+        const timer = window.setInterval(() => setNow(Date.now()), 1000)
+        return () => window.clearInterval(timer)
+    }, [liveBatch])
     const counts = useMemo(() => countEntries(entries), [entries])
     const duplicates = useMemo(() => duplicateGroups(library?.files ?? []), [library])
-    const visible = useMemo(() => sortEntries(filterEntries(entries, filter, query), sort), [entries, filter, query, sort])
+    const visible = useMemo(() => sortEntries(filterEntries(entries, filter, query, textIds), sort), [entries, filter, query, textIds, sort])
     const order = useMemo(() => visible.map(entry => entry.file.id), [visible])
     // Only what is on screen: a file hidden by a filter or gone after a rescan is never acted on.
     const chosen = visible.filter(entry => selected.has(entry.file.id))
     const preview = entries.find(entry => entry.file.id === previewId)
 
     useEffect(() => {
-        if (!active) return
+        // The image viewer has its own keys; the grid underneath must not react to them.
+        if (!active || previewId !== null) return
         function onKey(event: KeyboardEvent) {
             const typing = event.target instanceof HTMLElement && event.target.closest('input, textarea, select, dialog')
             if (typing) return
@@ -100,7 +125,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
         }
         window.addEventListener('keydown', onKey)
         return () => window.removeEventListener('keydown', onKey)
-    }, [active, order])
+    }, [active, order, previewId])
 
     function toggle(id: number, event: MouseEvent) {
         setSelected(current => {
@@ -122,9 +147,29 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
     function decide(target: LibraryEntry[], action: BulkAction) {
         setMenuOpen(false); setNotice(null)
         bulk.mutate({entries: target, action}, {
-            onSuccess: result => { setNotice(bulkMessage(result)); if (!result.failed) setSelected(new Set()) },
+            onSuccess: result => {
+                // A clean result can be taken back from the toast; anything partial is explained in the notice.
+                if (result.undo.length > 0 && !result.failed && !result.blocked) {
+                    const category = action.decision === 'APPROVED' && action.category ? categoryLabels[action.category] : null
+                    setToast({message: decidedMessage(action, result.saved, category), steps: result.undo})
+                } else setNotice(bulkMessage(result))
+                if (!result.failed) setSelected(new Set())
+            },
             onError: cause => setNotice(cause instanceof Error ? cause.message : 'Nie udało się zapisać decyzji.'),
         })
+    }
+
+    async function act(entry: LibraryEntry, action: TileAction) {
+        if (action.kind === 'open' || action.kind === 'rename') setPreviewId(entry.file.id)
+        else if (action.kind === 'approve') decide([entry], {decision: 'APPROVED'})
+        else if (action.kind === 'category') decide([entry], {decision: 'APPROVED', category: action.category})
+        else if (action.kind === 'skip') decide([entry], {decision: 'SKIPPED'})
+        else {
+            const saved = await latestAnalysis(entry.file.id).catch(() => null)
+            const text = saved?.result.ocr.status === 'COMPLETED' ? saved.result.ocr.result.text.trim() : ''
+            if (!text) {setNotice('Na tym obrazie nie odczytano tekstu.'); return}
+            await navigator.clipboard?.writeText(text).then(() => setNotice('Skopiowano tekst z obrazu.'), () => setNotice('Nie udało się skopiować tekstu.'))
+        }
     }
 
     if (error) return <div className="catalog-empty catalog-empty-error"><h3>Biblioteka jest niedostępna</h3><p role="alert">{error}</p>
@@ -144,7 +189,9 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
     const allVisible = order.length > 0 && order.every(id => selected.has(id))
 
     return <div className="library">
-        <div className="lib-cards">
+        {liveBatch ? <LiveProgress batch={liveBatch} sure={sure} approveBusy={bulkBusy} onApproveSure={() => decide(sure, {decision: 'APPROVED'})}
+            onShowFailed={() => {const failed = entries.find(entry => entry.state === 'failed'); if (failed) setPreviewId(failed.file.id)}}/>
+        : <div className="lib-cards">
             <section className="lib-card lib-stats" aria-label="Podsumowanie folderu">
                 <div className="lib-total"><span className="lib-card-label">Obrazy w folderze</span>
                     <strong>{total}{today > 0 && <span className="lib-today">+{today} dziś</span>}</strong>
@@ -152,7 +199,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                 <div className="lib-quick">
                     <button disabled={scanDisabled} onClick={onScan} title="Wczytaj folder ponownie"><span><PixelIcon name="scan" size={14}/></span>Odśwież</button>
                     <button className="lib-quick-main" disabled={scanDisabled} onClick={onOrganize}><span><PixelIcon name="sparkles" size={14}/></span>Uporządkuj z AI</button>
-                    <button onClick={onReview}><span><PixelIcon name="download" size={14}/></span>Kopia</button>
+                    <button onClick={onCopy}><span><PixelIcon name="download" size={14}/></span>Kopia</button>
                 </div>
                 <div className="lib-progress">
                     <div className="lib-bar" aria-hidden="true"><i className="lib-bar-ink" style={{width: share(counts.approved)}}/>
@@ -172,7 +219,7 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                 <small>{duplicates.length ? `${formatSize(extraBytes)} w powtórzonych plikach` : 'Brak identycznych plików'}</small>
                 <button className="secondary-button" disabled={duplicates.length === 0} onClick={onDuplicates}>Porównaj</button>
             </section>
-        </div>
+        </div>}
 
         <div className="lib-toolbar">
             <div className="lib-chips" role="group" aria-label="Filtr biblioteki">
@@ -182,8 +229,8 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                     <button key={category} aria-pressed={filter === category} onClick={() => setFilter(category)}>{categoryLabels[category]}<span>{counts.byCategory[category].total}</span></button>)}
             </div>
             <div className="lib-tools">
-                <label className="lib-search" htmlFor={searchId}><PixelIcon name="search"/><span className="sr-only">Szukaj nazwy</span>
-                    <input id={searchId} value={query} placeholder="Szukaj nazwy" onChange={event => setQuery(event.target.value)}/></label>
+                <LibrarySearch folderPath={folderPath} entries={entries} query={query} onQuery={setQuery} onTextHits={setTextIds}
+                    onOpen={fileId => setPreviewId(fileId)}/>
                 <label className="sr-only" htmlFor={sortId}>Kolejność</label>
                 <select id={sortId} className="lib-sort" value={sort} onChange={event => setSort(event.target.value === 'name' ? 'name' : 'newest')}>
                     <option value="newest">Najnowsze</option><option value="name">Nazwa</option></select>
@@ -199,9 +246,11 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
                 {visible.length === 0 ? <div className="catalog-empty"><h3>Nic tu nie pasuje.</h3>
                     <button className="text-button" onClick={() => {setFilter('all'); setQuery('')}}>Pokaż wszystkie</button></div>
                     : <div className="lib-grid">{visible.map(entry => <Tile key={entry.file.id} entry={entry} selected={selected.has(entry.file.id)}
-                        onToggle={event => toggle(entry.file.id, event)} onOpen={event => open(entry, event)}/>)}</div>}
+                        onToggle={event => toggle(entry.file.id, event)} onOpen={event => open(entry, event)}
+                        onMenu={event => {event.preventDefault(); setMenu({entry, x: event.clientX, y: event.clientY})}}/>)}</div>}
             </section>
             <aside className="lib-side">
+                {liveBatch && <LiveFeed events={events} now={now}/>}
                 <section className="lib-card lib-categories" aria-label="Kategorie">
                     <h2>Kategorie</h2>
                     {library.batchId ? categories.map(category => {
@@ -232,7 +281,14 @@ export function LibraryView({library, loading, error, onRetry, active, onScan, s
             <button className="lib-bulk-close" aria-label="Odznacz wszystkie" onClick={() => {setSelected(new Set()); setMenuOpen(false)}}><PixelIcon name="x" size={10}/></button>
         </div>}
 
-        <AnimatePresence>{preview && <ImageDetailsDialog key={preview.file.id} id={dialogId} file={preview.file}
-            trigger={previewTrigger} onClose={() => setPreviewId(null)}/>}</AnimatePresence>
+        {menu && <TileMenu entry={menu.entry} x={menu.x} y={menu.y} canDecide={!!library.batchId && !bulkBusy}
+            onClose={() => setMenu(null)} onAction={action => {setMenu(null); void act(menu.entry, action)}}/>}
+        {toast && <UndoToast key={toast.message + toast.steps.length} message={toast.message} busy={undo.isPending}
+            onDismiss={() => setToast(null)}
+            onUndo={() => undo.mutate(toast.steps, {onSettled: failed => {setToast(null); if (failed) setNotice(`Nie udało się cofnąć ${failed} decyzji: zmieniły się w międzyczasie.`)}})}/>}
+
+        <AnimatePresence>{preview && <ImageViewer entries={visible.some(entry => entry.file.id === preview.file.id) ? visible : entries}
+            fileId={preview.file.id} batchId={library.batchId ?? null} trigger={previewTrigger}
+            onNavigate={setPreviewId} onClose={() => setPreviewId(null)}/>}</AnimatePresence>
     </div>
 }
