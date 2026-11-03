@@ -538,6 +538,7 @@ fn allowed(method: &str, path: &str, image: bool) -> bool {
                 route,
                 "/api/catalog/page"
                     | "/api/library"
+                    | "/api/library/search"
                     | "/api/organization/batches/latest"
                     | "/api/settings/naming-language"
                     | "/api/settings/auto-analysis"
@@ -727,6 +728,12 @@ mod tests {
         assert!(!allowed("GET", "/_internal/update-ready", false));
         assert!(allowed("GET", "/api/catalog/page?folderPath=test", false));
         assert!(allowed("GET", "/api/library?folderPath=test", false));
+        assert!(allowed(
+            "GET",
+            "/api/library/search?folderPath=test&q=faktura",
+            false
+        ));
+        assert!(!allowed("POST", "/api/library/search", false));
         assert!(!allowed("POST", "/api/library", false));
         assert!(allowed("GET", "/api/settings/naming-language", false));
         assert!(allowed("PUT", "/api/settings/naming-language", false));
