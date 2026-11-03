@@ -14,9 +14,11 @@ function stepSchema<T extends z.ZodType>(result: T) {
 const ocrResultSchema = z.object({
     text: z.string(), engine: z.string(), engine_version: z.string(), duration_ms: z.number(),
 })
+// Filled only by the Qwen engine (AnalysisResult.Subject in Java).
+const subjectSchema = z.object({app: z.string(), topic_pl: z.string(), topic_en: z.string(), category: z.string()})
 const visualResultSchema = z.object({
     description: z.string(), model: z.string(), model_revision: z.string(),
-    task: z.string(), device: z.string(), duration_ms: z.number(),
+    task: z.string(), device: z.string(), duration_ms: z.number(), subject: subjectSchema.nullish(),
 })
 
 export const savedAnalysisSchema = z.object({
