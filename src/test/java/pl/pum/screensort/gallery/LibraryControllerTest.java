@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class LibraryControllerTest {
 
   private static MockMvc mockMvc(LibraryReader reader) {
-    return MockMvcBuilders.standaloneSetup(new LibraryController(reader))
+    return MockMvcBuilders.standaloneSetup(new LibraryController(reader, org.mockito.Mockito.mock(TextSearch.class)))
         .setMessageConverters(new StringHttpMessageConverter(StandardCharsets.UTF_8))
         .build();
   }

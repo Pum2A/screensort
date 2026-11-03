@@ -41,6 +41,7 @@ function evidence(id: number) {
         ocr: {status: 'COMPLETED', error: null, result: {text: texts[variant], engine: 'RapidOCR', engine_version: 'fixture', duration_ms: 112}},
         visual: {status: 'COMPLETED', error: null, result: {description: captions[variant], model: 'Florence-2 (dane testowe)', model_revision: 'fixture', task: 'caption', device: 'cpu', duration_ms: 1250}}}}
 }
+const evidenceText = (id: number) => texts[(id - 1) % 6].replace(/\s+/g, ' ')
 function advance() {
     if (job.status !== 'RUNNING') return
     const next = rows.findIndex(row => row.status === 'PENDING')
@@ -77,6 +78,14 @@ window.fetch = async (input, options) => {
                 originalName: row.originalName, category: row.review!.category, approvedName: row.approvedName}))
         return Response.json({files: approved.slice(pageNumber * 50, (pageNumber + 1) * 50), pageNumber, pageSize: 50,
             totalFiles: approved.length, hasNext: (pageNumber + 1) * 50 < approved.length})
+    }
+    if (url.pathname === '/api/library/search') {
+        const q = (url.searchParams.get('q') ?? '').toLowerCase()
+        const hits = rows.filter(row => evidenceText(row.fileId).toLowerCase().includes(q)).slice(0, 20).map(row => {
+            const text = evidenceText(row.fileId), at = text.toLowerCase().indexOf(q)
+            return {fileId: row.fileId, source: 'TEXT', before: text.slice(Math.max(0, at - 20), at), match: text.slice(at, at + q.length), after: text.slice(at + q.length, at + q.length + 30)}
+        })
+        return Response.json({hits})
     }
     if (url.pathname === '/api/library') {
         if (query.has('error')) return Response.json({code: 'FIXTURE_UNAVAILABLE'}, {status: 503})

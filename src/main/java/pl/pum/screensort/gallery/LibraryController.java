@@ -16,15 +16,24 @@ public class LibraryController {
   private static final Logger log = LoggerFactory.getLogger(LibraryController.class);
 
   private final LibraryReader library;
+  private final TextSearch search;
 
-  public LibraryController(LibraryReader library) {
-    this.library = library;
+  public LibraryController(LibraryReader library, TextSearch search) {
+    this.library = library; this.search = search;
   }
+
+  public record SearchResult(java.util.List<TextSearch.Hit> hits) {}
 
   @GetMapping("/api/library")
   public ResponseEntity<LibraryReader.Library> read(@RequestParam String folderPath) throws IOException {
     // Decisions change between two reads, so the library is never served from a cache.
     return ResponseEntity.ok().header("Cache-Control", "no-store").body(library.read(folderPath));
+  }
+
+  /** Images whose text or AI description contains {@code q}; names are filtered in the app itself. */
+  @GetMapping("/api/library/search")
+  public ResponseEntity<SearchResult> search(@RequestParam String folderPath, @RequestParam String q) throws IOException {
+    return ResponseEntity.ok().header("Cache-Control", "no-store").body(new SearchResult(search.search(folderPath, q)));
   }
 
   @ExceptionHandler(InvalidScanFolderException.class)

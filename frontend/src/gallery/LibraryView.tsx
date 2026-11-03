@@ -17,6 +17,7 @@ import type {Library} from './libraryTypes.js'
 import {bulkMessage, decidedMessage, useBulkReview, useUndoReview} from './useBulkReview.js'
 import type {UndoStep} from './useBulkReview.js'
 import {TileMenu, UndoToast} from './TileMenu.js'
+import {LibrarySearch} from './LibrarySearch.js'
 import type {TileAction} from './TileMenu.js'
 import {latestAnalysis} from '../analysis/api.js'
 import './Library.css'
@@ -82,13 +83,14 @@ export function LibraryView({folderPath, library, loading, error, onRetry, activ
     const [filter, setFilter] = useState<LibraryFilter>('all')
     const [sort, setSort] = useState<LibrarySort>('newest')
     const [query, setQuery] = useState('')
+    const [textIds, setTextIds] = useState<ReadonlySet<number> | null>(null)
     const [selected, setSelected] = useState<ReadonlySet<number>>(new Set())
     const [anchor, setAnchor] = useState<number | null>(null)
     const [menuOpen, setMenuOpen] = useState(false)
     const [notice, setNotice] = useState<string | null>(null)
     const [previewId, setPreviewId] = useState<number | null>(null)
     const previewTrigger = useRef<HTMLButtonElement | null>(null)
-    const searchId = useId(), sortId = useId()
+    const sortId = useId()
     const bulk = useBulkReview(library?.batchId ?? null)
     const undo = useUndoReview(library?.batchId ?? null)
     const [menu, setMenu] = useState<{entry: LibraryEntry, x: number, y: number} | null>(null)
@@ -106,7 +108,7 @@ export function LibraryView({folderPath, library, loading, error, onRetry, activ
     }, [liveBatch])
     const counts = useMemo(() => countEntries(entries), [entries])
     const duplicates = useMemo(() => duplicateGroups(library?.files ?? []), [library])
-    const visible = useMemo(() => sortEntries(filterEntries(entries, filter, query), sort), [entries, filter, query, sort])
+    const visible = useMemo(() => sortEntries(filterEntries(entries, filter, query, textIds), sort), [entries, filter, query, textIds, sort])
     const order = useMemo(() => visible.map(entry => entry.file.id), [visible])
     // Only what is on screen: a file hidden by a filter or gone after a rescan is never acted on.
     const chosen = visible.filter(entry => selected.has(entry.file.id))
@@ -227,8 +229,8 @@ export function LibraryView({folderPath, library, loading, error, onRetry, activ
                     <button key={category} aria-pressed={filter === category} onClick={() => setFilter(category)}>{categoryLabels[category]}<span>{counts.byCategory[category].total}</span></button>)}
             </div>
             <div className="lib-tools">
-                <label className="lib-search" htmlFor={searchId}><PixelIcon name="search"/><span className="sr-only">Szukaj nazwy</span>
-                    <input id={searchId} value={query} placeholder="Szukaj nazwy" onChange={event => setQuery(event.target.value)}/></label>
+                <LibrarySearch folderPath={folderPath} entries={entries} query={query} onQuery={setQuery} onTextHits={setTextIds}
+                    onOpen={fileId => setPreviewId(fileId)}/>
                 <label className="sr-only" htmlFor={sortId}>Kolejność</label>
                 <select id={sortId} className="lib-sort" value={sort} onChange={event => setSort(event.target.value === 'name' ? 'name' : 'newest')}>
                     <option value="newest">Najnowsze</option><option value="name">Nazwa</option></select>
