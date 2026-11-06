@@ -1,5 +1,8 @@
 ## ScreenSort Windows x64 preview
 
+Fixed in 0.5.1: downloading a Qwen model in "Silnik AI" no longer stops right after the engine
+download. The engine part already downloaded is reused, so the download continues with the model.
+
 New in 0.5.0: every screen of the new design, plus search in the text on your images.
 
 - Opening an image fills the window: zoom, rotate and full screen, neighbouring images
