@@ -164,14 +164,21 @@ pub fn extract_verified(
             return Err("Pakiet zawiera dowiązanie lub niedozwoloną ścieżkę.".into());
         }
         let first = name.split('/').next().unwrap_or("");
-        if !matches!(
-            first,
-            "python"
-                | "models"
-                | "THIRD-PARTY-NOTICES.md"
-                | "FLORENCE-LICENSE.txt"
-                | "runtime-manifest.json"
-        ) {
+        let allowed = if spec.kind == "qwen" {
+            // The llama.cpp release ZIP is flat: llama-server.exe and its DLLs sit at the top.
+            // Model files are downloaded separately, so nested paths stay forbidden.
+            !name.contains('/') && !name.eq_ignore_ascii_case("installed.json")
+        } else {
+            matches!(
+                first,
+                "python"
+                    | "models"
+                    | "THIRD-PARTY-NOTICES.md"
+                    | "FLORENCE-LICENSE.txt"
+                    | "runtime-manifest.json"
+            )
+        };
+        if !allowed {
             return Err("Archiwum próbuje instalować pliki spoza pakietu AI.".into());
         }
         if !names.insert(name.trim_end_matches('/').to_ascii_lowercase()) {

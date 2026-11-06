@@ -133,6 +133,44 @@ fn rejects_unsafe_zip_payloads_and_leaves_no_installation() {
 }
 
 #[test]
+fn qwen_extracts_the_flat_llama_archive_but_nothing_nested() {
+    let entries: [(&str, &[u8]); 2] = [("llama-server.exe", b"server"), ("ggml.dll", b"dll")];
+    let (mut input, mut spec) = fixture(&entries);
+    spec.kind = "qwen".into();
+    spec.required_files = vec!["llama-server.exe".into(), "models/qwen.gguf".into()];
+    spec.files = vec![catalog::FileSpec {
+        path: "models/qwen.gguf".into(),
+        url: String::new(),
+        sha256: "0".repeat(64),
+        bytes: 1,
+    }];
+    let stage = tempfile::tempdir().unwrap();
+    archive::extract_verified(input.as_file_mut(), stage.path(), &spec, &|| false, |_| {}).unwrap();
+    assert_eq!(
+        fs::read(stage.path().join("llama-server.exe")).unwrap(),
+        b"server"
+    );
+
+    for name in ["models/qwen.gguf", "python/python.exe", "installed.json"] {
+        let (mut input, mut nested) = fixture(&[(name, b"x")]);
+        nested.kind = "qwen".into();
+        nested.required_files = Vec::new();
+        let stage = tempfile::tempdir().unwrap();
+        assert!(
+            archive::extract_verified(
+                input.as_file_mut(),
+                stage.path(),
+                &nested,
+                &|| false,
+                |_| {}
+            )
+            .is_err(),
+            "{name}"
+        );
+    }
+}
+
+#[test]
 fn rejects_false_expansion_size_and_count() {
     let (mut input, spec) = fixture(&[("python/python.exe", b"abc")]);
     for (bytes, count) in [(2, 1), (4, 1), (3, 2)] {
