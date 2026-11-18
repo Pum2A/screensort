@@ -1,7 +1,30 @@
 # ScreenSort — stan projektu i punkt dalszej pracy
 
-Sprawdzone 2026-10-26. Bieżący etap źródłowy: **0.3.2 preview**.
+Sprawdzone 2026-11-03. Bieżący etap źródłowy: **0.5.0 preview**.
 To mapa aktualnego kodu, nie deklaracja gotowości produkcyjnej ani pełny audyt bezpieczeństwa.
+
+Wydanie 0.5.0 (PR #58–#64, wydanie #65): wszystkie ekrany v1+ z Figmy. Pełnoekranowy podgląd
+zdjęcia z decyzją obok (Enter / S / 1–5), ekran pierwszego startu (przeciąganie folderu, komenda
+Rust `known_image_folders`), postęp analizy na żywo w bibliotece, strona „Silnik AI”, widok „Kopie”
+z drzewem kategorii, menu pod prawym przyciskiem i „Cofnij” (nowe `DELETE …/review?revision=N`)
+oraz wyszukiwanie w tekście z obrazów i opisie AI (`GET /api/library/search`). Wydanie 0.5.0
+zostało opublikowane 2026-11-03 w kanale `updates-preview`. Test w zainstalowanej aplikacji
+(pobranie modelu Qwen, przeciąganie folderu, zapis kopii) czeka na właściciela.
+
+Wydanie 0.4.0 (PR #51–#55, wydanie #56): nowy silnik obrazu Qwen 3.5. Java
+rozmawia z lokalnym `llama-server` (llama.cpp) przez interfejs `AnalysisEngine`
+i wymusza odpowiedź schematem JSON (aplikacja, temat PL/EN, kategoria); z tego
+powstaje nazwa i kategoria. `FallbackAnalysisEngine`: Qwen ogląda obraz, Python
+(RapidOCR) czyta tekst i przejmuje całą analizę, gdy Qwen nie działa. W aplikacji
+pakiety AI „Qwen 3.5 4B / 2B”: serwer z oficjalnego wydania llama.cpp, model z
+Hugging Face przypięty do commita, każdy plik z własnym SHA-256; Rust wykrywa
+kartę Vulkan, w razie braku pamięci GPU startuje na CPU, klucz w `LLAMA_API_KEY`.
+Folder wczytuje się sam po wyborze i przy starcie aplikacji (bez „Skanuj”), jeden
+przycisk „Uporządkuj z AI” sam uruchamia silnik, a opcja „Analizuj nowe zdjęcia
+automatycznie” (domyślnie wyłączona) analizuje nowe zrzuty po wczytaniu folderu.
+Awaria silnika AI wyłącza już tylko analizę, nie cały katalog. Wydanie 0.4.0
+zostało opublikowane 2026-10-30 w kanale `updates-preview`. Pełne pobranie
+modelu i start Qwena w zainstalowanej aplikacji czeka na test właściciela.
 
 Aktualizacja 0.3.2 (PR #39, #41, #42, wydanie #43): ponowna analiza folderu
 używa zapisanych wyników obrazów o niezmienionej treści i opcjach, więc po
