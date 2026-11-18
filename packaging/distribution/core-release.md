@@ -1,5 +1,8 @@
 ## ScreenSort Windows x64 preview
 
+Security fix in 0.5.2: the built-in Java runtime no longer uses the fast Base64 decoder affected
+by CVE-2026-114938 ("Java4Shell"). Nothing else changed, and nothing needs to be downloaded again.
+
 Fixed in 0.5.1: downloading a Qwen model in "Silnik AI" no longer stops right after the engine
 download. The engine part already downloaded is reused, so the download continues with the model.
 
