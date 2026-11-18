@@ -93,7 +93,9 @@ const CLOSING: &str = "Aplikacja kończy pracę.";
 
 fn java_command(runtime: &Path, launch: &JavaLaunch, state: &Path) -> Command {
     let mut java = Command::new(runtime.join("java/bin/java.exe"));
-    java.args(["-Xmx512m", "-jar"])
+    // -XX:-UseBASE64Intrinsics closes CVE-2026-114938 ("Java4Shell"), a buffer overflow in the
+    // AVX-512 Base64 decoder, until the bundled runtime is a fixed build. Costs nothing here.
+    java.args(["-Xmx512m", "-XX:-UseBASE64Intrinsics", "-jar"])
         .arg(runtime.join("backend.jar"))
         .arg("--spring.profiles.active=desktop")
         .env(
